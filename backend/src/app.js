@@ -51,10 +51,21 @@ export function createApp() {
       origin: (origin, callback) => {
         const allowed = [env.FRONTEND_URL];
         if (env.NODE_ENV !== 'production') {
-          allowed.push('http://localhost:3000', 'http://127.0.0.1:3000');
+          allowed.push(
+            'http://localhost:3000',
+            'http://127.0.0.1:3000',
+            'http://localhost:3004',
+            'http://127.0.0.1:3004'
+          );
         }
-        // Allow requests with no origin (Postman, curl, mobile apps)
-        if (!origin || allowed.includes(origin)) {
+        // Dynamic check: allow matches on localhost, 127.0.0.1, or VPS IP
+        const isAllowedPattern = origin && (
+          origin.startsWith('http://localhost:') ||
+          origin.startsWith('http://127.0.0.1:') ||
+          origin.includes('72.61.169.195')
+        );
+
+        if (!origin || allowed.includes(origin) || isAllowedPattern) {
           callback(null, true);
         } else {
           callback(new Error(`CORS: origin ${origin} not allowed`));
