@@ -10,8 +10,8 @@ Point your domains and subdomains to your VPS IP address by creating **A Records
 
 | Type | Host / Name | Value (Target) | Description |
 |---|---|---|---|
-| A | `dlvsaas.com` | `your_vps_ip` | Frontend PWA Web Interface |
-| A | `api.dlvsaas.com` | `your_vps_ip` | Backend REST API Service |
+| A | `frunko.in` | `your_vps_ip` | Frontend PWA Web Interface |
+| A | `api.frunko.in` | `your_vps_ip` | Backend REST API Service |
 
 ---
 
@@ -69,7 +69,7 @@ Make sure to change the following values in production:
 - `DATABASE_URL` — set custom secure password.
 - `JWT_ACCESS_SECRET` & `JWT_REFRESH_SECRET` — generate 32+ character random strings.
 - `QR_HMAC_SECRET` — secure rotatable signing token.
-- `FRONTEND_URL` & `BACKEND_URL` — configure to your domains (`https://dlvsaas.com` and `https://api.dlvsaas.com`).
+- `FRONTEND_URL` & `BACKEND_URL` — configure to your domains (`https://frunko.in` and `https://api.frunko.in`).
 - `OTP_PROVIDER` — switch to `msg91` or `twilio` and input keys.
 - `RAZORPAY_KEY_ID` & `RAZORPAY_KEY_SECRET` — add production keys.
 
@@ -117,12 +117,12 @@ Paste the following configurations:
 # Digital Loyalty Voucher SaaS — Nginx Server Config
 # ==========================================================
 
-# ─── FRONTEND (Next.js) ──────────────────────────────────
+# ─── FRONTEND (Vite PWA) ──────────────────────────────────
 server {
-    server_name dlvsaas.com;
+    server_name frunko.in;
 
     location / {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://localhost:3004;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -132,7 +132,7 @@ server {
 
     # Static uploads redirect (served by nginx volume or api)
     location /uploads/ {
-        proxy_pass http://localhost:4000/uploads/;
+        proxy_pass http://localhost:6003/uploads/;
         expires 30d;
         add_header Cache-Control "public, no-transform";
     }
@@ -140,10 +140,10 @@ server {
 
 # ─── BACKEND API (Express) ──────────────────────────────
 server {
-    server_name api.dlvsaas.com;
+    server_name api.frunko.in;
 
     location / {
-        proxy_pass http://localhost:4000;
+        proxy_pass http://localhost:6003;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -163,7 +163,7 @@ sudo systemctl restart nginx
 ### Secure with Let's Encrypt SSL
 Use Certbot to automatically issue and configure SSL certificates:
 ```bash
-sudo certbot --nginx -d dlvsaas.com -d api.dlvsaas.com
+sudo certbot --nginx -d frunko.in -d api.frunko.in
 ```
 
 Select option `2` to redirect all HTTP traffic to HTTPS. Certbot will automatically install cron renew jobs.
@@ -174,9 +174,9 @@ Select option `2` to redirect all HTTP traffic to HTTPS. Certbot will automatica
 
 Verify that your installation is online and running correctly:
 
-- App Health Check: `https://api.dlvsaas.com/health` (should return status: "ok")
-- App API Docs: `https://api.dlvsaas.com/api/docs` (interactive Swagger UI)
-- Frontend Home: `https://dlvsaas.com/login` (login interface)
+- App Health Check: `https://api.frunko.in/health` (should return status: "ok")
+- App API Docs: `https://api.frunko.in/api/docs` (interactive Swagger UI)
+- Frontend Home: `https://frunko.in/login` (login interface)
 
 ### Logs Auditing
 To inspect container log outputs, run:
