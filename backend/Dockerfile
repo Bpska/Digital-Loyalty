@@ -1,7 +1,7 @@
 # ── Base ───────────────────────────────────────────────────────
 FROM node:20-alpine AS base
 WORKDIR /app
-RUN apk add --no-cache dumb-init
+RUN apk add --no-cache dumb-init openssl
 
 # ── Dependencies ───────────────────────────────────────────────
 FROM base AS deps
