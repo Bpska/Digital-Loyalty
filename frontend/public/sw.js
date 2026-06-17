@@ -1,9 +1,8 @@
 const CACHE_NAME = "dlv-pwa-cache-v1";
 const ASSETS_TO_CACHE = [
   "/",
-  "/login",
-  "/manifest.json",
-  "/globals.css"
+  "/index.html",
+  "/manifest.json"
 ];
 
 self.addEventListener("install", (event) => {
@@ -38,17 +37,18 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Do NOT intercept API calls (allow them to pass through normally)
+  if (event.request.url.includes("/api/v1/")) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
         return cachedResponse;
       }
       return fetch(event.request).then((response) => {
-        // Cache new static assets dynamically if needed
         return response;
-      }).catch(() => {
-        // Fallback for offline API request
-        return caches.match("/offline");
       });
     })
   );
