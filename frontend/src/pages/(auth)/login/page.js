@@ -99,7 +99,7 @@ export default function LoginPage() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === "customer" && _optionalChain([(window ), 'access', _4 => _4.google, 'optionalAccess', _5 => _5.accounts, 'optionalAccess', _6 => _6.id])) {
+    if (googleInitialized && activeTab === "customer" && _optionalChain([(window ), 'access', _4 => _4.google, 'optionalAccess', _5 => _5.accounts, 'optionalAccess', _6 => _6.id])) {
       setTimeout(() => {
         const btnContainer = document.getElementById("google-signin-btn");
         if (btnContainer) {
