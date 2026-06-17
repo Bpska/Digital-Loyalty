@@ -26,14 +26,14 @@ export function useGeolocation() {
 
       const optionsHigh = {
         enableHighAccuracy: true,
-        timeout: 12000,     // 12 seconds
-        maximumAge: 10000,  // Allow 10 seconds old cached position
+        timeout: 25000,     // 25 seconds (gives user enough time to approve the browser permission prompt)
+        maximumAge: 60000,  // Allow 1 minute old cached position for fast loading
       };
 
       const optionsLow = {
         enableHighAccuracy: false,
-        timeout: 8000,      // 8 seconds
-        maximumAge: 30000,  // Allow 30 seconds old cached position
+        timeout: 15000,     // 15 seconds
+        maximumAge: 300000, // Allow 5 minutes old cached position
       };
 
       const handleSuccess = (position) => {
@@ -57,9 +57,9 @@ export function useGeolocation() {
               if (lowError.code === lowError.PERMISSION_DENIED) {
                 errorMsg = "Location access denied. Please enable GPS permissions to check in.";
               } else if (lowError.code === lowError.POSITION_UNAVAILABLE) {
-                errorMsg = "Location information is unavailable. Check your device GPS connection.";
+                errorMsg = "Location information is unavailable. Please check your device GPS connection.";
               } else if (lowError.code === lowError.TIMEOUT) {
-                errorMsg = "The request to get your location timed out. Please stand near a window or turn on WiFi.";
+                errorMsg = "Location request timed out. Please ensure GPS is turned ON in your phone settings and try again.";
               }
               setState({ loading: false, coords: null, error: errorMsg });
               reject(new Error(errorMsg));
@@ -75,10 +75,10 @@ export function useGeolocation() {
             errorMsg = "Location access denied. Please enable GPS permissions to check in.";
             break;
           case error.POSITION_UNAVAILABLE:
-            errorMsg = "Location information is unavailable. Check your device GPS connection.";
+            errorMsg = "Location information is unavailable. Please check your device GPS connection.";
             break;
           case error.TIMEOUT:
-            errorMsg = "The request to get your location timed out. Please stand near a window or turn on WiFi.";
+            errorMsg = "Location request timed out. Please ensure GPS is turned ON in your phone settings and try again.";
             break;
         }
         setState({ loading: false, coords: null, error: errorMsg });
