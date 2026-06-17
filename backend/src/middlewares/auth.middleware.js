@@ -207,7 +207,20 @@ function isAllowedOrigin(origin) {
   const allowed = [env.FRONTEND_URL, env.BACKEND_URL];
   // Allow localhost variations in development
   if (env.NODE_ENV !== 'production') {
-    allowed.push('http://localhost:3000', 'http://localhost:4000', 'http://127.0.0.1:3000');
+    allowed.push(
+      'http://localhost:3000',
+      'http://localhost:4000',
+      'http://127.0.0.1:3000',
+      'http://localhost:3004',
+      'http://127.0.0.1:3004'
+    );
   }
-  return allowed.some(a => origin.startsWith(a));
+
+  const isAllowedPattern = origin && (
+    origin.startsWith('http://localhost:') ||
+    origin.startsWith('http://127.0.0.1:') ||
+    origin.includes('72.61.169.195')
+  );
+
+  return allowed.some(a => origin.startsWith(a)) || isAllowedPattern;
 }
