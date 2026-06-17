@@ -12,7 +12,7 @@ import { QrCode, Camera, Upload, AlertTriangle, CheckCircle, Loader2, Award, Spa
 
 export default function CheckinPage() {
   const navigate = useNavigate();
-  const searchParams = useSearchParams();
+  const [searchParams] = useSearchParams();
   const { getPosition, loading: geoLoading, error: geoError } = useGeolocation();
 
   const [scanResult, setScanResult] = useState(null);
