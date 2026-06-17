@@ -39,6 +39,7 @@ export default function BranchesPage() {
   const [showQrModal, setShowQrModal] = useState(false);
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [selectedQrImage, setSelectedQrImage] = useState(null);
+  const [selectedQrPayload, setSelectedQrPayload] = useState(null);
 
   // Form states
   const [editingBranchId, setEditingBranchId] = useState(null);
@@ -86,9 +87,11 @@ export default function BranchesPage() {
     setSelectedBranch(branch);
     setShowQrModal(true);
     setSelectedQrImage(null);
+    setSelectedQrPayload(null);
     try {
       const response = await api.get(`/branches/${branch.id}/qr?format=base64`);
       setSelectedQrImage(response.data.qrImage);
+      setSelectedQrPayload(response.data.payload);
     } catch (err) {
       console.error("Failed to load QR image:", err);
     }
@@ -436,6 +439,12 @@ export default function BranchesPage() {
               )
               , React.createElement('p', { className: "text-[10px] text-zinc-500 text-center max-w-xs"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 437}}, "Stick this permanent QR code inside your shop (Reception Desk, Cafe Table, Salon Entrance, etc.). Customers scan this to verify their location and check in."
 
+              )
+              , selectedQrPayload && (
+                React.createElement('div', { className: "w-full space-y-1 text-center bg-slate-50 border border-border/60 rounded-lg p-2.5" },
+                  React.createElement('span', { className: "text-[9px] font-bold text-muted-foreground uppercase tracking-wider block" }, "Testing QR Link (Copy & Paste):"),
+                  React.createElement('a', { href: selectedQrPayload, target: "_blank", rel: "noreferrer", className: "text-[10px] text-primary hover:underline break-all block font-mono select-all" }, selectedQrPayload)
+                )
               )
             )
 
