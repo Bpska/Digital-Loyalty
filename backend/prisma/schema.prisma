@@ -1,0 +1,524 @@
+// ============================================================
+// Digital Loyalty Voucher SaaS — Prisma Schema
+// Database: PostgreSQL
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  BUSINESS_ADMIN
+  STAFF
+  CUSTOMER
+}
+
+enum BusinessStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  PAST_DUE
+  DELETED
+}
+
+enum PlanName {
+  STARTER
+  GROWTH
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  CAPTURED
+  FAILED
+  REFUNDED
+}
+
+enum CheckInStatus {
+  VALID
+  SUSPICIOUS
+  REJECTED
+}
+
+enum LoyaltyType {
+  VISIT_BASED
+  POINTS_BASED
+}
+
+enum LoyaltyResetMode {
+  FULL_RESET      // counter/points reset to 0 after redemption
+  CARRY_REMAINDER // surplus visits/points carry over
+}
+
+enum CustomerRewardStatus {
+  LOCKED
+  UNLOCKED
+  REDEEMED
+  EXPIRED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum NotificationType {
+  REWARD_UNLOCKED
+  SUBSCRIPTION_EXPIRING
+  BUSINESS_SUSPENDED
+  COUPON_AVAILABLE
+  GENERAL
+}
+
+// ─────────────────────────────────────────────────────────────
+// MODELS
+// ─────────────────────────────────────────────────────────────
+
+/// Platform user — covers all roles (SUPER_ADMIN, BUSINESS_ADMIN, STAFF, CUSTOMER).
+/// Customers use OTP-only auth (passwordHash is null). Staff/admins use password auth.
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  phone        String    @unique
+  email        String?   @unique
+  passwordHash String?                      // null for OTP-only customers
+  role         Role      @default(CUSTOMER)
+  isActive     Boolean   @default(true)
+  deletedAt    DateTime?                    // GDPR soft-delete
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  ownedBusinesses  Business[]        @relation("BusinessOwner")
+  staffProfile     Staff?
+  customerPoints   CustomerPoints[]
+  checkIns         CheckIn[]
+  customerRewards  CustomerReward[]
+  notifications    Notification[]
+  auditLogs        AuditLog[]
+  otpVerifications OtpVerification[]
+  refreshTokens    RefreshToken[]
+
+  @@index([phone])
+  @@index([role])
+  @@index([createdAt])
+  @@map("users")
+}
+
+/// A business tenant. Soft-deleted via deletedAt + status = DELETED.
+/// Cascading suspension blocks all staff logins and QR check-ins.
+model Business {
+  id        String         @id @default(cuid())
+  name      String
+  logoUrl   String?
+  phone     String?
+  address   String?
+  timezone  String         @default("Asia/Kolkata")
+  status    BusinessStatus @default(ACTIVE)
+  deletedAt DateTime?
+
+  ownerId String
+  owner   User   @relation("BusinessOwner", fields: [ownerId], references: [id])
+
+  planId String?
+  plan   Plan?   @relation(fields: [planId], references: [id])
+
+  subscription    Subscription?
+  branches        Branch[]
+  staff           Staff[]
+  loyaltyPrograms LoyaltyProgram[]
+  rewards         Reward[]
+  coupons         Coupon[]
+  customerPoints  CustomerPoints[]
+  checkIns        CheckIn[]
+  notifications   Notification[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("businesses")
+}
+
+/// A physical location of a business. Has its own GPS coordinates and signed QR token.
+model Branch {
+  id           String  @id @default(cuid())
+  name         String
+  address      String?
+  latitude     Float
+  longitude    Float
+  radiusMeters Int     @default(50)  // GPS check-in acceptance radius
+  qrToken      String  @unique       // HMAC-SHA256 signed token (rotatable)
+  isActive     Boolean @default(true)
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  staff    Staff[]
+  checkIns CheckIn[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId])
+  @@index([qrToken])
+  @@map("branches")
+}
+
+/// Staff member profile — linked 1:1 to a User with role=STAFF.
+model Staff {
+  id          String @id @default(cuid())
+  /// JSON permission flags e.g. { "canManualCheckin": true }
+  permissions Json   @default("{}")
+
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchId   String?
+  branch     Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  redeemedRewards CustomerReward[] @relation("RedeemedByStaff")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId])
+  @@index([branchId])
+  @@map("staff")
+}
+
+/// Subscription plan definition. Managed by Super Admin.
+model Plan {
+  id           String   @id @default(cuid())
+  name         PlanName @unique
+  priceMonthly Decimal  @db.Decimal(10, 2) // INR
+  maxBranches  Int
+  maxCustomers Int
+  /// Feature flags: { "analyticsAccess": bool, "customBranding": bool, "csvExport": bool, "apiAccess": bool }
+  features     Json
+  isActive     Boolean  @default(true)
+
+  businesses    Business[]
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("plans")
+}
+
+/// One active subscription per business. Razorpay manages recurring billing.
+model Subscription {
+  id                     String             @id @default(cuid())
+  status                 SubscriptionStatus @default(TRIAL)
+  razorpaySubscriptionId String?            @unique
+  currentPeriodEnd       DateTime?
+  /// Auto-suspend date — set 7 days after payment failure
+  gracePeriodEnd         DateTime?
+  cancelledAt            DateTime?
+
+  businessId String       @unique
+  business   Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  planId     String
+  plan       Plan         @relation(fields: [planId], references: [id])
+  payments   Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([currentPeriodEnd])
+  @@map("subscriptions")
+}
+
+/// Individual payment records linked to subscriptions.
+model Payment {
+  id                String        @id @default(cuid())
+  amount            Decimal       @db.Decimal(10, 2) // INR
+  razorpayPaymentId String?       @unique
+  status            PaymentStatus @default(PENDING)
+  paidAt            DateTime?
+  /// Full Razorpay webhook payload snapshot for audit
+  metadata          Json?
+
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([subscriptionId])
+  @@index([status])
+  @@map("payments")
+}
+
+/// GPS-verified customer check-in at a branch.
+/// Haversine distance calculated server-side and stored for audit.
+model CheckIn {
+  id             String        @id @default(cuid())
+  latitude       Float
+  longitude      Float
+  distanceMeters Float         // Haversine distance from branch center
+  status         CheckInStatus @default(VALID)
+  ipAddress      String?
+  /// Client-generated UUID stored in localStorage — soft device fingerprint
+  deviceId       String?
+
+  customerId String
+  customer   User     @relation(fields: [customerId], references: [id])
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  branchId   String
+  branch     Branch   @relation(fields: [branchId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([customerId, branchId])
+  @@index([customerId, createdAt]) // for cooldown check query
+  @@index([businessId, createdAt])
+  @@index([status])
+  @@map("check_ins")
+}
+
+/// Loyalty program definition per business. One active program per type per business.
+model LoyaltyProgram {
+  id             String           @id @default(cuid())
+  type           LoyaltyType
+  /// VISIT_BASED: number of visits to earn reward. POINTS_BASED: points required for reward.
+  threshold      Int
+  /// Points awarded per visit (POINTS_BASED only)
+  pointsPerVisit Int              @default(10)
+  resetMode      LoyaltyResetMode @default(FULL_RESET)
+  isActive       Boolean          @default(true)
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  rewardId   String
+  reward     Reward   @relation(fields: [rewardId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId])
+  @@map("loyalty_programs")
+}
+
+/// A reward that can be earned and redeemed by customers.
+model Reward {
+  id             String    @id @default(cuid())
+  title          String
+  description    String?
+  /// Used for POINTS_BASED programs — points cost of this reward
+  pointsRequired Int       @default(0)
+  expiryDate     DateTime?
+  imageUrl       String?
+  isActive       Boolean   @default(true)
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  loyaltyPrograms LoyaltyProgram[]
+  customerRewards CustomerReward[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId])
+  @@index([isActive])
+  @@map("rewards")
+}
+
+/// Tracks a specific reward instance for a customer.
+/// Each unlocked reward gets a unique redemption code shown to the customer.
+model CustomerReward {
+  id             String               @id @default(cuid())
+  status         CustomerRewardStatus @default(LOCKED)
+  /// Unique code shown to customer for staff redemption
+  redemptionCode String               @unique @default(cuid())
+  redeemedAt     DateTime?
+  expiresAt      DateTime?
+
+  customerId        String
+  customer          User    @relation(fields: [customerId], references: [id])
+  rewardId          String
+  reward            Reward  @relation(fields: [rewardId], references: [id])
+  redeemedByStaffId String?
+  redeemedByStaff   Staff?  @relation("RedeemedByStaff", fields: [redeemedByStaffId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([redemptionCode])
+  @@index([status])
+  @@map("customer_rewards")
+}
+
+/// Time-bound discount coupon — separate from loyalty rewards.
+model Coupon {
+  id            String       @id @default(cuid())
+  code          String       @unique
+  title         String
+  description   String?
+  discountType  DiscountType
+  discountValue Decimal      @db.Decimal(10, 2)
+  validFrom     DateTime
+  validTo       DateTime
+  /// null = unlimited global usage
+  usageLimit    Int?
+  totalUsed     Int          @default(0)
+  isActive      Boolean      @default(true)
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  usages CouponUsage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId])
+  @@index([code])
+  @@index([validTo])
+  @@map("coupons")
+}
+
+/// Per-customer coupon usage record — enforces one-use-per-customer limit.
+model CouponUsage {
+  id       String   @id @default(cuid())
+  usedAt   DateTime @default(now())
+
+  couponId   String
+  coupon     Coupon @relation(fields: [couponId], references: [id])
+  customerId String
+
+  @@unique([couponId, customerId])
+  @@index([couponId])
+  @@map("coupon_usages")
+}
+
+/// Denormalized points/visits counter per customer per business.
+/// Updated transactionally in the loyalty engine. Source of truth for dashboard reads.
+model CustomerPoints {
+  id          String @id @default(cuid())
+  totalPoints Int    @default(0)  // POINTS_BASED: deducted on reward unlock
+  totalVisits Int    @default(0)  // lifetime valid check-ins at this business
+  visitStreak Int    @default(0)  // current visit count toward next VISIT_BASED reward
+
+  customerId String
+  customer   User     @relation(fields: [customerId], references: [id])
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([customerId, businessId])
+  @@index([customerId])
+  @@index([businessId])
+  @@map("customer_points")
+}
+
+/// In-app notification for any user. Supports metadata for deep-linking.
+model Notification {
+  id       String           @id @default(cuid())
+  title    String
+  body     String
+  type     NotificationType
+  isRead   Boolean          @default(false)
+  /// Extra context e.g. { "rewardId": "...", "businessId": "..." }
+  metadata Json?
+
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessId String?
+  business   Business? @relation(fields: [businessId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+/// Immutable audit trail for all significant system events.
+model AuditLog {
+  id         String  @id @default(cuid())
+  /// e.g. "CHECK_IN_SUSPICIOUS", "REWARD_REDEEMED", "PLAN_CHANGED", "BUSINESS_SUSPENDED"
+  action     String
+  entityType String  // e.g. "CheckIn", "CustomerReward", "Business"
+  entityId   String
+  /// Full context snapshot — sufficient to reconstruct what happened
+  metadata   Json?
+  ipAddress  String?
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@index([action])
+  @@map("audit_logs")
+}
+
+/// OTP verification record stored in DB (Redis swap-in ready for Phase 2).
+model OtpVerification {
+  id        String   @id @default(cuid())
+  phone     String
+  /// bcrypt hash of the OTP — never store plain OTP
+  otpHash   String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  verified  Boolean  @default(false)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([phone])
+  @@index([expiresAt])
+  @@map("otp_verifications")
+}
+
+/// Hashed refresh tokens stored server-side for revocation support.
+model RefreshToken {
+  id        String    @id @default(cuid())
+  /// SHA-256 hash of the actual token — never store raw token
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  ipAddress String?
+  userAgent String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}

@@ -1,0 +1,66 @@
+# ─────────────────────────────────────────────────────────────
+# Digital Loyalty Voucher SaaS — Production Docker Compose
+# ─────────────────────────────────────────────────────────────
+version: '3.9'
+
+services:
+  # ── PostgreSQL Database ──────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: dlv_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dlv_db
+      POSTGRES_USER: dlv_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    ports:
+      - '5434:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U dlv_user -d dlv_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend API ───────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: dlv_backend
+    restart: unless-stopped
+    ports:
+      - '6003:4000'
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://dlv_user:${POSTGRES_PASSWORD:-changeme}@postgres:5432/dlv_db
+      PORT: 4000
+    volumes:
+      - uploads_data:/app/uploads
+      - logs_data:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── Frontend ──────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:6003/api/v1}
+    container_name: dlv_frontend
+    restart: unless-stopped
+    ports:
+      - '3004:80'
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  uploads_data:
+  logs_data:
