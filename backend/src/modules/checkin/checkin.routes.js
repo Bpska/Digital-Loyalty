@@ -161,4 +161,38 @@ router.get(
   }
 );
 
+// Update check-in status (e.g. VALID, SUSPICIOUS, REJECTED) — Business Owner or Super Admin only
+router.patch(
+  '/:checkInId/status',
+  authenticate,
+  authorize(Role.BUSINESS_ADMIN, Role.SUPER_ADMIN),
+  validate(z.object({ status: z.enum(['VALID', 'SUSPICIOUS', 'REJECTED']) })),
+  async (req, res, next) => {
+    try {
+      const { checkInId } = req.params;
+      const { status } = req.body;
+      const prisma = (await import('../../config/prisma.js')).default;
+
+      // Find the check-in and verify ownership
+      const checkIn = await prisma.checkIn.findUniqueOrThrow({
+        where: { id: checkInId },
+        include: { business: true }
+      });
+
+      if (req.user.role !== Role.SUPER_ADMIN && checkIn.business.ownerId !== req.user.sub) {
+        throw new AppError('Forbidden: You do not own this business.', 403);
+      }
+
+      const updatedCheckIn = await prisma.checkIn.update({
+        where: { id: checkInId },
+        data: { status },
+      });
+
+      sendSuccess(res, updatedCheckIn, `Check-in status updated to ${status}`);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 export default router;

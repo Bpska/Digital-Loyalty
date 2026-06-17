@@ -32,13 +32,23 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Only intercept HTTP requests (not chrome-extensions, etc.)
-  if (!event.request.url.startsWith(self.location.origin)) {
+  // Do NOT intercept API calls (allow them to pass through normally)
+  if (event.request.url.includes("/api/")) {
     return;
   }
 
-  // Do NOT intercept API calls (allow them to pass through normally)
-  if (event.request.url.includes("/api/v1/")) {
+  // Handle SPA navigation requests by returning cached index.html
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      caches.match("/index.html").then((cachedResponse) => {
+        return cachedResponse || fetch(event.request);
+      })
+    );
+    return;
+  }
+
+  // Only intercept HTTP requests from our own origin (not extensions)
+  if (!event.request.url.startsWith(self.location.origin)) {
     return;
   }
 
@@ -47,9 +57,7 @@ self.addEventListener("fetch", (event) => {
       if (cachedResponse) {
         return cachedResponse;
       }
-      return fetch(event.request).then((response) => {
-        return response;
-      });
+      return fetch(event.request);
     })
   );
 });

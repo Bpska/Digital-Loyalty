@@ -23,6 +23,7 @@ const branchSchema = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   radiusMeters: z.number().int().min(10).max(1000).default(50),
+  isActive: z.boolean().optional(),
 });
 
 // ── List branches for a business ──────────────────────────────
@@ -149,19 +150,30 @@ router.get(
   }
 );
 
-// ── Delete (deactivate) branch ────────────────────────────────
+// ── Delete branch ─────────────────────────────────────────────
 router.delete(
   '/:branchId',
   authenticate,
   authorize(Role.SUPER_ADMIN, Role.BUSINESS_ADMIN),
-  auditLog('BRANCH_DEACTIVATED', 'Branch'),
+  auditLog('BRANCH_DELETED', 'Branch'),
   async (req, res, next) => {
     try {
-      await prisma.branch.update({
-        where: { id: req.params.branchId },
-        data: { isActive: false },
+      const { branchId } = req.params;
+      const prisma = (await import('../../config/prisma.js')).default;
+
+      // Delete in transaction to handle relations
+      await prisma.$transaction(async (tx) => {
+        // 1. Delete all check-ins associated with this branch
+        await tx.checkIn.deleteMany({ where: { branchId } });
+        
+        // 2. Clear branch associations from staff
+        await tx.staff.updateMany({ where: { branchId }, data: { branchId: null } });
+        
+        // 3. Delete the branch itself
+        await tx.branch.delete({ where: { id: branchId } });
       });
-      sendSuccess(res, null, 'Branch deactivated');
+
+      sendSuccess(res, null, 'Branch deleted successfully');
     } catch (err) {
       next(err);
     }

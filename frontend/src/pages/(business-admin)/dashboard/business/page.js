@@ -19,7 +19,8 @@ import {
  
   TrendingUp, 
   Calendar, 
-  AlertCircle 
+  AlertCircle,
+  Loader2
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
@@ -70,6 +71,19 @@ import { formatDate } from "@/lib/utils";
 export default function BusinessDashboard() {
   const { user } = useAuthStore();
   const businessId = _optionalChain([user, 'optionalAccess', _ => _.businessId]);
+  const [statusLoading, setStatusLoading] = React.useState({});
+
+  const handleStatusChange = async (checkInId, newStatus) => {
+    setStatusLoading(prev => ({ ...prev, [checkInId]: true }));
+    try {
+      await api.patch(`/checkins/${checkInId}/status`, { status: newStatus });
+      refetchCheckins();
+    } catch (err) {
+      alert(err.message || "Failed to update check-in status.");
+    } finally {
+      setStatusLoading(prev => ({ ...prev, [checkInId]: false }));
+    }
+  };
 
   // 1. Fetch business details
   const { data: business, isLoading: bizLoading } = useQuery({
@@ -86,7 +100,7 @@ export default function BusinessDashboard() {
   });
 
   // 3. Fetch recent check-ins
-  const { data: checkinsData, isLoading: checkinsLoading, refetch: refetchCheckins } = useQuery({
+  const { data: checkinsData, isLoading: checkinsLoading, isFetching: checkinsFetching, refetch: refetchCheckins } = useQuery({
     queryKey: ["businessCheckins", businessId],
     queryFn: () => api.get(`/checkins/business/${businessId}?limit=5`).then((res) => res.data),
     enabled: !!businessId,
@@ -131,8 +145,9 @@ export default function BusinessDashboard() {
           )
         )
         , React.createElement('div', { className: "flex gap-2" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 132}}
-          , React.createElement(Button, { variant: "outline", size: "sm", onClick: () => refetchCheckins(), __self: this, __source: {fileName: _jsxFileName, lineNumber: 133}}
-            , React.createElement(RefreshCcw, { className: "mr-2 h-4 w-4"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 134}} ), " Sync Logs"
+          , React.createElement(Button, { variant: "outline", size: "sm", onClick: () => refetchCheckins(), disabled: checkinsFetching, __self: this, __source: {fileName: _jsxFileName, lineNumber: 133}}
+            , React.createElement(RefreshCcw, { className: `mr-2 h-4 w-4 ${checkinsFetching ? 'animate-spin' : ''}`  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 134}} )
+            , checkinsFetching ? "Syncing..." : "Sync Logs"
           )
           , React.createElement(Link, { to: "/dashboard/business/branches", __self: this, __source: {fileName: _jsxFileName, lineNumber: 136}}
             , React.createElement(Button, { size: "sm", className: "bg-primary hover:bg-primary/90 text-primary-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 137}}
@@ -238,12 +253,24 @@ export default function BusinessDashboard() {
                       , React.createElement('td', { className: "py-3 text-slate-700 font-medium"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 237}}, log.branch.name)
                       , React.createElement('td', { className: "py-3 text-muted-foreground" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 238}}, formatDate(log.createdAt))
                       , React.createElement('td', { className: "py-3 text-right" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 239}}
-                        , React.createElement('span', { className: `text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
-                          log.status === "VALID" 
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
-                            : "bg-amber-50 text-amber-700 border-amber-100"
-                        }`, __self: this, __source: {fileName: _jsxFileName, lineNumber: 240}}
-                          , log.status
+                        , statusLoading[log.id] ? (
+                          React.createElement(Loader2, { className: "h-4 w-4 animate-spin text-muted-foreground ml-auto" })
+                        ) : (
+                          React.createElement('select', {
+                            value: log.status,
+                            onChange: (e) => handleStatusChange(log.id, e.target.value),
+                            className: `text-[10px] font-bold px-2 py-0.5 rounded-full border cursor-pointer outline-none bg-white ${
+                              log.status === "VALID" 
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                                : log.status === "SUSPICIOUS"
+                                  ? "bg-amber-50 text-amber-700 border-amber-200"
+                                  : "bg-red-50 text-red-700 border-red-200"
+                            }`
+                          },
+                            React.createElement('option', { value: "VALID" }, "VALID"),
+                            React.createElement('option', { value: "SUSPICIOUS" }, "SUSPICIOUS"),
+                            React.createElement('option', { value: "REJECTED" }, "REJECTED")
+                          )
                         )
                       )
                     )
