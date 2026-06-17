@@ -58,11 +58,12 @@ export function createApp() {
             'http://127.0.0.1:3004'
           );
         }
-        // Dynamic check: allow matches on localhost, 127.0.0.1, or VPS IP
+        // Dynamic check: allow matches on localhost, 127.0.0.1, VPS IP, or production domain
         const isAllowedPattern = origin && (
           origin.startsWith('http://localhost:') ||
           origin.startsWith('http://127.0.0.1:') ||
-          origin.includes('72.61.169.195')
+          origin.includes('72.61.169.195') ||
+          origin.includes('frunko.in')
         );
 
         if (!origin || allowed.includes(origin) || isAllowedPattern) {

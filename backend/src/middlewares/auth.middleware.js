@@ -219,7 +219,8 @@ function isAllowedOrigin(origin) {
   const isAllowedPattern = origin && (
     origin.startsWith('http://localhost:') ||
     origin.startsWith('http://127.0.0.1:') ||
-    origin.includes('72.61.169.195')
+    origin.includes('72.61.169.195') ||
+    origin.includes('frunko.in')
   );
 
   return allowed.some(a => origin.startsWith(a)) || isAllowedPattern;
