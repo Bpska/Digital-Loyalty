@@ -15,6 +15,7 @@ const checkInSchema = z.object({
   qrToken: z.string().min(1, 'QR token is required'),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
+  accuracy: z.number().min(0, 'Accuracy must be positive'),
   deviceId: z.string().uuid().optional(),
 });
 

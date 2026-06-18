@@ -8,13 +8,11 @@ import { env } from '../config/env.js';
  * Throw this from controllers/services to return structured HTTP errors.
  */
 export class AppError extends Error {
-  
-  
-
-  constructor(message, statusCode = 500, isOperational = true) {
+  constructor(message, statusCode = 500, isOperational = true, extra = null) {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = isOperational;
+    this.extra = extra;
     Object.setPrototypeOf(this, new.target.prototype);
     Error.captureStackTrace(this, this.constructor);
   }
@@ -45,7 +43,7 @@ export function globalErrorHandler(
     } else {
       logger.warn('AppError (client)', { message: err.message, statusCode: err.statusCode });
     }
-    sendError(res, err.message, err.statusCode);
+    sendError(res, err.message, err.statusCode, null, err.extra);
     return;
   }
 

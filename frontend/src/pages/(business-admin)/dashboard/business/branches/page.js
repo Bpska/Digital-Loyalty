@@ -48,7 +48,7 @@ export default function BranchesPage() {
   const [address, setAddress] = useState("");
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
-  const [radiusMeters, setRadiusMeters] = useState("50");
+  const [radiusMeters, setRadiusMeters] = useState("100");
   const [errorMsg, setErrorMsg] = useState(null);
   const [pdfLoading, setPdfLoading] = useState(false);
 
@@ -201,7 +201,7 @@ export default function BranchesPage() {
     setAddress("");
     setLatitude("");
     setLongitude("");
-    setRadiusMeters("50");
+    setRadiusMeters("100");
     setEditingBranchId(null);
     setErrorMsg(null);
   };
@@ -435,16 +435,17 @@ export default function BranchesPage() {
 
               , React.createElement('div', { className: "space-y-1", __self: this, __source: { fileName: _jsxFileName, lineNumber: 389 } }
                 , React.createElement(Label, { htmlFor: "branch-rad", __self: this, __source: { fileName: _jsxFileName, lineNumber: 390 } }, "GPS Radius (meters)")
-                , React.createElement(Input, {
+                , React.createElement('select', {
                   id: "branch-rad",
-                  type: "number",
-                  placeholder: "e.g. 50",
+                  className: "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 text-foreground dark:bg-background",
                   value: radiusMeters,
                   onChange: (e) => setRadiusMeters(e.target.value),
-                  min: "10",
-                  max: "1000",
                   required: true, __self: this, __source: { fileName: _jsxFileName, lineNumber: 391 }
-                }
+                },
+                  React.createElement('option', { value: "50" }, "50 meters"),
+                  React.createElement('option', { value: "100" }, "100 meters"),
+                  React.createElement('option', { value: "150" }, "150 meters"),
+                  React.createElement('option', { value: "200" }, "200 meters")
                 )
               )
 
@@ -609,16 +610,17 @@ export default function BranchesPage() {
 
               , React.createElement('div', { className: "space-y-1", __self: this, __source: { fileName: _jsxFileName, lineNumber: 539 } }
                 , React.createElement(Label, { htmlFor: "edit-branch-rad", __self: this, __source: { fileName: _jsxFileName, lineNumber: 540 } }, "GPS Radius (meters)")
-                , React.createElement(Input, {
+                , React.createElement('select', {
                   id: "edit-branch-rad",
-                  type: "number",
-                  placeholder: "e.g. 50",
+                  className: "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 text-foreground dark:bg-background",
                   value: radiusMeters,
                   onChange: (e) => setRadiusMeters(e.target.value),
-                  min: "10",
-                  max: "1000",
                   required: true, __self: this, __source: { fileName: _jsxFileName, lineNumber: 541 }
-                }
+                },
+                  React.createElement('option', { value: "50" }, "50 meters"),
+                  React.createElement('option', { value: "100" }, "100 meters"),
+                  React.createElement('option', { value: "150" }, "150 meters"),
+                  React.createElement('option', { value: "200" }, "200 meters")
                 )
               )
 

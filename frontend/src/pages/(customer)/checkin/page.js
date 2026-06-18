@@ -15,7 +15,8 @@ export default function CheckinPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
-  const { getPosition, loading: geoLoading, error: geoError } = useGeolocation();
+  const { getPosition, loading: geoLoading, error: geoError, progress: geoProgress, readings: geoReadings } = useGeolocation();
+  const [debugData, setDebugData] = useState(null);
 
   const [scanResult, setScanResult] = useState(null);
   const [status, setStatus] = useState("idle");
@@ -168,6 +169,7 @@ export default function CheckinPage() {
     }
 
     try {
+      setDebugData(null); // Reset debug details on retry
       // 1. Get high accuracy GPS location
       const coords = await getPosition();
 
@@ -194,11 +196,15 @@ export default function CheckinPage() {
         qrToken: parsedToken,
         latitude: coords.latitude,
         longitude: coords.longitude,
+        accuracy: coords.accuracy,
         deviceId,
       });
 
       if (response.success && response.data) {
         setCheckInDetails(response.data);
+        if (response.data.debug) {
+          setDebugData(response.data.debug);
+        }
         setStatus("success");
         // Invalidate all customer data queries so dashboard/history refresh immediately
         queryClient.invalidateQueries({ queryKey: ["customerDashboard"] });
@@ -210,8 +216,14 @@ export default function CheckinPage() {
     } catch (err) {
       console.error("Check-in failed:", err);
       setStatus("error");
+      
+      const backendErrorMsg = err.response?.data?.message || err.message;
+      if (err.response?.data?.debug) {
+        setDebugData(err.response.data.debug);
+      }
+
       setErrorMsg(
-        err.message || 
+        backendErrorMsg || 
         "Location verification failed. Please make sure you are at the physical branch center and location permissions are granted."
       );
     }
@@ -301,11 +313,12 @@ export default function CheckinPage() {
 
             , React.createElement('div', { className: "flex gap-2 w-full"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 255}}
               , React.createElement(Button, { variant: "outline", className: "flex-1", onClick: () => setStatus("idle"), __self: this, __source: {fileName: _jsxFileName, lineNumber: 256}}, "Cancel"
-
               )
-              , React.createElement(Button, { className: "flex-1 bg-primary text-primary-foreground hover:bg-primary/90"   , onClick: startScanner, __self: this, __source: {fileName: _jsxFileName, lineNumber: 259}}, "Try Scanner again"
-
-              )
+              , scanResult ? (
+                  React.createElement(Button, { className: "flex-1 bg-primary text-primary-foreground hover:bg-primary/90"   , onClick: () => handleQrDecoded(scanResult), __self: this, __source: {fileName: _jsxFileName, lineNumber: 259}}, "Retry Location" )
+                ) : (
+                  React.createElement(Button, { className: "flex-1 bg-primary text-primary-foreground hover:bg-primary/90"   , onClick: startScanner, __self: this, __source: {fileName: _jsxFileName, lineNumber: 259}}, "Try Scanner again" )
+                )
             )
           )
         )
@@ -313,16 +326,26 @@ export default function CheckinPage() {
 
       /* Geolocation Loading View */
       , status === "checking-gps" && (
-        React.createElement(Card, { className: "p-6 text-center glass"  , glass: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 269}}
+        React.createElement(Card, { className: "p-6 text-center glass animate-pulse"  , glass: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 269}}
           , React.createElement(CardContent, { className: "flex flex-col items-center justify-center space-y-4 pt-4"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 270}}
             , React.createElement('div', { className: "relative", __self: this, __source: {fileName: _jsxFileName, lineNumber: 271}}
               , React.createElement(MapPin, { className: "h-12 w-12 text-primary animate-bounce"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 272}} )
               , React.createElement(Loader2, { className: "absolute -bottom-1 -right-1 h-5 w-5 animate-spin text-muted-foreground"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 273}} )
             )
-            , React.createElement('div', { className: "space-y-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 275}}
-              , React.createElement(CardTitle, { className: "text-base text-foreground" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 276}}, "Verifying Location..." )
-              , React.createElement(CardDescription, { className: "text-xs text-muted-foreground max-w-xs"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 277}}, "Retrieving highly accurate GPS coordinates to check if you are within range."
-
+            , React.createElement('div', { className: "space-y-2 w-full", __self: this, __source: {fileName: _jsxFileName, lineNumber: 275}}
+              , React.createElement(CardTitle, { className: "text-base font-bold text-foreground" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 276}}, "Verifying Location..." )
+              , React.createElement(CardDescription, { className: "text-xs font-semibold text-primary max-w-xs mx-auto animate-pulse"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 277}}
+                , geoProgress || "Retrieving highly accurate GPS coordinates..."
+              )
+              , geoReadings && geoReadings.length > 0 && (
+                React.createElement('div', { className: "mt-4 text-[10px] text-muted-foreground space-y-1 bg-slate-50 border border-slate-100 rounded-lg p-2 max-w-xs mx-auto text-left" },
+                  geoReadings.map((r, idx) => 
+                    React.createElement('div', { key: idx, className: "flex justify-between font-mono" },
+                      React.createElement('span', null, `Reading ${idx + 1}:`),
+                      React.createElement('span', { className: "font-semibold text-[#BD4F2A]" }, `Accuracy ${Math.round(r.accuracy)}m`)
+                    )
+                  )
+                )
               )
             )
           )
@@ -419,9 +442,55 @@ export default function CheckinPage() {
               )
             )
             , React.createElement(CardContent, { className: "p-4 pt-0 text-[11px] text-muted-foreground space-y-1"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 374}}
-              , React.createElement('p', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 375}}, "• You must be within the business outlet's accepted radius (default 50 meters) to check in."               )
+              , React.createElement('p', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 375}}, "• You must be within the business outlet's accepted radius (default 100 meters) to check in."               )
               , React.createElement('p', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 376}}, "• Only 1 valid check-in is allowed per business per day."          )
               , React.createElement('p', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 377}}, "• Device location spoofing or impossible travel patterns will trigger suspicious logs."           )
+            )
+          )
+          
+          /* Debug Panel (Dev Mode Only) */
+          , import.meta.env.DEV && debugData && (
+            React.createElement(Card, { className: "border-amber-200 bg-amber-50/20 p-4 mt-6 text-xs text-amber-900 font-mono space-y-2 border shadow-sm rounded-xl text-left" },
+              React.createElement('div', { className: "font-bold border-b border-amber-200 pb-1 flex justify-between items-center text-[10px] uppercase tracking-wider text-amber-800" },
+                React.createElement('span', null, "GPS Debug Panel"),
+                React.createElement('span', { className: "bg-amber-100 px-1 py-0.5 rounded text-[9px]" }, "DEV MODE")
+              ),
+              React.createElement('div', { className: "grid grid-cols-2 gap-x-4 gap-y-1.5 pt-1" },
+                React.createElement('div', null,
+                  React.createElement('span', { className: "text-muted-foreground block text-[9px]" }, "BUSINESS LAT"),
+                  React.createElement('span', { className: "font-semibold" }, debugData.businessLatitude?.toFixed(6) || "N/A")
+                ),
+                React.createElement('div', null,
+                  React.createElement('span', { className: "text-muted-foreground block text-[9px]" }, "BUSINESS LNG"),
+                  React.createElement('span', { className: "font-semibold" }, debugData.businessLongitude?.toFixed(6) || "N/A")
+                ),
+                React.createElement('div', null,
+                  React.createElement('span', { className: "text-muted-foreground block text-[9px]" }, "USER LAT"),
+                  React.createElement('span', { className: "font-semibold" }, debugData.userLatitude?.toFixed(6) || "N/A")
+                ),
+                React.createElement('div', null,
+                  React.createElement('span', { className: "text-muted-foreground block text-[9px]" }, "USER LNG"),
+                  React.createElement('span', { className: "font-semibold" }, debugData.userLongitude?.toFixed(6) || "N/A")
+                ),
+                React.createElement('div', null,
+                  React.createElement('span', { className: "text-muted-foreground block text-[9px]" }, "GPS ACCURACY"),
+                  React.createElement('span', { className: "font-semibold" }, debugData.accuracy ? `${Math.round(debugData.accuracy)}m` : "N/A")
+                ),
+                React.createElement('div', null,
+                  React.createElement('span', { className: "text-muted-foreground block text-[9px]" }, "CALCULATED DISTANCE"),
+                  React.createElement('span', { className: "font-semibold" }, debugData.distance !== null ? `${Math.round(debugData.distance)}m` : "N/A")
+                ),
+                React.createElement('div', null,
+                  React.createElement('span', { className: "text-muted-foreground block text-[9px]" }, "ALLOWED RADIUS"),
+                  React.createElement('span', { className: "font-semibold" }, debugData.radius ? `${debugData.radius}m` : "N/A")
+                ),
+                React.createElement('div', null,
+                  React.createElement('span', { className: "text-muted-foreground block text-[9px]" }, "VALIDATION STATUS"),
+                  React.createElement('span', { 
+                    className: `font-bold uppercase ${debugData.status === 'VALID' ? 'text-emerald-700' : 'text-rose-700'}` 
+                  }, debugData.status)
+                )
+              )
             )
           )
         )

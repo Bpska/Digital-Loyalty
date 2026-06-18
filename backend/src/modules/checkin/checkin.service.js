@@ -87,7 +87,7 @@ function getTodayBoundsInTimezone(timezone = 'Asia/Kolkata') {
 }
 
 export async function processCheckIn(input) {
-  const { customerId, qrToken, latitude, longitude, ipAddress, deviceId } = input;
+  const { customerId, qrToken, latitude, longitude, accuracy, ipAddress, deviceId } = input;
 
   // ── Step 1: Resolve branch from QR token ─────────────────
   const branch = await prisma.branch.findUnique({
@@ -120,14 +120,49 @@ export async function processCheckIn(input) {
     throw new AppError('This business is not currently active.', 403);
   }
 
-  // ── Step 2: GPS validation ────────────────────────────────
+  // ── Step 2: GPS Accuracy Validation ──────────────────────────
+  if (accuracy > 50) {
+    const debugInfo = {
+      debug: {
+        businessLatitude: branch.latitude,
+        businessLongitude: branch.longitude,
+        userLatitude: latitude,
+        userLongitude: longitude,
+        accuracy: accuracy,
+        distance: null,
+        radius: branch.radiusMeters,
+        status: 'INVALID_ACCURACY',
+      }
+    };
+    throw new AppError(
+      'Unable to verify your precise location. Please move near the entrance, enable GPS, and try again.',
+      400,
+      true,
+      debugInfo
+    );
+  }
+
+  // ── Step 2b: Suspicious Coordinates check ──────────────────
   if (isSuspiciousCoordinates(latitude, longitude)) {
+    const debugInfo = {
+      debug: {
+        businessLatitude: branch.latitude,
+        businessLongitude: branch.longitude,
+        userLatitude: latitude,
+        userLongitude: longitude,
+        accuracy: accuracy,
+        distance: 0,
+        radius: branch.radiusMeters,
+        status: 'SUSPICIOUS_COORDINATES',
+      }
+    };
     await createSuspiciousCheckIn({
       customerId,
       businessId: branch.businessId,
       branchId: branch.id,
       latitude,
       longitude,
+      accuracy,
       distanceMeters: 0,
       ipAddress,
       deviceId,
@@ -135,22 +170,38 @@ export async function processCheckIn(input) {
     });
     throw new AppError(
       'Location validation failed. Ensure GPS is enabled and accurate.',
-      400
+      400,
+      true,
+      debugInfo
     );
   }
 
+  // ── Step 2c: Distance validation ──────────────────────────
   const distanceMeters = haversineDistance(
     latitude, longitude,
     branch.latitude, branch.longitude
   );
 
   if (distanceMeters > branch.radiusMeters) {
+    const debugInfo = {
+      debug: {
+        businessLatitude: branch.latitude,
+        businessLongitude: branch.longitude,
+        userLatitude: latitude,
+        userLongitude: longitude,
+        accuracy: accuracy,
+        distance: Math.round(distanceMeters),
+        radius: branch.radiusMeters,
+        status: 'TOO_FAR',
+      }
+    };
     await createSuspiciousCheckIn({
       customerId,
       businessId: branch.businessId,
       branchId: branch.id,
       latitude,
       longitude,
+      accuracy,
       distanceMeters,
       ipAddress,
       deviceId,
@@ -158,7 +209,9 @@ export async function processCheckIn(input) {
     });
     throw new AppError(
       `You are too far from this location (${Math.round(distanceMeters)}m away, max ${branch.radiusMeters}m).`,
-      400
+      400,
+      true,
+      debugInfo
     );
   }
 
@@ -180,8 +233,8 @@ export async function processCheckIn(input) {
 
   if (recentCheckIn) {
     throw new AppError(
-      `You have already checked in at this business today. Only one check-in per business is allowed per day.`,
-      429
+      "You have already collected today's loyalty point.",
+      400
     );
   }
 
@@ -199,6 +252,9 @@ export async function processCheckIn(input) {
         status: CheckInStatus.VALID,
         ipAddress,
         deviceId,
+        accuracy,
+        distance: distanceMeters,
+        checked_at: new Date(),
       },
     });
 
@@ -305,6 +361,16 @@ export async function processCheckIn(input) {
       totalVisits: customerPoints.totalVisits,
       visitStreak: customerPoints.visitStreak,
       newlyUnlockedReward,
+      debug: {
+        businessLatitude: branch.latitude,
+        businessLongitude: branch.longitude,
+        userLatitude: latitude,
+        userLongitude: longitude,
+        accuracy: accuracy,
+        distance: Math.round(distanceMeters),
+        radius: branch.radiusMeters,
+        status: 'VALID',
+      }
     };
   });
 
@@ -454,17 +520,7 @@ export async function redeemReward(
 // Helpers
 // ─────────────────────────────────────────────────────────────
 
-async function createSuspiciousCheckIn(data
-
-
-
-
-
-
-
-
-
-) {
+async function createSuspiciousCheckIn(data) {
   try {
     await prisma.checkIn.create({
       data: {
@@ -477,6 +533,9 @@ async function createSuspiciousCheckIn(data
         status: CheckInStatus.SUSPICIOUS,
         ipAddress: data.ipAddress,
         deviceId: data.deviceId,
+        accuracy: data.accuracy,
+        distance: data.distanceMeters,
+        checked_at: new Date(),
       },
     });
 

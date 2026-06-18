@@ -166,7 +166,7 @@ model Branch {
   address      String?
   latitude     Float
   longitude    Float
-  radiusMeters Int     @default(50)  // GPS check-in acceptance radius
+  radiusMeters Int     @default(100) // GPS check-in acceptance radius
   qrToken      String  @unique       // HMAC-SHA256 signed token (rotatable)
   isActive     Boolean @default(true)
 
@@ -291,6 +291,11 @@ model CheckIn {
   branch     Branch   @relation(fields: [branchId], references: [id])
 
   createdAt DateTime @default(now())
+
+  // Troubleshooting GPS fields
+  accuracy   Float?
+  distance   Float?
+  checked_at DateTime? @default(now())
 
   @@index([customerId, branchId])
   @@index([customerId, createdAt]) // for cooldown check query

@@ -43,10 +43,14 @@ export function sendError(
   res,
   message,
   statusCode = 400,
-  errors
+  errors,
+  extra = null
 ) {
   const body = { success: false, message };
   if (_optionalChain([errors, 'optionalAccess', _ => _.length])) body.errors = errors;
+  if (extra && typeof extra === 'object') {
+    Object.assign(body, extra);
+  }
   return res.status(statusCode).json(body);
 }
 

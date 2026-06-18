@@ -1,105 +1,119 @@
 import { useState, useCallback } from "react";
 
-
-
-
-
-
-
 export function useGeolocation() {
   const [state, setState] = useState({
     loading: false,
+    progress: "",
     coords: null,
     error: null,
+    readings: [],
   });
 
   const getPosition = useCallback(() => {
-    setState((prev) => ({ ...prev, loading: true, error: null }));
+    setState({
+      loading: true,
+      progress: "Initializing GPS...",
+      coords: null,
+      error: null,
+      readings: [],
+    });
 
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       if (!navigator.geolocation) {
         const errorMsg = "Geolocation is not supported by your browser.";
-        setState({ loading: false, coords: null, error: errorMsg });
+        setState({ loading: false, progress: "", coords: null, error: errorMsg, readings: [] });
         reject(new Error(errorMsg));
         return;
       }
 
-      let watchId = null;
-      let timeoutId = null;
-      let bestPosition = null;
-      let hasResolved = false;
+      const collectedReadings = [];
 
-      const cleanUp = () => {
-        if (watchId !== null) {
-          navigator.geolocation.clearWatch(watchId);
-          watchId = null;
+      for (let i = 0; i < 3; i++) {
+        const readingNum = i + 1;
+        setState((prev) => ({
+          ...prev,
+          progress: `Verifying your location (Reading ${readingNum}/3)...`,
+        }));
+
+        try {
+          const position = await new Promise((resolvePos, rejectPos) => {
+            navigator.geolocation.getCurrentPosition(
+              resolvePos,
+              (err) => {
+                rejectPos(err);
+              },
+              {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 0,
+              }
+            );
+          });
+
+          const accuracy = position.coords.accuracy;
+          const coordsObj = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: accuracy,
+          };
+
+          collectedReadings.push(coordsObj);
+          setState((prev) => ({
+            ...prev,
+            readings: [...collectedReadings],
+          }));
+
+          console.log(`GPS Reading ${readingNum}: Lat: ${coordsObj.latitude}, Lng: ${coordsObj.longitude}, Accuracy: ${accuracy}m`);
+        } catch (err) {
+          console.warn(`GPS Reading ${readingNum} failed:`, err);
+          
+          // If it is permission denied, fail immediately because retry won't work without system setting changes
+          if (err.code === err.PERMISSION_DENIED) {
+            const errorMsg = "Location access denied. Please enable GPS permissions to check in.";
+            setState({ loading: false, progress: "", coords: null, error: errorMsg, readings: [] });
+            reject(new Error(errorMsg));
+            return;
+          }
+          // For other errors (like timeout on a single reading), we can proceed to next iterations.
         }
-        if (timeoutId !== null) {
-          clearTimeout(timeoutId);
-          timeoutId = null;
-        }
-      };
+      }
 
-      const handleSuccess = (position) => {
-        const accuracy = position.coords.accuracy;
-        const currentCoords = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: accuracy,
-        };
+      if (collectedReadings.length === 0) {
+        const errorMsg = "Location request timed out. Please ensure GPS is ON in your settings and try again.";
+        setState({ loading: false, progress: "", coords: null, error: errorMsg, readings: [] });
+        reject(new Error(errorMsg));
+        return;
+      }
 
-        console.log(`Geolocation update: Lat ${currentCoords.latitude}, Lng ${currentCoords.longitude}, Accuracy: ${accuracy}m`);
+      // Sort by accuracy (lowest value is best/most precise)
+      const sorted = [...collectedReadings].sort((a, b) => a.accuracy - b.accuracy);
+      const bestCoords = sorted[0];
 
-        // Track the best position (lowest accuracy value is most accurate)
-        if (!bestPosition || accuracy < bestPosition.accuracy) {
-          bestPosition = currentCoords;
-        }
+      console.log("Best GPS reading selected:", bestCoords);
 
-        // If the accuracy is highly precise (<= 25 meters), resolve immediately
-        if (accuracy <= 25 && !hasResolved) {
-          hasResolved = true;
-          cleanUp();
-          setState({ loading: false, coords: currentCoords, error: null });
-          resolve(currentCoords);
-        }
-      };
+      // GPS ACCURACY VALIDATION: If accuracy > 50 meters, reject validation
+      if (bestCoords.accuracy > 50) {
+        const errorMsg = "Unable to verify your precise location. Please move near the entrance, enable GPS, and try again.";
+        setState({
+          loading: false,
+          progress: "",
+          coords: bestCoords,
+          error: errorMsg,
+          readings: collectedReadings,
+        });
+        reject(new Error(errorMsg));
+        return;
+      }
 
-      const handleError = (error) => {
-        console.warn("Geolocation watch error:", error);
-        
-        // If it is permission denied, we should fail immediately
-        if (error.code === error.PERMISSION_DENIED && !hasResolved) {
-          hasResolved = true;
-          cleanUp();
-          const errorMsg = "Location access denied. Please enable GPS permissions to check in.";
-          setState({ loading: false, coords: null, error: errorMsg });
-          reject(new Error(errorMsg));
-        }
-      };
-
-      // Start watching the position to get a stream of increasingly accurate readings
-      watchId = navigator.geolocation.watchPosition(handleSuccess, handleError, {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
+      setState({
+        loading: false,
+        progress: "",
+        coords: bestCoords,
+        error: null,
+        readings: collectedReadings,
       });
 
-      // Set a maximum timeout (e.g., 8 seconds) to stop watching and resolve with the best reading so far
-      timeoutId = setTimeout(() => {
-        if (hasResolved) return;
-        hasResolved = true;
-        cleanUp();
-
-        if (bestPosition) {
-          console.log(`Geolocation timeout reached. Resolving with best position: Accuracy ${bestPosition.accuracy}m`);
-          setState({ loading: false, coords: bestPosition, error: null });
-          resolve(bestPosition);
-        } else {
-          const errorMsg = "Location request timed out. Please ensure GPS is ON in your settings and try again.";
-          setState({ loading: false, coords: null, error: errorMsg });
-          reject(new Error(errorMsg));
-        }
-      }, 8000);
+      resolve(bestCoords);
     });
   }, []);
 
