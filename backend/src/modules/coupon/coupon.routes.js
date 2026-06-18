@@ -16,10 +16,10 @@ const couponSchema = z.object({
   title: z.string().min(2).max(100),
   description: z.string().optional(),
   discountType: z.nativeEnum(DiscountType),
-  discountValue: z.number().positive(),
+  discountValue: z.coerce.number().positive(),
   validFrom: z.coerce.date(),
   validTo: z.coerce.date(),
-  usageLimit: z.number().int().positive().optional(),
+  usageLimit: z.coerce.number().int().positive().optional(),
 });
 
 router.get('/business/:businessId', authenticate, async (req, res, next) => {

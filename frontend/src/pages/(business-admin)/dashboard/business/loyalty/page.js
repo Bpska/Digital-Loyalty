@@ -92,15 +92,37 @@ export default function LoyaltyPage() {
     e.preventDefault();
     setErrorMsg(null);
 
+    // --- Client-side validation ---
+    const parsedThreshold = parseInt(threshold);
+    if (!threshold || isNaN(parsedThreshold) || parsedThreshold <= 0) {
+      setErrorMsg("Please enter a valid target number (e.g. 10 visits or 500 points).");
+      return;
+    }
+
+    if (!rewardId) {
+      setErrorMsg("Please select a Reward Voucher to link with this loyalty rule.");
+      return;
+    }
+
+    let parsedPointsPerVisit = undefined;
+    if (type === "POINTS_BASED") {
+      parsedPointsPerVisit = parseInt(pointsPerVisit);
+      if (isNaN(parsedPointsPerVisit) || parsedPointsPerVisit <= 0) {
+        setErrorMsg("Please enter a valid points-per-visit value (e.g. 10).");
+        return;
+      }
+    }
+
     createMutation.mutate({
       businessId,
       type,
-      threshold: parseInt(threshold),
-      pointsPerVisit: type === "POINTS_BASED" ? parseInt(pointsPerVisit) : undefined,
+      threshold: parsedThreshold,
+      pointsPerVisit: parsedPointsPerVisit,
       resetMode,
       rewardId,
     });
   };
+
 
   const resetForm = () => {
     setThreshold("");

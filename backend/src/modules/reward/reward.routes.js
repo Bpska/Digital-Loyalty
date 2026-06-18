@@ -13,7 +13,7 @@ const rewardSchema = z.object({
   businessId: z.string().cuid(),
   title: z.string().min(2).max(100),
   description: z.string().optional(),
-  pointsRequired: z.number().int().min(0).default(0),
+  pointsRequired: z.coerce.number().int().min(0).default(0),
   expiryDate: z.coerce.date().optional(),
   isActive: z.boolean().default(true),
 });

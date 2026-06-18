@@ -13,8 +13,8 @@ const router = Router();
 const loyaltyProgramSchema = z.object({
   businessId: z.string().cuid(),
   type: z.nativeEnum(LoyaltyType),
-  threshold: z.number().int().positive(),
-  pointsPerVisit: z.number().int().positive().default(10),
+  threshold: z.coerce.number().int().positive(),
+  pointsPerVisit: z.coerce.number().int().positive().optional().default(10),
   resetMode: z.nativeEnum(LoyaltyResetMode).default(LoyaltyResetMode.FULL_RESET),
   rewardId: z.string().cuid(),
 });
