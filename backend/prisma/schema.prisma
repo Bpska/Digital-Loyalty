@@ -275,9 +275,9 @@ model Payment {
 /// Haversine distance calculated server-side and stored for audit.
 model CheckIn {
   id             String        @id @default(cuid())
-  latitude       Float
-  longitude      Float
-  distanceMeters Float         // Haversine distance from branch center
+  latitude       Float?
+  longitude      Float?
+  distanceMeters Float?         // Haversine distance from branch center
   status         CheckInStatus @default(VALID)
   ipAddress      String?
   /// Client-generated UUID stored in localStorage — soft device fingerprint
