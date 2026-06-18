@@ -24,68 +24,76 @@ export function useGeolocation() {
         return;
       }
 
-      const optionsHigh = {
-        enableHighAccuracy: true,
-        timeout: 25000,     // 25 seconds (gives user enough time to approve the browser permission prompt)
-        maximumAge: 60000,  // Allow 1 minute old cached position for fast loading
-      };
-
-      const optionsLow = {
-        enableHighAccuracy: false,
-        timeout: 15000,     // 15 seconds
-        maximumAge: 300000, // Allow 5 minutes old cached position
-      };
+      let resolved = false;
 
       const handleSuccess = (position) => {
+        if (resolved) return;
         const newCoords = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
         };
         setState({ loading: false, coords: newCoords, error: null });
+        resolved = true;
         resolve(newCoords);
       };
 
-      const handleError = (error) => {
-        // If high accuracy timed out, retry with low accuracy (network/wifi/cell tower location)
-        if (error.code === error.TIMEOUT && optionsHigh.enableHighAccuracy) {
-          console.warn("High accuracy GPS timed out. Retrying with low accuracy...");
-          
+      // 1. Get quick network location (low accuracy)
+      navigator.geolocation.getCurrentPosition(
+        (lowPos) => {
+          const lowCoords = {
+            latitude: lowPos.coords.latitude,
+            longitude: lowPos.coords.longitude,
+          };
+
+          // 2. Quickly try to get high accuracy GPS location in background
+          navigator.geolocation.getCurrentPosition(
+            (highPos) => {
+              handleSuccess(highPos);
+            },
+            (highErr) => {
+              console.warn("High accuracy GPS timed out/failed. Falling back to low accuracy:", highErr.message);
+              if (!resolved) {
+                setState({ loading: false, coords: lowCoords, error: null });
+                resolved = true;
+                resolve(lowCoords);
+              }
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 10000,     // 10 seconds background GPS timeout
+              maximumAge: 0,      // Enforce fresh GPS read
+            }
+          );
+        },
+        (lowErr) => {
+          // If low accuracy directly fails, run standard high accuracy query
           navigator.geolocation.getCurrentPosition(
             handleSuccess,
-            (lowError) => {
+            (highErr) => {
               let errorMsg = "Failed to retrieve your location.";
-              if (lowError.code === lowError.PERMISSION_DENIED) {
+              if (highErr.code === highErr.PERMISSION_DENIED) {
                 errorMsg = "Location access denied. Please enable GPS permissions to check in.";
-              } else if (lowError.code === lowError.POSITION_UNAVAILABLE) {
+              } else if (highErr.code === highErr.POSITION_UNAVAILABLE) {
                 errorMsg = "Location information is unavailable. Please check your device GPS connection.";
-              } else if (lowError.code === lowError.TIMEOUT) {
-                errorMsg = "Location request timed out. Please ensure GPS is turned ON in your phone settings and try again.";
+              } else if (highErr.code === highErr.TIMEOUT) {
+                errorMsg = "Location request timed out. Please ensure GPS is ON in your settings and try again.";
               }
               setState({ loading: false, coords: null, error: errorMsg });
               reject(new Error(errorMsg));
             },
-            optionsLow
+            {
+              enableHighAccuracy: true,
+              timeout: 15000,
+              maximumAge: 60000,
+            }
           );
-          return;
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 4000,      // 4 seconds quick check
+          maximumAge: 300000, // 5 minutes cached position is fine for quick check
         }
-
-        let errorMsg = "Failed to retrieve your location.";
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMsg = "Location access denied. Please enable GPS permissions to check in.";
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMsg = "Location information is unavailable. Please check your device GPS connection.";
-            break;
-          case error.TIMEOUT:
-            errorMsg = "Location request timed out. Please ensure GPS is turned ON in your phone settings and try again.";
-            break;
-        }
-        setState({ loading: false, coords: null, error: errorMsg });
-        reject(new Error(errorMsg));
-      };
-
-      navigator.geolocation.getCurrentPosition(handleSuccess, handleError, optionsHigh);
+      );
     });
   }, []);
 

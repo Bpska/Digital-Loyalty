@@ -118,18 +118,58 @@ router.patch(
     try {
       const { status } = req.body ;
       
-      const currentBusiness = await prisma.business.findUnique({
+      const currentBusiness = await prisma.business.findUniqueOrThrow({
         where: { id: req.params.id },
         select: { planId: true }
       });
 
       const updateData = { status };
-      if (status === 'ACTIVE' && (!currentBusiness || !currentBusiness.planId)) {
+      if (status === 'ACTIVE') {
         const starterPlan = await prisma.plan.findFirst({
           where: { name: 'STARTER' }
         });
-        if (starterPlan) {
-          updateData.planId = starterPlan.id;
+
+        // Count active businesses to see if they are in the first 15
+        const activeCount = await prisma.business.count({
+          where: { status: 'ACTIVE', deletedAt: null }
+        });
+
+        const isPromoYearly = activeCount < 15;
+        let planId = currentBusiness.planId;
+
+        if (isPromoYearly) {
+          // First 15 approved businesses get forced STARTER yearly plan (valued at ₹999)
+          if (starterPlan) {
+            planId = starterPlan.id;
+            updateData.planId = starterPlan.id;
+          }
+        } else {
+          // Subsequent approved businesses default to STARTER monthly if they haven't chosen a plan
+          if (!planId && starterPlan) {
+            planId = starterPlan.id;
+            updateData.planId = starterPlan.id;
+          }
+        }
+
+        if (planId) {
+          const currentPeriodEnd = isPromoYearly
+            ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year promo
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);  // 30 days monthly
+
+          await prisma.subscription.upsert({
+            where: { businessId: req.params.id },
+            update: {
+              planId,
+              status: 'ACTIVE',
+              currentPeriodEnd,
+            },
+            create: {
+              businessId: req.params.id,
+              planId,
+              status: 'ACTIVE',
+              currentPeriodEnd,
+            }
+          });
         }
       }
 
@@ -228,5 +268,76 @@ router.get('/audit-logs', async (req, res, next) => {
     next(err);
   }
 });
+
+// Send direct notification — Super Admin only
+const sendNotificationSchema = z.object({
+  targetType: z.enum(['user_phone', 'user_id', 'business_id']),
+  targetValue: z.string().min(1, 'Target identifier value is required'),
+  title: z.string().min(1, 'Title is required'),
+  body: z.string().min(1, 'Body is required'),
+});
+
+router.post(
+  '/notifications',
+  validate(sendNotificationSchema),
+  auditLog('ADMIN_NOTIFICATION_SENT', 'Notification'),
+  async (req, res, next) => {
+    try {
+      const { targetType, targetValue, title, body } = req.body;
+      const prisma = (await import('../../config/prisma.js')).default;
+      const notificationsCreated = [];
+
+      if (targetType === 'user_phone') {
+        const user = await prisma.user.findFirstOrThrow({
+          where: { phone: targetValue, deletedAt: null },
+        });
+
+        const notif = await prisma.notification.create({
+          data: {
+            userId: user.id,
+            title,
+            body,
+            type: 'GENERAL',
+          },
+        });
+        notificationsCreated.push(notif);
+      } else if (targetType === 'user_id') {
+        const user = await prisma.user.findFirstOrThrow({
+          where: { id: targetValue, deletedAt: null },
+        });
+
+        const notif = await prisma.notification.create({
+          data: {
+            userId: user.id,
+            title,
+            body,
+            type: 'GENERAL',
+          },
+        });
+        notificationsCreated.push(notif);
+      } else if (targetType === 'business_id') {
+        const business = await prisma.business.findUniqueOrThrow({
+          where: { id: targetValue, deletedAt: null },
+          select: { id: true, ownerId: true },
+        });
+
+        const notif = await prisma.notification.create({
+          data: {
+            userId: business.ownerId,
+            businessId: business.id,
+            title,
+            body,
+            type: 'GENERAL',
+          },
+        });
+        notificationsCreated.push(notif);
+      }
+
+      sendCreated(res, notificationsCreated, 'Notification(s) sent successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 export default router;

@@ -58,6 +58,19 @@ export default function BusinessesManagementPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("businesses");
 
+  // Search and status filter states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+
+  // Notification form states
+  const [notifTargetType, setNotifTargetType] = useState("user_phone");
+  const [notifTargetValue, setNotifTargetValue] = useState("");
+  const [notifTitle, setNotifTitle] = useState("");
+  const [notifBody, setNotifBody] = useState("");
+  const [notifSuccess, setNotifSuccess] = useState(null);
+  const [notifError, setNotifError] = useState(null);
+  const [notifLoading, setNotifLoading] = useState(false);
+
   // Plan creation modal
   const [showAddPlanModal, setShowAddPlanModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -72,10 +85,22 @@ export default function BusinessesManagementPage() {
   const [csvExport, setCsvExport] = useState(false);
   const [apiAccess, setApiAccess] = useState(false);
 
-  // 1. Fetch businesses
+  // 1. Fetch platform statistics for Tenant stats overview
+  const { data: statsData } = useQuery({
+    queryKey: ["superDashboardStats"],
+    queryFn: () => api.get("/admin/dashboard").then((res) => res.data),
+    enabled: activeTab === "businesses",
+  });
+
+  // 2. Fetch businesses with search & status filters (retrieve up to 100 businesses)
   const { data: businessesData, isLoading: bizLoading } = useQuery({
-    queryKey: ["superBusinessesList"],
-    queryFn: () => api.get("/admin/businesses").then((res) => res.data),
+    queryKey: ["superBusinessesList", searchTerm, statusFilter],
+    queryFn: () => {
+      let url = "/admin/businesses?limit=100&";
+      if (searchTerm) url += `search=${encodeURIComponent(searchTerm)}&`;
+      if (statusFilter !== "ALL") url += `status=${statusFilter}&`;
+      return api.get(url).then((res) => res.data);
+    },
     enabled: activeTab === "businesses",
   });
 
@@ -137,6 +162,29 @@ export default function BusinessesManagementPage() {
     setErrorMsg(null);
   };
 
+  const handleSendNotification = async (e) => {
+    e.preventDefault();
+    setNotifLoading(true);
+    setNotifSuccess(null);
+    setNotifError(null);
+    try {
+      await api.post("/admin/notifications", {
+        targetType: notifTargetType,
+        targetValue: notifTargetValue,
+        title: notifTitle,
+        body: notifBody,
+      });
+      setNotifSuccess("Alert sent successfully!");
+      setNotifTargetValue("");
+      setNotifTitle("");
+      setNotifBody("");
+    } catch (err) {
+      setNotifError(err.message || "Failed to send alert. Check target value.");
+    } finally {
+      setNotifLoading(false);
+    }
+  };
+
   const businesses = businessesData || [];
   const plans = plansData || [];
 
@@ -157,14 +205,80 @@ export default function BusinessesManagementPage() {
         )
       )
 
-      , React.createElement(Tabs, { defaultValue: "businesses", className: "w-full", onValueChange: setActiveTab, __self: this, __source: {fileName: _jsxFileName, lineNumber: 160}}
-        , React.createElement(TabsList, { className: "grid w-64 grid-cols-2 mb-6"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 161}}
+      , React.createElement(Tabs, { defaultValue: "businesses", className: "w-full", onValueChange: (val) => { setActiveTab(val); resetPlanForm(); setNotifSuccess(null); setNotifError(null); }, __self: this, __source: {fileName: _jsxFileName, lineNumber: 160}}
+        , React.createElement(TabsList, { className: "grid w-96 grid-cols-3 mb-6"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 161}}
           , React.createElement(TabsTrigger, { value: "businesses", __self: this, __source: {fileName: _jsxFileName, lineNumber: 162}}, "Tenants")
           , React.createElement(TabsTrigger, { value: "plans", __self: this, __source: {fileName: _jsxFileName, lineNumber: 163}}, "Pricing Plans" )
+          , React.createElement(TabsTrigger, { value: "notifications", __self: this, __source: {fileName: _jsxFileName, lineNumber: 163}}, "Send Alerts" )
         )
 
         /* Tenants Tab */
-        , React.createElement(TabsContent, { value: "businesses", className: "space-y-4", __self: this, __source: {fileName: _jsxFileName, lineNumber: 167}}
+        , React.createElement(TabsContent, { value: "businesses", className: "space-y-4", __self: this, __source: {fileName: _jsxFileName, lineNumber: 207}}
+          /* Platform stats metrics row */
+          , React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-4 gap-4" }
+            , React.createElement(Card, { className: "bg-slate-50/50 border border-border/40" }
+                , React.createElement(CardContent, { className: "p-4 flex items-center justify-between" }
+                  , React.createElement('div', null
+                    , React.createElement('p', { className: "text-[10px] font-bold text-muted-foreground uppercase tracking-wider" }, "Total Registered")
+                    , React.createElement('h3', { className: "text-2xl font-black text-foreground mt-1" }, statsData?.totalBusinesses ?? 0)
+                  )
+                  , React.createElement(Building2, { className: "h-8 w-8 text-primary/70" })
+                )
+              )
+            , React.createElement(Card, { className: "bg-emerald-50/25 border border-emerald-100/60" }
+                , React.createElement(CardContent, { className: "p-4 flex items-center justify-between" }
+                  , React.createElement('div', null
+                    , React.createElement('p', { className: "text-[10px] font-bold text-emerald-800 uppercase tracking-wider" }, "Active Storefronts")
+                    , React.createElement('h3', { className: "text-2xl font-black text-emerald-950 mt-1" }, statsData?.activeBusinesses ?? 0)
+                  )
+                  , React.createElement(Building2, { className: "h-8 w-8 text-emerald-600/70" })
+                )
+              )
+            , React.createElement(Card, { className: "bg-indigo-50/25 border border-indigo-100/60" }
+                , React.createElement(CardContent, { className: "p-4 flex items-center justify-between" }
+                  , React.createElement('div', null
+                    , React.createElement('p', { className: "text-[10px] font-bold text-indigo-800 uppercase tracking-wider" }, "Active Subscriptions")
+                    , React.createElement('h3', { className: "text-2xl font-black text-indigo-950 mt-1" }, statsData?.activeSubscriptions ?? 0)
+                  )
+                  , React.createElement(Building2, { className: "h-8 w-8 text-indigo-650/70" })
+                )
+              )
+            , React.createElement(Card, { className: "bg-purple-50/25 border border-purple-100/60" }
+                , React.createElement(CardContent, { className: "p-4 flex items-center justify-between" }
+                  , React.createElement('div', null
+                    , React.createElement('p', { className: "text-[10px] font-bold text-purple-800 uppercase tracking-wider" }, "Platform Customers")
+                    , React.createElement('h3', { className: "text-2xl font-black text-purple-955 mt-1" }, statsData?.totalCustomers ?? 0)
+                  )
+                  , React.createElement(Building2, { className: "h-8 w-8 text-purple-600/70" })
+                )
+              )
+          )
+          , React.createElement('div', { className: "flex flex-col sm:flex-row gap-4 items-center bg-slate-50 border border-border/60 rounded-xl p-4" }
+            , React.createElement('div', { className: "w-full sm:flex-1 space-y-1" }
+              , React.createElement(Label, { htmlFor: "search-input", className: "text-xs font-semibold text-muted-foreground" }, "Search Business Name / Phone")
+              , React.createElement(Input, {
+                  id: "search-input",
+                  placeholder: "e.g. Brews or Ramesh",
+                  value: searchTerm,
+                  onChange: (e) => setSearchTerm(e.target.value),
+                  className: "bg-white border-border text-xs"
+                })
+            )
+            , React.createElement('div', { className: "w-full sm:w-48 space-y-1" }
+              , React.createElement(Label, { htmlFor: "status-filter", className: "text-xs font-semibold text-muted-foreground" }, "Status Filter")
+              , React.createElement('select', {
+                  id: "status-filter",
+                  value: statusFilter,
+                  onChange: (e) => setStatusFilter(e.target.value),
+                  className: "w-full h-10 border border-border rounded-md bg-white text-xs px-3 outline-none"
+                },
+                  React.createElement('option', { value: "ALL" }, "All Statuses"),
+                  React.createElement('option', { value: "ACTIVE" }, "ACTIVE"),
+                  React.createElement('option', { value: "PENDING" }, "PENDING"),
+                  React.createElement('option', { value: "SUSPENDED" }, "SUSPENDED")
+                )
+            )
+          )
           , bizLoading ? (
             React.createElement('div', { className: "flex justify-center py-12"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 169}}
               , React.createElement(Loader2, { className: "h-8 w-8 animate-spin text-primary"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 170}} )
@@ -197,6 +311,8 @@ export default function BusinessesManagementPage() {
                       )
                       , React.createElement('p', { className: "text-xs text-muted-foreground" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 198}}, "Created: " , formatDate(business.createdAt))
                       , React.createElement('p', { className: "text-[10px] text-muted-foreground" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 199}}, "ID: " , business.id)
+                      , business.address && React.createElement('p', { className: "text-[10px] text-muted-foreground italic truncate max-w-[200px] mt-0.5" }, "Address: " , business.address)
+                      , React.createElement('p', { className: "text-[9px] text-muted-foreground/80 mt-0.5" }, "Timezone: " , business.timezone)
                     )
 
                     /* Owner Details */
@@ -331,6 +447,72 @@ export default function BusinessesManagementPage() {
                   )
                 )
               ))
+            )
+          )
+        )
+
+        /* Send Alerts Tab */
+        , React.createElement(TabsContent, { value: "notifications", className: "space-y-4" }
+          , React.createElement(Card, { className: "glass max-w-md mx-auto", glass: true }
+            , React.createElement(CardHeader, null
+              , React.createElement(CardTitle, { className: "text-lg font-bold" }, "Send Direct Notification")
+              , React.createElement(CardDescription, { className: "text-xs" }, "Push message notifications directly to user phones or business owners.")
+            )
+            , React.createElement(CardContent, null
+              , notifSuccess && React.createElement('div', { className: "mb-4 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-lg p-3 text-center font-medium animate-fade-in" }, notifSuccess)
+              , notifError && React.createElement('div', { className: "mb-4 bg-destructive/10 border border-destructive/20 text-destructive text-xs rounded-lg p-3 text-center font-medium animate-fade-in" }, notifError)
+              , React.createElement('form', { onSubmit: handleSendNotification, className: "space-y-4" }
+                , React.createElement('div', { className: "space-y-1.5" }
+                  , React.createElement(Label, { htmlFor: "notif-target" }, "Target Type")
+                  , React.createElement('select', {
+                      id: "notif-target",
+                      value: notifTargetType,
+                      onChange: (e) => { setNotifTargetType(e.target.value); setNotifTargetValue(""); },
+                      className: "w-full h-10 border border-border rounded-md bg-white text-xs px-3 outline-none"
+                    },
+                      React.createElement('option', { value: "user_phone" }, "Direct User Phone (e.g. +91XXXXXXXXXX)"),
+                      React.createElement('option', { value: "user_id" }, "Direct User ID (CUID)"),
+                      React.createElement('option', { value: "business_id" }, "Business Owner (Business ID)")
+                    )
+                )
+                , React.createElement('div', { className: "space-y-1" }
+                  , React.createElement(Label, { htmlFor: "notif-value" }, "Target Value Identifier")
+                  , React.createElement(Input, {
+                      id: "notif-value",
+                      placeholder: notifTargetType === "user_phone" ? "e.g. +919937012345" : notifTargetType === "user_id" ? "e.g. clabc123..." : "e.g. seed-business-cafe",
+                      value: notifTargetValue,
+                      onChange: (e) => setNotifTargetValue(e.target.value),
+                      required: true,
+                      className: "text-xs"
+                    })
+                )
+                , React.createElement('div', { className: "space-y-1" }
+                  , React.createElement(Label, { htmlFor: "notif-title" }, "Alert Title")
+                  , React.createElement(Input, {
+                      id: "notif-title",
+                      placeholder: "e.g. Reward Ready! or System Update",
+                      value: notifTitle,
+                      onChange: (e) => setNotifTitle(e.target.value),
+                      required: true,
+                      className: "text-xs"
+                    })
+                )
+                , React.createElement('div', { className: "space-y-1" }
+                  , React.createElement(Label, { htmlFor: "notif-body" }, "Alert Body Message")
+                  , React.createElement('textarea', {
+                      id: "notif-body",
+                      placeholder: "Enter details of the push notification alert...",
+                      value: notifBody,
+                      onChange: (e) => setNotifBody(e.target.value),
+                      required: true,
+                      className: "w-full min-h-[90px] text-xs border border-border rounded-md p-3 focus:outline-none focus:ring-1 focus:ring-primary bg-background text-foreground"
+                    })
+                )
+                , React.createElement(Button, { type: "submit", className: "w-full bg-primary text-primary-foreground", disabled: notifLoading }
+                  , notifLoading ? React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin" }) : null
+                  , "Send Push Notification"
+                )
+              )
             )
           )
         )

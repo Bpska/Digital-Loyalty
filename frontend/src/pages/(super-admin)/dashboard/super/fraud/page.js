@@ -1,7 +1,7 @@
 const _jsxFileName = "src\\pages\\(super-admin)\\dashboard\\super\\fraud\\page.tsx";"use client";
 
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Card, CardContent, } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,17 @@ import { formatDate } from "@/lib/utils";
 
 
 export default function FraudMonitorPage() {
+  const queryClient = useQueryClient();
+  const deleteMutation = useMutation({
+    mutationFn: (id) => api.delete(`/checkins/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["superFraudList"] });
+    },
+    onError: (err) => {
+      alert(err.message || "Failed to delete log.");
+    }
+  });
+
   const { data: fraudListData, isLoading, refetch } = useQuery({
     queryKey: ["superFraudList"],
     queryFn: () => api.get("/admin/fraud/checkins").then((res) => res.data),
@@ -83,7 +94,7 @@ export default function FraudMonitorPage() {
               
               return (
                 React.createElement(Card, { key: log.id, className: "border-red-100 bg-red-50/30" , glass: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 85}}
-                  , React.createElement(CardContent, { className: "p-6 grid grid-cols-1 md:grid-cols-4 gap-4 items-center"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 86}}
+                  , React.createElement(CardContent, { className: "p-6 grid grid-cols-1 md:grid-cols-5 gap-4 items-center"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 86}}
                     /* User and date info */
                     , React.createElement('div', { className: "space-y-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 88}}
                       , React.createElement('div', { className: "flex items-center space-x-2"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 89}}
@@ -119,6 +130,24 @@ export default function FraudMonitorPage() {
                       , React.createElement('span', { className: "text-[9px] text-muted-foreground uppercase tracking-widest block font-bold"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 119}}, "Network details" )
                       , React.createElement('p', { className: "truncate", __self: this, __source: {fileName: _jsxFileName, lineNumber: 120}}, React.createElement('span', { className: "text-muted-foreground", __self: this, __source: {fileName: _jsxFileName, lineNumber: 120}}, "IP:"), " " , React.createElement('span', { className: "font-mono text-[10px]" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 120}}, log.ipAddress || "unknown"))
                       , React.createElement('p', { className: "truncate", __self: this, __source: {fileName: _jsxFileName, lineNumber: 121}}, React.createElement('span', { className: "text-muted-foreground", __self: this, __source: {fileName: _jsxFileName, lineNumber: 121}}, "Device ID:" ), " " , React.createElement('span', { className: "font-mono text-[9px] text-muted-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 121}}, log.deviceId ? log.deviceId.slice(0, 8) + "..." : "none"))
+                    )
+
+                    /* Delete action */
+                    , React.createElement('div', { className: "flex justify-end", __self: this, __source: {fileName: _jsxFileName, lineNumber: 122}}
+                      , React.createElement(Button, {
+                          variant: "destructive",
+                          size: "sm",
+                          disabled: deleteMutation.isPending,
+                          onClick: () => {
+                            if (window.confirm("Are you sure you want to permanently delete this suspicious check-in log?")) {
+                              deleteMutation.mutate(log.id);
+                            }
+                          },
+                          __self: this,
+                          __source: {fileName: _jsxFileName, lineNumber: 123}
+                        }
+                        , deleteMutation.isPending ? "Deleting..." : "Delete"
+                      )
                     )
                   )
                 )

@@ -21,6 +21,10 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { api } from "@/lib/api";
+import { formatDate } from "@/lib/utils";
 
 export default function BusinessAdminLayout({
   children,
@@ -32,6 +36,38 @@ export default function BusinessAdminLayout({
   const { user, loading, logout } = useAuthStore();
   const [authorized, setAuthorized] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await api.get("/notifications");
+      setNotifications(res.data || []);
+      const countRes = await api.get("/notifications/unread-count");
+      setUnreadCount(countRes.data?.count || 0);
+    } catch (err) {
+      console.error("Failed to fetch business notifications:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (authorized) {
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 20000);
+      return () => clearInterval(interval);
+    }
+  }, [authorized]);
+
+  const handleMarkAllRead = async () => {
+    try {
+      await api.post("/notifications/read-all");
+      fetchNotifications();
+    } catch (err) {
+      console.error("Failed to mark all read:", err);
+    }
+  };
 
   useEffect(() => {
     if (!loading) {
@@ -176,9 +212,19 @@ export default function BusinessAdminLayout({
           )
           , React.createElement('div', { className: "flex items-center space-x-4"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 176}}
             /* Notifications */
-            , React.createElement('button', { className: "relative p-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 178}}
-              , React.createElement(Bell, { className: "h-4.5 w-4.5" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 179}} )
-              , React.createElement('span', { className: "absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-primary"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 180}} )
+            , React.createElement('button', {
+                onClick: () => {
+                  setShowNotifications(true);
+                  fetchNotifications();
+                },
+                className: "relative p-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors",
+                __self: this,
+                __source: {fileName: _jsxFileName, lineNumber: 178}
+              }
+              , React.createElement(Bell, { className: "h-4.5 w-4.5" })
+              , unreadCount > 0 && (
+                  React.createElement('span', { className: "absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-primary" })
+                )
             )
             , React.createElement('div', { className: "h-px bg-border w-4 hidden sm:block"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 182}} )
             /* User avatar */
@@ -197,6 +243,37 @@ export default function BusinessAdminLayout({
         , React.createElement('main', { className: "flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 196}}
           , React.createElement(Outlet, null)
         )
+        /* Notifications Modal Dialog */
+        , showNotifications && (
+            React.createElement(Dialog, { open: showNotifications, onOpenChange: (open) => !open && setShowNotifications(false) }
+              , React.createElement(DialogContent, { className: "max-w-[420px] bg-white border border-border" }
+                , React.createElement(DialogHeader, { className: "flex flex-row justify-between items-center pb-2 border-b border-border/60" }
+                  , React.createElement('div', null
+                    , React.createElement(DialogTitle, { className: "text-base font-bold text-foreground" }, "System Notifications")
+                    , React.createElement(DialogDescription, { className: "text-[10px] text-muted-foreground mt-0.5" }, "Alerts and messages sent by Super Admin")
+                  )
+                  , unreadCount > 0 && (
+                      React.createElement(Button, { size: "sm", variant: "ghost", className: "text-[10px] h-7 text-primary hover:text-primary/80 font-bold px-2", onClick: handleMarkAllRead }, "Mark all read")
+                    )
+                )
+                , React.createElement('div', { className: "max-h-[320px] overflow-y-auto space-y-3 py-2 scrollbar-none" }
+                  , notifications.length === 0 ? (
+                      React.createElement('div', { className: "text-center py-8 text-muted-foreground text-xs" }, "No notifications from administration.")
+                    ) : (
+                      notifications.map((notif) => (
+                        React.createElement('div', { key: notif.id, className: `p-3 rounded-lg border text-xs transition-colors ${notif.isRead ? 'bg-slate-50/50 border-slate-100' : 'bg-primary/5 border-primary/10'}` }
+                          , React.createElement('div', { className: "flex justify-between items-start mb-1" }
+                            , React.createElement('span', { className: "font-bold text-foreground" }, notif.title)
+                            , React.createElement('span', { className: "text-[9px] text-muted-foreground" }, formatDate(notif.createdAt))
+                          )
+                          , React.createElement('p', { className: "text-muted-foreground leading-relaxed text-[11px]" }, notif.body)
+                        )
+                      ))
+                    )
+                )
+              )
+            )
+          )
       )
     )
   );

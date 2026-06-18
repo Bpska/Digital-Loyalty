@@ -2,6 +2,7 @@
 
 import prisma from '../config/prisma.js';
 import { logger } from '../utils/logger.js';
+import { getClientIp } from '../utils/ip.js';
 
 /**
  * Audit log middleware factory.
@@ -92,8 +93,4 @@ function sanitizeBody(body) {
   );
 }
 
-function getClientIp(req) {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string') return forwarded.split(',')[0].trim();
-  return _nullishCoalesce(req.socket.remoteAddress, () => ( 'unknown'));
-}
+// Central helper getClientIp is imported from utils/ip.js

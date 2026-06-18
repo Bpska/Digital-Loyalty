@@ -30,6 +30,9 @@ import notificationRoutes from './modules/notification/notification.routes.js';
 export function createApp() {
   const app = express();
 
+  // Trust proxy for correct client IP resolution (x-forwarded-for)
+  app.set('trust proxy', true);
+
   // ── Security headers ────────────────────────────────────────
   app.use(
     helmet({
@@ -63,7 +66,7 @@ export function createApp() {
           origin.startsWith('http://localhost:') ||
           origin.startsWith('http://127.0.0.1:') ||
           origin.includes('72.61.169.195') ||
-          origin.includes('frunko.in')
+          origin.includes('loyalty.logisaar.in')
         );
 
         if (!origin || allowed.includes(origin) || isAllowedPattern) {

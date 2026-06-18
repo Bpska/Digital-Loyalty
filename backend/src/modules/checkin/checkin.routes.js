@@ -7,6 +7,7 @@ import { checkinRateLimiter } from '../../middlewares/rateLimit.middleware.js';
 import { processCheckIn, redeemReward } from './checkin.service.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 import { z } from 'zod';
+import { getClientIp } from '../../utils/ip.js';
 
 const router = Router();
 
@@ -42,7 +43,7 @@ router.post(
       const result = await processCheckIn({
         customerId: req.user.sub,
         ...req.body,
-        ipAddress: req.socket.remoteAddress,
+        ipAddress: getClientIp(req),
       });
       sendSuccess(res, result, 'Check-in successful! Points have been added.');
     } catch (err) {
@@ -189,6 +190,37 @@ router.patch(
       });
 
       sendSuccess(res, updatedCheckIn, `Check-in status updated to ${status}`);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// Delete check-in record — Super Admin or Business Owner only
+router.delete(
+  '/:checkInId',
+  authenticate,
+  authorize(Role.SUPER_ADMIN, Role.BUSINESS_ADMIN),
+  async (req, res, next) => {
+    try {
+      const { checkInId } = req.params;
+      const prisma = (await import('../../config/prisma.js')).default;
+
+      // Find the check-in and verify ownership/access
+      const checkIn = await prisma.checkIn.findUniqueOrThrow({
+        where: { id: checkInId },
+        include: { business: true }
+      });
+
+      if (req.user.role !== Role.SUPER_ADMIN && checkIn.business.ownerId !== req.user.sub) {
+        throw new AppError('Forbidden: You do not own this business.', 403);
+      }
+
+      await prisma.checkIn.delete({
+        where: { id: checkInId }
+      });
+
+      sendSuccess(res, null, 'Check-in record deleted successfully');
     } catch (err) {
       next(err);
     }

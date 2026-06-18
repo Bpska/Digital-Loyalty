@@ -49,35 +49,60 @@ export default function CheckinPage() {
     };
   }, []);
 
+  // Handle scanner start/stop lifecycle based on scanning status
+  useEffect(() => {
+    let isMounted = true;
+    let qrScanner = null;
+
+    if (status === "scanning") {
+      const initScanner = async () => {
+        try {
+          const { Html5Qrcode } = await import("html5-qrcode");
+          if (!isMounted) return;
+
+          const scannerId = "reader";
+          qrScanner = new Html5Qrcode(scannerId);
+          html5QrCodeRef.current = qrScanner;
+
+          await qrScanner.start(
+            { facingMode: "environment" },
+            {
+              fps: 10,
+              qrbox: { width: 250, height: 250 },
+            },
+            (decodedText) => {
+              if (isMounted) {
+                handleQrDecoded(decodedText);
+              }
+            },
+            (errorMessage) => {
+              // ignore scan errors
+            }
+          );
+        } catch (err) {
+          console.error("Failed to start camera scanner:", err);
+          if (isMounted) {
+            setStatus("idle");
+            setErrorMsg("Camera access denied or unavailable. You can upload an image of the QR code instead.");
+          }
+        }
+      };
+
+      // Slight delay to ensure DOM element is mounted
+      const timer = setTimeout(initScanner, 100);
+      return () => {
+        clearTimeout(timer);
+        isMounted = false;
+        if (qrScanner && qrScanner.isScanning) {
+          qrScanner.stop().catch((err) => console.error("Error stopping scanner on cleanup:", err));
+        }
+      };
+    }
+  }, [status]);
+
   const startScanner = async () => {
     setErrorMsg(null);
     setStatus("scanning");
-    
-    try {
-      const { Html5Qrcode } = await import("html5-qrcode");
-      
-      const scannerId = "reader";
-      html5QrCodeRef.current = new Html5Qrcode(scannerId);
-      
-      await html5QrCodeRef.current.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-        },
-        (decodedText) => {
-          // Scanned successfully!
-          handleQrDecoded(decodedText);
-        },
-        (errorMessage) => {
-          // ignore scan errors (they occur constantly when no QR code is in frame)
-        }
-      );
-    } catch (err) {
-      console.error("Failed to start camera scanner:", err);
-      setStatus("idle");
-      setErrorMsg("Camera access denied or unavailable. You can upload an image of the QR code instead.");
-    }
   };
 
   const stopScanner = async () => {
@@ -88,6 +113,7 @@ export default function CheckinPage() {
         console.error("Failed to stop scanner:", err);
       }
     }
+    setStatus("idle");
   };
 
   const handleFileChange = async (e) => {
@@ -187,8 +213,13 @@ export default function CheckinPage() {
 
   return (
     React.createElement('div', { className: "space-y-6 max-w-sm mx-auto"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 179}}
-      /* Hidden element for file scanning */
-      , React.createElement('div', { id: "reader-hidden", className: "hidden", __self: this, __source: {fileName: _jsxFileName, lineNumber: 181}} )
+      /* Hidden element for file scanning - keeps it in DOM with size but invisible off-screen to avoid canvas bugs */
+      , React.createElement('div', { 
+          id: "reader-hidden", 
+          style: { position: 'absolute', left: '-9999px', top: '-9999px', width: '1px', height: '1px', overflow: 'hidden' },
+          __self: this, 
+          __source: {fileName: _jsxFileName, lineNumber: 181}
+        })
 
       /* Success View */
       , status === "success" && checkInDetails && (

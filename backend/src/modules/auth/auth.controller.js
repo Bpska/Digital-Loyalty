@@ -2,6 +2,7 @@
 import * as authService from './auth.service.js';
 import { sendSuccess, sendCreated, Responses } from '../../utils/response.js';
 import { setTokenCookies, clearTokenCookies } from '../../middlewares/auth.middleware.js';
+import { getClientIp } from '../../utils/ip.js';
 
 // ─────────────────────────────────────────────────────────────
 // Customer OTP Auth
@@ -255,10 +256,4 @@ export async function getMe(req, res, next) {
   }
 }
 
-// ── Helpers ───────────────────────────────────────────────────
-
-function getClientIp(req) {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string') return forwarded.split(',')[0].trim();
-  return _nullishCoalesce(req.socket.remoteAddress, () => ( 'unknown'));
-}
+// Central helper getClientIp is imported from utils/ip.js
