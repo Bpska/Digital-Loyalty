@@ -2,6 +2,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 const _jsxFileName = "src\\pages\\(customer)\\checkin\\page.tsx"; function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }"use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
 import { useGeolocation } from "@/hooks/useGeolocation";
@@ -12,6 +13,7 @@ import { QrCode, Camera, Upload, AlertTriangle, CheckCircle, Loader2, Award, Spa
 
 export default function CheckinPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const { getPosition, loading: geoLoading, error: geoError } = useGeolocation();
 
@@ -198,6 +200,10 @@ export default function CheckinPage() {
       if (response.success && response.data) {
         setCheckInDetails(response.data);
         setStatus("success");
+        // Invalidate all customer data queries so dashboard/history refresh immediately
+        queryClient.invalidateQueries({ queryKey: ["customerDashboard"] });
+        queryClient.invalidateQueries({ queryKey: ["checkinHistory"] });
+        queryClient.invalidateQueries({ queryKey: ["rewardsHistory"] });
       } else {
         throw new Error(response.message || "Failed to complete check-in.");
       }
@@ -356,7 +362,7 @@ export default function CheckinPage() {
                   React.createElement(React.Fragment, null
                     , React.createElement('div', { id: "reader", className: "absolute inset-0 w-full h-full"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 316}} )
                     /* Glowing scanning laser line */
-                    , React.createElement('div', { className: "absolute left-0 right-0 top-1/2 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent shadow-lg shadow-primary animate-pulse pointer-events-none"            , __self: this, __source: {fileName: _jsxFileName, lineNumber: 318}} )
+                    , React.createElement('div', { className: "absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent shadow-[0_0_8px_rgba(99,102,241,0.8)] animate-scan-laser pointer-events-none"            , __self: this, __source: {fileName: _jsxFileName, lineNumber: 318}} )
                   )
                 ) : (
                   React.createElement('div', { className: "flex flex-col items-center justify-center space-y-2 text-muted-foreground"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 321}}

@@ -301,9 +301,9 @@ export async function processCheckIn(input) {
     return {
       checkIn,
       pointsEarned: pointsToAdd,
-      totalPoints: customerPoints.totalPoints + pointsToAdd,
-      totalVisits: customerPoints.totalVisits + 1,
-      visitStreak: customerPoints.visitStreak + 1,
+      totalPoints: customerPoints.totalPoints,
+      totalVisits: customerPoints.totalVisits,
+      visitStreak: customerPoints.visitStreak,
       newlyUnlockedReward,
     };
   });

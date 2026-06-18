@@ -126,3 +126,21 @@
   @apply fixed bottom-4 left-4 right-4 z-50 rounded-xl p-4 glass shadow-2xl;
   @apply animate-fade-in;
 }
+
+/* ── Scanner laser animation ────────────────────────────────── */
+@keyframes scan-laser {
+  0% {
+    top: 0%;
+  }
+  50% {
+    top: 100%;
+  }
+  100% {
+    top: 0%;
+  }
+}
+
+.animate-scan-laser {
+  animation: scan-laser 2s ease-in-out infinite;
+}
+

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MapPin, QrCode, Plus, Download, Loader2, ToggleLeft, ToggleRight, } from "lucide-react";
+import BranchMap from "@/components/BranchMap";
 
 
 
@@ -408,6 +409,16 @@ export default function BranchesPage() {
                 )
               )
 
+              , React.createElement(BranchMap, {
+                  lat: latitude,
+                  lng: longitude,
+                  radius: radiusMeters,
+                  onChange: (lat, lng) => {
+                    setLatitude(lat.toString());
+                    setLongitude(lng.toString());
+                  }
+                })
+
               , React.createElement('div', { className: "flex gap-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 376 } }
                 , React.createElement(Button, {
                   type: "button",
@@ -571,6 +582,16 @@ export default function BranchesPage() {
                   )
                 )
               )
+
+              , React.createElement(BranchMap, {
+                  lat: latitude,
+                  lng: longitude,
+                  radius: radiusMeters,
+                  onChange: (lat, lng) => {
+                    setLatitude(lat.toString());
+                    setLongitude(lng.toString());
+                  }
+                })
 
               , React.createElement('div', { className: "flex gap-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 526 } }
                 , React.createElement(Button, {
