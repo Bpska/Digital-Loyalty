@@ -204,22 +204,22 @@ export default function CustomerDashboard() {
                         )
 
                         /* Stamp Grid */
-                        , React.createElement('div', { className: "flex flex-wrap gap-2.5 pt-1"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 206}}
+                        , React.createElement('div', { className: "flex flex-wrap gap-3 pt-1"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 206}}
                           , Array.from({ length: threshold }).map((_, i) => {
                             const isStamped = i < card.visitStreak;
                             return (
                               React.createElement('div', {
                                 key: i,
-                                className: `h-10 w-10 rounded-full flex items-center justify-center border transition-all duration-200 ${
+                                className: `h-11 w-11 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
                                   isStamped
-                                    ? "bg-primary border-transparent text-white shadow-sm scale-105"
-                                    : "bg-white border-border text-muted-foreground/50"
+                                    ? "bg-[#BD4F2A] border-[#BD4F2A] text-white shadow-md shadow-[#BD4F2A]/20 scale-105"
+                                    : "bg-[#FAF8F7] border-dashed border-[#EAE3DF] text-[#D2C0B7]"
                                 }`, __self: this, __source: {fileName: _jsxFileName, lineNumber: 210}}
 
                                 , isStamped ? (
-                                  React.createElement(Star, { className: "h-5 w-5 fill-white stroke-none"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 219}} )
+                                  React.createElement(Star, { className: "h-5 w-5 fill-white text-white stroke-none"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 219}} )
                                 ) : (
-                                  React.createElement('span', { className: "text-xs font-semibold" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 221}}, i + 1)
+                                  React.createElement(Star, { className: "h-4.5 w-4.5 opacity-60"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 221}} )
                                 )
                               )
                             );

@@ -101,10 +101,8 @@ export default function BusinessAdminLayout({
       /* Desktop Sidebar */
       , React.createElement('aside', { className: "w-64 border-r border-border bg-card hidden md:flex flex-col h-screen sticky top-0"         , __self: this, __source: {fileName: _jsxFileName, lineNumber: 65}}
         , React.createElement('div', { className: "p-6 border-b border-border flex items-center space-x-2"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 66}}
-          , React.createElement('div', { className: "h-8 w-8 rounded-lg bg-gradient-to-tr from-primary to-indigo-400 flex items-center justify-center shadow-sm"         , __self: this, __source: {fileName: _jsxFileName, lineNumber: 67}}
-            , React.createElement('span', { className: "text-sm font-bold text-white"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 68}}, "B")
-          )
-          , React.createElement('span', { className: "text-base font-bold text-foreground tracking-tight"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 70}}, "ScanLoyal Business" )
+          , React.createElement('img', { src: "/image.png", alt: "LogiSaar Logo", className: "h-7 w-auto object-contain" })
+          , React.createElement('span', { className: "text-base font-bold text-foreground tracking-tight"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 70}}, "Business" )
         )
         , React.createElement('nav', { className: "flex-1 p-4 space-y-1 overflow-y-auto"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 72}}
           , menuItems.map((item) => {
@@ -153,10 +151,8 @@ export default function BusinessAdminLayout({
       ), __self: this, __source: {fileName: _jsxFileName, lineNumber: 113}}
         , React.createElement('div', { className: "p-6 border-b border-border flex items-center justify-between"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 117}}
           , React.createElement('div', { className: "flex items-center space-x-2"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 118}}
-            , React.createElement('div', { className: "h-8 w-8 rounded-lg bg-gradient-to-tr from-primary to-indigo-400 flex items-center justify-center"        , __self: this, __source: {fileName: _jsxFileName, lineNumber: 119}}
-              , React.createElement('span', { className: "text-sm font-bold text-white"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 120}}, "B")
-            )
-            , React.createElement('span', { className: "text-base font-bold text-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 122}}, "ScanLoyal Business" )
+            , React.createElement('img', { src: "/image.png", alt: "LogiSaar Logo", className: "h-7 w-auto object-contain" })
+            , React.createElement('span', { className: "text-base font-bold text-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 122}}, "Business" )
           )
           , React.createElement('button', { onClick: () => setMobileOpen(false), className: "text-muted-foreground", __self: this, __source: {fileName: _jsxFileName, lineNumber: 124}}
             , React.createElement(X, { className: "h-5 w-5" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 125}} )
@@ -196,7 +192,7 @@ export default function BusinessAdminLayout({
       )
 
       /* Main Container */
-      , React.createElement('div', { className: "flex-1 flex flex-col min-w-0 bg-background"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 162}}
+      , React.createElement('div', { className: "flex-1 flex flex-col min-w-0 bg-background bg-dots"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 162}}
         /* Top Navbar */
         , React.createElement('header', { className: "h-16 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-30"           , __self: this, __source: {fileName: _jsxFileName, lineNumber: 164}}
           , React.createElement('div', { className: "flex items-center space-x-4"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 165}}

@@ -11,7 +11,7 @@ import { z } from 'zod';
 const router = Router();
 
 const couponSchema = z.object({
-  businessId: z.string().cuid(),
+  businessId: z.string(),
   code: z.string().min(3).max(20).toUpperCase(),
   title: z.string().min(2).max(100),
   description: z.string().optional(),
@@ -77,8 +77,12 @@ router.patch('/:couponId', authenticate, authorize(Role.BUSINESS_ADMIN, Role.SUP
 
 router.delete('/:couponId', authenticate, authorize(Role.BUSINESS_ADMIN, Role.SUPER_ADMIN), async (req, res, next) => {
   try {
-    await prisma.coupon.update({ where: { id: req.params.couponId }, data: { isActive: false } });
-    sendSuccess(res, null, 'Coupon deactivated');
+    const { couponId } = req.params;
+    await prisma.$transaction([
+      prisma.couponUsage.deleteMany({ where: { couponId } }),
+      prisma.coupon.delete({ where: { id: couponId } }),
+    ]);
+    sendSuccess(res, null, 'Coupon deleted successfully');
   } catch (err) { next(err); }
 });
 

@@ -89,15 +89,13 @@ export default function CustomerLayout({
   ];
 
   return (
-    React.createElement('div', { className: "min-h-screen bg-[#f8fafc] safe-top safe-bottom text-foreground"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 55}}
+    React.createElement('div', { className: "min-h-screen bg-[#f8fafc] bg-dots safe-top safe-bottom text-foreground"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 55}}
       , React.createElement('div', { className: "mx-auto min-h-screen max-w-md bg-white border-x border-border shadow-sm relative flex flex-col pb-20"          , __self: this, __source: {fileName: _jsxFileName, lineNumber: 56}}
 
         /* Header Bar */
         , React.createElement('header', { className: "sticky top-0 z-30 flex items-center justify-between border-b border-border bg-white/80 p-4 backdrop-blur-md"          , __self: this, __source: {fileName: _jsxFileName, lineNumber: 59}}
           , React.createElement('div', { className: "flex items-center space-x-2"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 60}}
-            , React.createElement('div', { className: "h-7 w-7 rounded-lg bg-gradient-to-tr from-primary to-indigo-400 flex items-center justify-center shadow-sm"         , __self: this, __source: {fileName: _jsxFileName, lineNumber: 61}}
-              , React.createElement('span', { className: "text-xs font-bold text-white"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 62}}, "S")
-            )
+            , React.createElement('img', { src: "/image.png", alt: "LogiSaar Logo", className: "h-6.5 w-auto object-contain" })
             , React.createElement('span', { className: "text-sm font-semibold tracking-tight text-foreground"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 64}}, "ScanLoyal")
           )
           , React.createElement('div', { className: "flex items-center space-x-1" }

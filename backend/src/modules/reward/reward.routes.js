@@ -10,7 +10,7 @@ import { z } from 'zod';
 const router = Router();
 
 const rewardSchema = z.object({
-  businessId: z.string().cuid(),
+  businessId: z.string(),
   title: z.string().min(2).max(100),
   description: z.string().optional(),
   pointsRequired: z.coerce.number().int().min(0).default(0),

@@ -99,8 +99,8 @@ export default function AnalyticsPage() {
   const lockedCount = Math.max(0, (_optionalChain([analytics, 'optionalAccess', _4 => _4.totalRewardsIssued]) || 0) - redeemedCount);
   
   const voucherPieData = [
-    { name: "Claimed & Redeemed", value: redeemedCount, color: "#4f46e5" },
-    { name: "Unlocked & Unredeemed", value: lockedCount, color: "#818cf8" }
+    { name: "Claimed & Redeemed", value: redeemedCount, color: "#BD4F2A" },
+    { name: "Unlocked & Unredeemed", value: lockedCount, color: "#8C6553" }
   ];
 
   return (
@@ -206,17 +206,17 @@ export default function AnalyticsPage() {
               , React.createElement(AreaChart, { data: chartData, margin: { top: 10, right: 10, left: -20, bottom: 0 }, __self: this, __source: {fileName: _jsxFileName, lineNumber: 206}}
                 , React.createElement('defs', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 207}}
                   , React.createElement('linearGradient', { id: "colorCheckins", x1: "0", y1: "0", x2: "0", y2: "1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 208}}
-                    , React.createElement('stop', { offset: "5%", stopColor: "#4f46e5", stopOpacity: 0.2, __self: this, __source: {fileName: _jsxFileName, lineNumber: 209}})
-                    , React.createElement('stop', { offset: "95%", stopColor: "#4f46e5", stopOpacity: 0, __self: this, __source: {fileName: _jsxFileName, lineNumber: 210}})
+                    , React.createElement('stop', { offset: "5%", stopColor: "#BD4F2A", stopOpacity: 0.2, __self: this, __source: {fileName: _jsxFileName, lineNumber: 209}})
+                    , React.createElement('stop', { offset: "95%", stopColor: "#BD4F2A", stopOpacity: 0, __self: this, __source: {fileName: _jsxFileName, lineNumber: 210}})
                   )
                 )
-                , React.createElement(XAxis, { dataKey: "name", stroke: "#64748b", fontSize: 10, tickLine: false, __self: this, __source: {fileName: _jsxFileName, lineNumber: 213}} )
-                , React.createElement(YAxis, { stroke: "#64748b", fontSize: 10, tickLine: false, __self: this, __source: {fileName: _jsxFileName, lineNumber: 214}} )
+                , React.createElement(XAxis, { dataKey: "name", stroke: "#8C6553", fontSize: 10, tickLine: false, __self: this, __source: {fileName: _jsxFileName, lineNumber: 213}} )
+                , React.createElement(YAxis, { stroke: "#8C6553", fontSize: 10, tickLine: false, __self: this, __source: {fileName: _jsxFileName, lineNumber: 214}} )
                 , React.createElement(Tooltip, { 
                   contentStyle: { backgroundColor: "var(--card)", borderColor: "var(--border)", borderRadius: 8, fontSize: 11 },
                   labelClassName: "text-foreground font-bold" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 215}}
                 )
-                , React.createElement(Area, { type: "monotone", dataKey: "checkins", stroke: "#4f46e5", strokeWidth: 2.5, fillOpacity: 1, fill: "url(#colorCheckins)", name: "Check-ins", __self: this, __source: {fileName: _jsxFileName, lineNumber: 219}} )
+                , React.createElement(Area, { type: "monotone", dataKey: "checkins", stroke: "#BD4F2A", strokeWidth: 2.5, fillOpacity: 1, fill: "url(#colorCheckins)", name: "Check-ins", __self: this, __source: {fileName: _jsxFileName, lineNumber: 219}} )
               )
             )
           )

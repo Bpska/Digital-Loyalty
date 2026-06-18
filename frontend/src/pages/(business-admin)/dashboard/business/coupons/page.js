@@ -34,6 +34,8 @@ export default function CouponsPage() {
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedCoupon, setSelectedCoupon] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
 
   // Form states
@@ -66,7 +68,31 @@ export default function CouponsPage() {
     }
   });
 
-  // 3. Toggle active/inactive mutation
+  // 3. Update coupon mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => api.patch(`/coupons/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["businessCoupons", businessId] });
+      setShowEditModal(false);
+      resetForm();
+    },
+    onError: (err) => {
+      setErrorMsg(err.message || "Failed to update coupon.");
+    }
+  });
+
+  // 4. Delete coupon mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id) => api.delete(`/coupons/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["businessCoupons", businessId] });
+    },
+    onError: (err) => {
+      setErrorMsg(err.message || "Failed to delete coupon.");
+    }
+  });
+
+  // 5. Toggle active/inactive mutation
   const toggleActiveMutation = useMutation({
     mutationFn: ({ id, active }) => api.patch(`/coupons/${id}`, { isActive: active }),
     onSuccess: () => {
@@ -91,6 +117,39 @@ export default function CouponsPage() {
     });
   };
 
+  const handleEditCoupon = (e) => {
+    e.preventDefault();
+    if (!selectedCoupon) return;
+    setErrorMsg(null);
+
+    updateMutation.mutate({
+      id: selectedCoupon.id,
+      data: {
+        code: code.toUpperCase(),
+        title,
+        description: description || undefined,
+        discountType,
+        discountValue: parseFloat(discountValue),
+        validFrom: new Date(validFrom).toISOString(),
+        validTo: new Date(validTo).toISOString(),
+        usageLimit: usageLimit ? parseInt(usageLimit) : null,
+      }
+    });
+  };
+
+  const handleOpenEdit = (coupon) => {
+    setSelectedCoupon(coupon);
+    setCode(coupon.code);
+    setTitle(coupon.title);
+    setDescription(coupon.description || "");
+    setDiscountType(coupon.discountType);
+    setDiscountValue(coupon.discountValue.toString());
+    setValidFrom(new Date(coupon.validFrom).toISOString().split("T")[0]);
+    setValidTo(new Date(coupon.validTo).toISOString().split("T")[0]);
+    setUsageLimit(coupon.usageLimit ? coupon.usageLimit.toString() : "");
+    setShowEditModal(true);
+  };
+
   const resetForm = () => {
     setCode("");
     setTitle("");
@@ -100,6 +159,7 @@ export default function CouponsPage() {
     setValidFrom("");
     setValidTo("");
     setUsageLimit("");
+    setSelectedCoupon(null);
     setErrorMsg(null);
   };
 
@@ -204,8 +264,25 @@ export default function CouponsPage() {
                     )
 
                     /* Actions */
-                    , React.createElement('div', { className: "flex gap-2 pt-2 border-t border-border justify-between"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 207}}
-                      , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 208}}), " " /* Spacer */
+                    , React.createElement('div', { className: "flex gap-2 pt-2 border-t border-border justify-between w-full"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 207}}
+                      , React.createElement(Button, { 
+                        variant: "ghost", 
+                        size: "sm", 
+                        className: "text-xs text-muted-foreground hover:text-foreground"  ,
+                        onClick: () => handleOpenEdit(coupon), __self: this, __source: {fileName: _jsxFileName, lineNumber: 208}}
+                        , "Configure Details"
+                      )
+                      , React.createElement(Button, { 
+                        variant: "ghost", 
+                        size: "sm", 
+                        className: "text-xs text-destructive hover:text-destructive hover:bg-destructive/10"  ,
+                        onClick: () => {
+                          if (window.confirm(`Are you sure you want to delete coupon "${coupon.code}"?`)) {
+                            deleteMutation.mutate(coupon.id);
+                          }
+                        }, __self: this, __source: {fileName: _jsxFileName, lineNumber: 208}}
+                        , "Delete"
+                      )
                       , React.createElement(Button, { 
                         variant: "ghost", 
                         size: "sm", 
@@ -345,6 +422,127 @@ export default function CouponsPage() {
                 )
                 , React.createElement(Button, { type: "submit", className: "bg-primary", disabled: createMutation.isPending, __self: this, __source: {fileName: _jsxFileName, lineNumber: 346}}
                   , createMutation.isPending ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 347}} ) : "Publish Coupon"
+                )
+              )
+            )
+          )
+        )
+      )
+      /* Edit Coupon Modal */
+      , showEditModal && (
+        React.createElement(Dialog, { open: showEditModal, onOpenChange: (open) => !open && setShowEditModal(false), __self: this, __source: {fileName: _jsxFileName, lineNumber: 233}}
+          , React.createElement(DialogContent, { className: "max-w-[420px]", __self: this, __source: {fileName: _jsxFileName, lineNumber: 234}}
+            , React.createElement(DialogHeader, {__self: this, __source: {fileName: _jsxFileName, lineNumber: 235}}
+              , React.createElement(DialogTitle, {__self: this, __source: {fileName: _jsxFileName, lineNumber: 236}}, "Configure Coupon Campaign"  )
+              , React.createElement(DialogDescription, {__self: this, __source: {fileName: _jsxFileName, lineNumber: 237}}, "Modify coupon code, discount configurations, or validity dates."
+              )
+            )
+
+            , errorMsg && (
+              React.createElement('div', { className: "bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-xs text-destructive text-center"       , __self: this, __source: {fileName: _jsxFileName, lineNumber: 243}}
+                , errorMsg
+              )
+            )
+
+            , React.createElement('form', { onSubmit: handleEditCoupon, className: "space-y-4 py-2" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 248}}
+              , React.createElement('div', { className: "grid grid-cols-2 gap-4"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 249}}
+                , React.createElement('div', { className: "space-y-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 250}}
+                  , React.createElement(Label, { htmlFor: "edit-coupon-code", __self: this, __source: {fileName: _jsxFileName, lineNumber: 251}}, "Promo Code" )
+                  , React.createElement(Input, { 
+                    id: "edit-coupon-code", 
+                    placeholder: "e.g. MONSOON30" , 
+                    value: code,
+                    onChange: (e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "")),
+                    required: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 252}} 
+                  )
+                )
+                , React.createElement('div', { className: "space-y-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 260}}
+                  , React.createElement(Label, { htmlFor: "edit-coupon-title", __self: this, __source: {fileName: _jsxFileName, lineNumber: 261}}, "Campaign Title" )
+                  , React.createElement(Input, { 
+                    id: "edit-coupon-title", 
+                    placeholder: "e.g. 30% Off Monsoon Promo"    , 
+                    value: title,
+                    onChange: (e) => setTitle(e.target.value),
+                    required: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 262}} 
+                  )
+                )
+              )
+
+              , React.createElement('div', { className: "space-y-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 272}}
+                , React.createElement(Label, { htmlFor: "edit-coupon-desc", __self: this, __source: {fileName: _jsxFileName, lineNumber: 273}}, "Campaign Description" )
+                , React.createElement(Input, { 
+                   id: "edit-coupon-desc", 
+                   placeholder: "e.g. Limit 1 usage per user. Valid on all outlets."         , 
+                   value: description,
+                   onChange: (e) => setDescription(e.target.value), __self: this, __source: {fileName: _jsxFileName, lineNumber: 274}}
+                )
+              )
+
+              , React.createElement('div', { className: "grid grid-cols-2 gap-4"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 282}}
+                , React.createElement('div', { className: "space-y-1.5", __self: this, __source: {fileName: _jsxFileName, lineNumber: 283}}
+                  , React.createElement(Label, { htmlFor: "edit-discount-type", __self: this, __source: {fileName: _jsxFileName, lineNumber: 284}}, "Discount Type" )
+                  , React.createElement(Select, { onValueChange: (val) => setDiscountType(val), defaultValue: discountType, value: discountType, __self: this, __source: {fileName: _jsxFileName, lineNumber: 285}}
+                    , React.createElement(SelectTrigger, { className: "w-full bg-background border-border"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 286}}
+                      , React.createElement(SelectValue, { placeholder: "Select type" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 287}} )
+                    )
+                    , React.createElement(SelectContent, {__self: this, __source: {fileName: _jsxFileName, lineNumber: 289}}
+                      , React.createElement(SelectItem, { value: "PERCENTAGE", __self: this, __source: {fileName: _jsxFileName, lineNumber: 290}}, "PERCENTAGE (%)" )
+                      , React.createElement(SelectItem, { value: "FIXED_AMOUNT", __self: this, __source: {fileName: _jsxFileName, lineNumber: 291}}, "FIXED VALUE (INR)"  )
+                    )
+                  )
+                )
+                , React.createElement('div', { className: "space-y-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 295}}
+                  , React.createElement(Label, { htmlFor: "edit-discount-value", __self: this, __source: {fileName: _jsxFileName, lineNumber: 296}}, "Value")
+                  , React.createElement(Input, { 
+                    id: "edit-discount-value", 
+                    type: "number",
+                    placeholder: discountType === "PERCENTAGE" ? "e.g. 30" : "e.g. 150", 
+                    value: discountValue,
+                    onChange: (e) => setDiscountValue(e.target.value),
+                    required: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 297}} 
+                  )
+                )
+              )
+
+              , React.createElement('div', { className: "grid grid-cols-2 gap-4"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 308}}
+                , React.createElement('div', { className: "space-y-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 309}}
+                  , React.createElement(Label, { htmlFor: "edit-valid-from", __self: this, __source: {fileName: _jsxFileName, lineNumber: 310}}, "Valid From" )
+                  , React.createElement(Input, { 
+                    id: "edit-valid-from", 
+                    type: "date",
+                    value: validFrom,
+                    onChange: (e) => setValidFrom(e.target.value),
+                    required: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 311}} 
+                  )
+                )
+                , React.createElement('div', { className: "space-y-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 319}}
+                  , React.createElement(Label, { htmlFor: "edit-valid-to", __self: this, __source: {fileName: _jsxFileName, lineNumber: 320}}, "Valid To (Expiry)"  )
+                  , React.createElement(Input, { 
+                    id: "edit-valid-to", 
+                    type: "date",
+                    value: validTo,
+                    onChange: (e) => setValidTo(e.target.value),
+                    required: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 321}} 
+                  )
+                )
+              )
+
+              , React.createElement('div', { className: "space-y-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 331}}
+                , React.createElement(Label, { htmlFor: "edit-usage-limit", __self: this, __source: {fileName: _jsxFileName, lineNumber: 332}}, "Global Usage Limit (Optional)"   )
+                , React.createElement(Input, { 
+                  id: "edit-usage-limit", 
+                  type: "number",
+                  placeholder: "e.g. 100 times maximum"   , 
+                  value: usageLimit,
+                  onChange: (e) => setUsageLimit(e.target.value), __self: this, __source: {fileName: _jsxFileName, lineNumber: 333}}
+                )
+              )
+
+              , React.createElement(DialogFooter, { className: "pt-2", __self: this, __source: {fileName: _jsxFileName, lineNumber: 342}}
+                , React.createElement(Button, { type: "button", variant: "outline", onClick: () => setShowEditModal(false), __self: this, __source: {fileName: _jsxFileName, lineNumber: 343}}, "Cancel"
+                )
+                , React.createElement(Button, { type: "submit", className: "bg-primary", disabled: updateMutation.isPending, __self: this, __source: {fileName: _jsxFileName, lineNumber: 346}}
+                  , updateMutation.isPending ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 347}} ) : "Save Changes"
                 )
               )
             )

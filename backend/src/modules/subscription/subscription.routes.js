@@ -29,8 +29,8 @@ router.get('/business/:businessId', authenticate, async (req, res, next) => {
 
 // ── Create/change subscription (Razorpay) ────────────────────
 const createSubscriptionSchema = z.object({
-  businessId: z.string().cuid(),
-  planId: z.string().cuid(),
+  businessId: z.string(),
+  planId: z.string(),
 });
 
 router.post('/', authenticate, authorize(Role.BUSINESS_ADMIN, Role.SUPER_ADMIN), validate(createSubscriptionSchema), async (req, res, next) => {

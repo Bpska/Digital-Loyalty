@@ -11,12 +11,13 @@ import { z } from 'zod';
 const router = Router();
 
 const loyaltyProgramSchema = z.object({
-  businessId: z.string().cuid(),
+  businessId: z.string(),
   type: z.nativeEnum(LoyaltyType),
   threshold: z.coerce.number().int().positive(),
   pointsPerVisit: z.coerce.number().int().positive().optional().default(10),
   resetMode: z.nativeEnum(LoyaltyResetMode).default(LoyaltyResetMode.FULL_RESET),
-  rewardId: z.string().cuid(),
+  rewardId: z.string(),
+  isActive: z.boolean().optional(),
 });
 
 // List loyalty programs for a business
@@ -54,8 +55,8 @@ router.patch('/:programId', authenticate, authorize(Role.BUSINESS_ADMIN, Role.SU
 // Delete loyalty program
 router.delete('/:programId', authenticate, authorize(Role.BUSINESS_ADMIN, Role.SUPER_ADMIN), async (req, res, next) => {
   try {
-    await prisma.loyaltyProgram.update({ where: { id: req.params.programId }, data: { isActive: false } });
-    sendSuccess(res, null, 'Loyalty program deactivated');
+    await prisma.loyaltyProgram.delete({ where: { id: req.params.programId } });
+    sendSuccess(res, null, 'Loyalty program deleted');
   } catch (err) { next(err); }
 });
 

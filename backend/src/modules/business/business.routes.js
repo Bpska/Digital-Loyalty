@@ -45,7 +45,7 @@ const createBusinessSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   timezone: z.string().default('Asia/Kolkata'),
-  planId: z.string().cuid().optional(),
+  planId: z.string().optional(),
 });
 
 const updateBusinessSchema = createBusinessSchema.partial();
@@ -57,7 +57,7 @@ router.post(
   '/',
   authenticate,
   authorize(Role.SUPER_ADMIN),
-  validate(createBusinessSchema.extend({ ownerId: z.string().cuid() })),
+  validate(createBusinessSchema.extend({ ownerId: z.string() })),
   auditLog('BUSINESS_CREATED', 'Business'),
   async (req, res, next) => {
     try {

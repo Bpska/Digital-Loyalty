@@ -177,9 +177,7 @@ export default function LoginPage() {
 
       /* Brand Header */
       , React.createElement('div', { className: "mb-8 flex flex-col items-center text-center animate-fade-in"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 172}}
-        , React.createElement('div', { className: "flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm mb-3"         , __self: this, __source: {fileName: _jsxFileName, lineNumber: 173}}
-          , React.createElement(Sparkles, { className: "h-6 w-6" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 174}} )
-        )
+        , React.createElement('img', { src: "/image.png", alt: "LogiSaar Logo", className: "h-11 w-auto object-contain mb-3" })
         , React.createElement('h1', { className: "text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 176}}, "ScanLoyal"
 
         )

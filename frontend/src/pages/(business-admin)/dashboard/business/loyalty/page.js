@@ -82,9 +82,20 @@ export default function LoyaltyPage() {
 
   // 4. Deactivate loyalty program mutation
   const deactivateMutation = useMutation({
+    mutationFn: (id) => api.patch(`/loyalty/${id}`, { isActive: false }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["businessLoyalty", businessId] });
+    }
+  });
+
+  // 5. Delete loyalty program mutation
+  const deleteMutation = useMutation({
     mutationFn: (id) => api.delete(`/loyalty/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["businessLoyalty", businessId] });
+    },
+    onError: (err) => {
+      setErrorMsg(err.message || "Failed to delete loyalty rule.");
     }
   });
 
@@ -226,17 +237,29 @@ export default function LoyaltyPage() {
                       )
                     )
 
-                    , program.isActive && (
-                      React.createElement('div', { className: "pt-2 border-t border-border"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 207}}
-                        , React.createElement(Button, { 
+                    , React.createElement('div', { className: "pt-2 border-t border-border flex justify-between items-center gap-2"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 207}}
+                      , program.isActive ? (
+                        React.createElement(Button, { 
                           variant: "ghost", 
                           size: "sm", 
-                          className: "text-xs text-muted-foreground hover:text-destructive"  ,
+                          className: "text-xs text-muted-foreground hover:text-foreground"  ,
                           onClick: () => deactivateMutation.mutate(program.id),
                           disabled: deactivateMutation.isPending, __self: this, __source: {fileName: _jsxFileName, lineNumber: 208}}
 
                           , React.createElement(ToggleRight, { className: "mr-1.5 h-4.5 w-4.5 text-primary"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 215}} ), " Deactivate Rule"
                         )
+                      ) : React.createElement('span', null)
+                      , React.createElement(Button, { 
+                        variant: "ghost", 
+                        size: "sm", 
+                        className: "text-xs text-destructive hover:text-destructive hover:bg-destructive/10"  ,
+                        onClick: () => {
+                          if (window.confirm("Are you sure you want to permanently delete this loyalty rule?")) {
+                            deleteMutation.mutate(program.id);
+                          }
+                        },
+                        disabled: deleteMutation.isPending, __self: this, __source: {fileName: _jsxFileName, lineNumber: 208}}
+                        , "Delete"
                       )
                     )
                   )
