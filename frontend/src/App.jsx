@@ -24,6 +24,7 @@ import BusinessBranches from './pages/(business-admin)/dashboard/business/branch
 import BusinessCoupons from './pages/(business-admin)/dashboard/business/coupons/page.js';
 import BusinessLoyalty from './pages/(business-admin)/dashboard/business/loyalty/page.js';
 import BusinessRewards from './pages/(business-admin)/dashboard/business/rewards/page.js';
+import BusinessCheckins from './pages/(business-admin)/dashboard/business/checkins/page.js';
 
 // Super Admin Pages
 import SuperDashboard from './pages/(super-admin)/dashboard/super/page.js';
@@ -56,6 +57,7 @@ export default function App() {
             <Route path="/dashboard/business/coupons" element={<BusinessCoupons />} />
             <Route path="/dashboard/business/loyalty" element={<BusinessLoyalty />} />
             <Route path="/dashboard/business/rewards" element={<BusinessRewards />} />
+            <Route path="/dashboard/business/checkins" element={<BusinessCheckins />} />
           </Route>
 
           {/* Super Admin Routes */}

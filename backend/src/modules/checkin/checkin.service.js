@@ -1,10 +1,6 @@
- function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }import prisma from '../../config/prisma.js';
+import prisma from '../../config/prisma.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 import { writeAuditLog } from '../../middlewares/audit.middleware.js';
-import {
-  haversineDistance,
-  isSuspiciousCoordinates,
-} from '../../utils/haversine.js';
 import { env } from '../../config/env.js';
 import { logger } from '../../utils/logger.js';
 import {
@@ -87,7 +83,7 @@ function getTodayBoundsInTimezone(timezone = 'Asia/Kolkata') {
 }
 
 export async function processCheckIn(input) {
-  const { customerId, qrToken, latitude, longitude, accuracy, ipAddress, deviceId } = input;
+  const { customerId, qrToken, deviceId, ipAddress } = input;
 
   // ── Step 1: Resolve branch from QR token ─────────────────
   const branch = await prisma.branch.findUnique({
@@ -118,101 +114,6 @@ export async function processCheckIn(input) {
     branch.business.deletedAt !== null
   ) {
     throw new AppError('This business is not currently active.', 403);
-  }
-
-  // ── Step 2: GPS Accuracy Validation ──────────────────────────
-  if (accuracy > 50) {
-    const debugInfo = {
-      debug: {
-        businessLatitude: branch.latitude,
-        businessLongitude: branch.longitude,
-        userLatitude: latitude,
-        userLongitude: longitude,
-        accuracy: accuracy,
-        distance: null,
-        radius: branch.radiusMeters,
-        status: 'INVALID_ACCURACY',
-      }
-    };
-    throw new AppError(
-      'Unable to verify your precise location. Please move near the entrance, enable GPS, and try again.',
-      400,
-      true,
-      debugInfo
-    );
-  }
-
-  // ── Step 2b: Suspicious Coordinates check ──────────────────
-  if (isSuspiciousCoordinates(latitude, longitude)) {
-    const debugInfo = {
-      debug: {
-        businessLatitude: branch.latitude,
-        businessLongitude: branch.longitude,
-        userLatitude: latitude,
-        userLongitude: longitude,
-        accuracy: accuracy,
-        distance: 0,
-        radius: branch.radiusMeters,
-        status: 'SUSPICIOUS_COORDINATES',
-      }
-    };
-    await createSuspiciousCheckIn({
-      customerId,
-      businessId: branch.businessId,
-      branchId: branch.id,
-      latitude,
-      longitude,
-      accuracy,
-      distanceMeters: 0,
-      ipAddress,
-      deviceId,
-      reason: 'Suspicious GPS coordinates (null island or out-of-bounds)',
-    });
-    throw new AppError(
-      'Location validation failed. Ensure GPS is enabled and accurate.',
-      400,
-      true,
-      debugInfo
-    );
-  }
-
-  // ── Step 2c: Distance validation ──────────────────────────
-  const distanceMeters = haversineDistance(
-    latitude, longitude,
-    branch.latitude, branch.longitude
-  );
-
-  if (distanceMeters > branch.radiusMeters) {
-    const debugInfo = {
-      debug: {
-        businessLatitude: branch.latitude,
-        businessLongitude: branch.longitude,
-        userLatitude: latitude,
-        userLongitude: longitude,
-        accuracy: accuracy,
-        distance: Math.round(distanceMeters),
-        radius: branch.radiusMeters,
-        status: 'TOO_FAR',
-      }
-    };
-    await createSuspiciousCheckIn({
-      customerId,
-      businessId: branch.businessId,
-      branchId: branch.id,
-      latitude,
-      longitude,
-      accuracy,
-      distanceMeters,
-      ipAddress,
-      deviceId,
-      reason: `Too far from branch: ${Math.round(distanceMeters)}m (max ${branch.radiusMeters}m)`,
-    });
-    throw new AppError(
-      `You are too far from this location (${Math.round(distanceMeters)}m away, max ${branch.radiusMeters}m).`,
-      400,
-      true,
-      debugInfo
-    );
   }
 
   // ── Step 3: Daily check-in limit check (Per Business, Per Customer, Per Day) ──
@@ -246,14 +147,14 @@ export async function processCheckIn(input) {
         customerId,
         businessId: branch.businessId,
         branchId: branch.id,
-        latitude,
-        longitude,
-        distanceMeters,
+        latitude: null,
+        longitude: null,
+        distanceMeters: null,
         status: CheckInStatus.VALID,
         ipAddress,
         deviceId,
-        accuracy,
-        distance: distanceMeters,
+        accuracy: null,
+        distance: null,
         checked_at: new Date(),
       },
     });
@@ -267,7 +168,7 @@ export async function processCheckIn(input) {
     // Determine points to award from active POINTS_BASED program
     const pointsProgram = activePrograms.find(p => p.type === LoyaltyType.POINTS_BASED);
     const visitProgram = activePrograms.find(p => p.type === LoyaltyType.VISIT_BASED);
-    const pointsToAdd = _nullishCoalesce(_optionalChain([pointsProgram, 'optionalAccess', _ => _.pointsPerVisit]), () => ( env.DEFAULT_POINTS_PER_VISIT));
+    const pointsToAdd = (pointsProgram?.pointsPerVisit) ?? env.DEFAULT_POINTS_PER_VISIT;
 
     const customerPoints = await tx.customerPoints.upsert({
       where: {
@@ -349,7 +250,7 @@ export async function processCheckIn(input) {
           branchId: branch.id,
           branchName: branch.name,
           pointsEarned: pointsToAdd,
-          rewardId: _optionalChain([newlyUnlockedReward, 'optionalAccess', _2 => _2.id]),
+          rewardId: newlyUnlockedReward?.id ?? null,
         },
       },
     });
@@ -357,27 +258,16 @@ export async function processCheckIn(input) {
     return {
       checkIn,
       pointsEarned: pointsToAdd,
-      totalPoints: customerPoints.totalPoints,
-      totalVisits: customerPoints.totalVisits,
-      visitStreak: customerPoints.visitStreak,
+      totalPoints: customerPoints.totalPoints + pointsToAdd,
+      totalVisits: customerPoints.totalVisits + 1,
+      visitStreak: customerPoints.visitStreak + 1,
       newlyUnlockedReward,
-      debug: {
-        businessLatitude: branch.latitude,
-        businessLongitude: branch.longitude,
-        userLatitude: latitude,
-        userLongitude: longitude,
-        accuracy: accuracy,
-        distance: Math.round(distanceMeters),
-        radius: branch.radiusMeters,
-        status: 'VALID',
-      }
     };
   });
 
   logger.info('Check-in processed', {
     customerId,
     branchId: branch.id,
-    distanceMeters: Math.round(distanceMeters),
     pointsEarned: result.pointsEarned,
     rewardUnlocked: !!result.newlyUnlockedReward,
   });
@@ -391,7 +281,6 @@ export async function processCheckIn(input) {
     metadata: {
       branchId: branch.id,
       businessId: branch.businessId,
-      distanceMeters,
       pointsEarned: result.pointsEarned,
     },
     ipAddress,
@@ -469,7 +358,7 @@ export async function redeemReward(
       REDEEMED: 'Reward has already been redeemed',
       EXPIRED: 'Reward has expired',
     };
-    throw new AppError(_nullishCoalesce(statusMessages[customerReward.status], () => ( 'Reward cannot be redeemed')), 400);
+    throw new AppError(statusMessages[customerReward.status] ?? 'Reward cannot be redeemed', 400);
   }
 
   if (customerReward.expiresAt && new Date() > customerReward.expiresAt) {
@@ -562,4 +451,110 @@ async function createSuspiciousCheckIn(data) {
   } catch (err) {
     logger.error('Failed to record suspicious check-in', { err });
   }
+}
+
+// ─────────────────────────────────────────────────────────────
+// CANCEL CHECK-IN (Admin revokes loyalty points)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Cancel a valid check-in and deduct the loyalty points from the customer.
+ * Only BUSINESS_ADMIN (owner of that business) or SUPER_ADMIN can do this.
+ */
+export async function cancelCheckIn(checkInId, adminUserId, adminBusinessId, adminRole) {
+  // 1. Find the check-in with business info
+  const checkIn = await prisma.checkIn.findUnique({
+    where: { id: checkInId },
+    include: {
+      business: { select: { id: true, name: true, ownerId: true } },
+      branch: { select: { id: true, name: true } },
+      customer: { select: { id: true, name: true } },
+    },
+  });
+
+  if (!checkIn) {
+    throw new AppError('Check-in not found.', 404);
+  }
+
+  // 2. Verify ownership
+  if (adminRole !== 'SUPER_ADMIN' && checkIn.business.ownerId !== adminUserId) {
+    throw new AppError('Forbidden: You do not own this business.', 403);
+  }
+
+  // 3. Can only cancel VALID check-ins
+  if (checkIn.status !== CheckInStatus.VALID) {
+    throw new AppError(
+      `Cannot cancel a check-in with status: ${checkIn.status}. Only VALID check-ins can be cancelled.`,
+      400
+    );
+  }
+
+  // 4. Find active loyalty program to know how many points to deduct
+  const pointsProgram = await prisma.loyaltyProgram.findFirst({
+    where: { businessId: checkIn.businessId, isActive: true, type: 'POINTS_BASED' },
+  });
+  const pointsToDeduct = pointsProgram?.pointsPerVisit ?? env.DEFAULT_POINTS_PER_VISIT;
+
+  // 5. Transaction: update status + deduct points + notify customer
+  await prisma.$transaction(async (tx) => {
+    // Mark check-in as REJECTED
+    await tx.checkIn.update({
+      where: { id: checkInId },
+      data: { status: CheckInStatus.REJECTED },
+    });
+
+    // Deduct points (ensure we don't go negative)
+    await tx.customerPoints.updateMany({
+      where: { customerId: checkIn.customerId, businessId: checkIn.businessId },
+      data: {
+        totalPoints: { decrement: pointsToDeduct },
+        totalVisits: { decrement: 1 },
+      },
+    });
+
+    // Ensure points never go below 0
+    await tx.customerPoints.updateMany({
+      where: { customerId: checkIn.customerId, businessId: checkIn.businessId, totalPoints: { lt: 0 } },
+      data: { totalPoints: 0 },
+    });
+
+    // Notify customer
+    await tx.notification.create({
+      data: {
+        userId: checkIn.customerId,
+        businessId: checkIn.businessId,
+        title: 'Check-in Cancelled',
+        body: `Your check-in at ${checkIn.branch?.name || checkIn.business.name} has been cancelled by the business admin. ${pointsToDeduct} points have been deducted.`,
+        type: NotificationType.GENERAL,
+        metadata: {
+          checkInId,
+          branchId: checkIn.branchId,
+          pointsDeducted: pointsToDeduct,
+        },
+      },
+    });
+  });
+
+  // Audit log
+  writeAuditLog({
+    action: 'CHECK_IN_CANCELLED',
+    entityType: 'CheckIn',
+    entityId: checkInId,
+    userId: adminUserId,
+    metadata: {
+      customerId: checkIn.customerId,
+      businessId: checkIn.businessId,
+      branchId: checkIn.branchId,
+      pointsDeducted: pointsToDeduct,
+    },
+  }).catch(() => {});
+
+  logger.info('Check-in cancelled by admin', { checkInId, adminUserId, pointsDeducted: pointsToDeduct });
+
+  return {
+    checkInId,
+    customerName: checkIn.customer?.name,
+    pointsDeducted: pointsToDeduct,
+    message: `Check-in cancelled. ${pointsToDeduct} loyalty points deducted from ${checkIn.customer?.name || 'customer'}.`,
+  };
 }

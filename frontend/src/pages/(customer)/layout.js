@@ -95,8 +95,7 @@ export default function CustomerLayout({
         /* Header Bar */
         , React.createElement('header', { className: "sticky top-0 z-30 flex items-center justify-between border-b border-border bg-white/80 p-4 backdrop-blur-md"          , __self: this, __source: {fileName: _jsxFileName, lineNumber: 59}}
           , React.createElement('div', { className: "flex items-center space-x-2"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 60}}
-            , React.createElement('img', { src: "/image.png", alt: "LogiSaar Logo", className: "h-6.5 w-auto object-contain" })
-            , React.createElement('span', { className: "text-sm font-semibold tracking-tight text-foreground"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 64}}, "ScanLoyal")
+            , React.createElement('span', { className: "text-sm font-semibold tracking-tight text-foreground" }, "ScanLoyal")
           )
           , React.createElement('div', { className: "flex items-center space-x-1" }
             , React.createElement('button', {

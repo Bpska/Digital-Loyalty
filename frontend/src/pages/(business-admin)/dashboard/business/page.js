@@ -149,9 +149,14 @@ export default function BusinessDashboard() {
             , React.createElement(RefreshCcw, { className: `mr-2 h-4 w-4 ${checkinsFetching ? 'animate-spin' : ''}`  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 134}} )
             , checkinsFetching ? "Syncing..." : "Sync Logs"
           )
-          , React.createElement(Link, { to: "/dashboard/business/branches", __self: this, __source: {fileName: _jsxFileName, lineNumber: 136}}
-            , React.createElement(Button, { size: "sm", className: "bg-primary hover:bg-primary/90 text-primary-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 137}}
-              , React.createElement(MapPin, { className: "mr-2 h-4 w-4"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 138}} ), " Manage Outlets"
+          , React.createElement(Link, { to: "/dashboard/business/checkins" },
+            React.createElement(Button, { variant: "outline", size: "sm" },
+              React.createElement(UserCheck, { className: "mr-2 h-4 w-4" }), " Manage Check-ins"
+            )
+          )
+          , React.createElement(Link, { to: "/dashboard/business/branches", __self: this, __source: {fileName: _jsxFileName, lineNumber: 136}},
+            React.createElement(Button, { size: "sm", className: "bg-primary hover:bg-primary/90 text-primary-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 137}},
+              React.createElement(MapPin, { className: "mr-2 h-4 w-4"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 138}}), " Manage Outlets"
             )
           )
         )

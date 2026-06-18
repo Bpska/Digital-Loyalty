@@ -4,7 +4,7 @@ import { Role } from '@prisma/client';
 import { validate } from '../../middlewares/validate.middleware.js';
 import { sendSuccess } from '../../utils/response.js';
 import { checkinRateLimiter } from '../../middlewares/rateLimit.middleware.js';
-import { processCheckIn, redeemReward } from './checkin.service.js';
+import { processCheckIn, redeemReward, cancelCheckIn } from './checkin.service.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 import { z } from 'zod';
 import { getClientIp } from '../../utils/ip.js';
@@ -13,9 +13,6 @@ const router = Router();
 
 const checkInSchema = z.object({
   qrToken: z.string().min(1, 'QR token is required'),
-  latitude: z.number().min(-90).max(90),
-  longitude: z.number().min(-180).max(180),
-  accuracy: z.number().min(0, 'Accuracy must be positive'),
   deviceId: z.string().uuid().optional(),
 });
 
@@ -191,6 +188,28 @@ router.patch(
       });
 
       sendSuccess(res, updatedCheckIn, `Check-in status updated to ${status}`);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * @swagger
+ * /checkins/{checkInId}/cancel:
+ *   post:
+ *     tags: [CheckIn]
+ *     summary: Cancel a check-in and revoke loyalty points (Business Admin only)
+ */
+router.post(
+  '/:checkInId/cancel',
+  authenticate,
+  authorize(Role.BUSINESS_ADMIN, Role.SUPER_ADMIN),
+  async (req, res, next) => {
+    try {
+      const { checkInId } = req.params;
+      const result = await cancelCheckIn(checkInId, req.user.sub, req.user.businessId, req.user.role);
+      sendSuccess(res, result, 'Check-in cancelled and loyalty points revoked.');
     } catch (err) {
       next(err);
     }
