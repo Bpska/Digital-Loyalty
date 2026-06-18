@@ -52,7 +52,7 @@ services:
       dockerfile: Dockerfile
       target: production
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:6003/api/v1}
+        VITE_API_URL: ${VITE_API_URL:-/api/v1}
     container_name: dlv_frontend
     restart: unless-stopped
     ports:
