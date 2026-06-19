@@ -34,11 +34,10 @@
     "swagger-ui-express": "^5.0.1",
     "winston": "^3.13.0",
     "winston-daily-rotate-file": "^5.0.0",
-    "zod": "^3.23.8"
-  },
-  "devDependencies": {
+    "zod": "^3.23.8",
     "prisma": "^5.15.0"
   },
+  "devDependencies": {},
   "prisma": {
     "seed": "node prisma/seed.js"
   }

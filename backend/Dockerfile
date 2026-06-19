@@ -32,4 +32,4 @@ RUN mkdir -p uploads logs
 EXPOSE 4000
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["node", "--experimental-specifier-resolution=node", "src/server.js"]
+CMD ["sh", "-c", "npx prisma db push && node --experimental-specifier-resolution=node src/server.js"]
