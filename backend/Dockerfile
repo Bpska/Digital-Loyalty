@@ -6,7 +6,7 @@ RUN apk add --no-cache dumb-init openssl
 # ── Dependencies ───────────────────────────────────────────────
 FROM base AS deps
 COPY package*.json ./
-RUN npm ci --only=production && cp -R node_modules prod_modules
+RUN npm ci --omit=dev && cp -R node_modules prod_modules
 RUN npm ci
 
 # ── Builder / Prisma Client generation ──────────────────────────
@@ -32,4 +32,4 @@ RUN mkdir -p uploads logs
 EXPOSE 4000
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["sh", "-c", "npx prisma db push && node --experimental-specifier-resolution=node src/server.js"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma db push --accept-data-loss --force-reset && node --experimental-specifier-resolution=node src/server.js"]
