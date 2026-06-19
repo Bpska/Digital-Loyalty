@@ -1,7 +1,6 @@
  function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } }import {
   /** default import */ PrismaClient,
   Role,
-  PlanName,
   BusinessStatus,
   SubscriptionStatus,
   LoyaltyType,
@@ -33,57 +32,35 @@ async function main() {
   console.log('🌱 Starting database seed...\n');
 
   // ── 1. Plans ─────────────────────────────────────────────
-  const [starterPlan, growthPlan, enterprisePlan] = await Promise.all([
-    prisma.plan.upsert({
-      where: { name: PlanName.STARTER },
-      update: {},
-      create: {
-        name: PlanName.STARTER,
-        priceMonthly: 999,
-        maxBranches: 1,
-        maxCustomers: 500,
-        features: {
-          analyticsAccess: false,
-          customBranding: false,
-          csvExport: false,
-          apiAccess: false,
-        },
+  const launchPlan = await prisma.plan.upsert({
+    where: { name: 'Launch Year Special' },
+    update: {
+      priceMonthly: 999,
+      maxBranches: 5,
+      maxCustomers: 1000,
+      features: {
+        analyticsAccess: true,
+        customBranding: true,
+        csvExport: true,
+        apiAccess: true,
       },
-    }),
-    prisma.plan.upsert({
-      where: { name: PlanName.GROWTH },
-      update: {},
-      create: {
-        name: PlanName.GROWTH,
-        priceMonthly: 2499,
-        maxBranches: 5,
-        maxCustomers: 5000,
-        features: {
-          analyticsAccess: true,
-          customBranding: false,
-          csvExport: true,
-          apiAccess: false,
-        },
+      isActive: true,
+    },
+    create: {
+      name: 'Launch Year Special',
+      priceMonthly: 999,
+      maxBranches: 5,
+      maxCustomers: 1000,
+      features: {
+        analyticsAccess: true,
+        customBranding: true,
+        csvExport: true,
+        apiAccess: true,
       },
-    }),
-    prisma.plan.upsert({
-      where: { name: PlanName.ENTERPRISE },
-      update: {},
-      create: {
-        name: PlanName.ENTERPRISE,
-        priceMonthly: 7499,
-        maxBranches: 50,
-        maxCustomers: 100000,
-        features: {
-          analyticsAccess: true,
-          customBranding: true,
-          csvExport: true,
-          apiAccess: true,
-        },
-      },
-    }),
-  ]);
-  console.log('✅ Plans seeded:', [starterPlan.name, growthPlan.name, enterprisePlan.name]);
+      isActive: true,
+    },
+  });
+  console.log('✅ Plans seeded:', [launchPlan.name]);
 
   // ── 2. Super Admin ───────────────────────────────────────
   const superAdminPassword = await argon2.hash('SuperAdmin@123');
@@ -140,7 +117,7 @@ async function main() {
       timezone: 'Asia/Kolkata',
       status: BusinessStatus.ACTIVE,
       ownerId: cafeOwner.id,
-      planId: growthPlan.id,
+      planId: launchPlan.id,
     },
   });
 
@@ -155,7 +132,7 @@ async function main() {
       timezone: 'Asia/Kolkata',
       status: BusinessStatus.ACTIVE,
       ownerId: salonOwner.id,
-      planId: starterPlan.id,
+      planId: launchPlan.id,
     },
   });
   console.log('✅ Businesses seeded:', [cafe.name, salon.name]);
@@ -166,7 +143,7 @@ async function main() {
     update: {},
     create: {
       businessId: cafe.id,
-      planId: growthPlan.id,
+      planId: launchPlan.id,
       status: SubscriptionStatus.ACTIVE,
       currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     },
@@ -177,7 +154,7 @@ async function main() {
     update: {},
     create: {
       businessId: salon.id,
-      planId: starterPlan.id,
+      planId: launchPlan.id,
       status: SubscriptionStatus.TRIAL,
       currentPeriodEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
     },

@@ -160,6 +160,17 @@ export const useAuthStore = create((set) => {
       set({ loading: true, error: null });
       try {
         const response = await api.post("/auth/register-business", { name, email, phone, password, businessName, address });
+        if (response.success && response.data) {
+          const { user, accessToken } = response.data;
+          
+          if (typeof window !== "undefined") {
+            localStorage.setItem("user", JSON.stringify(user));
+            localStorage.setItem("accessToken", accessToken);
+          }
+          
+          set({ user, accessToken, loading: false });
+          return true;
+        }
         set({ loading: false });
         return response.success;
       } catch (err) {

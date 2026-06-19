@@ -127,8 +127,10 @@ export async function register(req, res, next) {
  */
 export async function registerBusiness(req, res, next) {
   try {
-    const result = await authService.registerBusiness(req.body);
-    sendCreated(res, result, 'Registration request submitted successfully');
+    const ip = getClientIp(req);
+    const result = await authService.registerBusiness(req.body, ip);
+    setTokenCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
+    sendCreated(res, { user: result.user, accessToken: result.tokens.accessToken }, 'Registration successful');
   } catch (err) {
     next(err);
   }

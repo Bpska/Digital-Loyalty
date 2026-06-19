@@ -163,7 +163,7 @@ export default function LoginPage() {
       // Prepend +91 so backend phone schema always gets E.164 format
       const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
       const success = await registerBusiness(name, email, formattedPhone, password, businessName, businessAddress);
-      if (success) {
+      if (success && !useAuthStore.getState().user) {
         setSuccessMsg("Your registration request was submitted! Once the Super Admin reviews and approves your account, you will be able to sign in.");
       }
     } else {

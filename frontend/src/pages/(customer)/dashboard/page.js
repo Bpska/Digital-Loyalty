@@ -162,6 +162,7 @@ export default function CustomerDashboard() {
 
               const isVisitBased = activeProgram.type === "VISIT_BASED";
               const threshold = activeProgram.threshold;
+              const hasSocialLinks = card.business.instagramUrl || card.business.facebookUrl || card.business.whatsappUrl || card.business.googleReviewUrl;
 
               return (
                 React.createElement(Card, { key: card.id, className: "border-border bg-white overflow-hidden shadow-sm"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 166}}
@@ -170,10 +171,10 @@ export default function CustomerDashboard() {
                       React.createElement('img', {
                         src: card.business.logoUrl,
                         alt: card.business.name,
-                        className: "h-10 w-10 rounded-lg object-cover border border-border"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 169}}
+                        className: "h-10 w-10 rounded-full object-cover border border-border"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 169}}
                       )
                     ) : (
-                      React.createElement('div', { className: "h-10 w-10 rounded-lg bg-muted flex items-center justify-center font-bold text-foreground border border-border"          , __self: this, __source: {fileName: _jsxFileName, lineNumber: 175}}
+                      React.createElement('div', { className: "h-10 w-10 rounded-full bg-muted flex items-center justify-center font-bold text-foreground border border-border"          , __self: this, __source: {fileName: _jsxFileName, lineNumber: 175}}
                         , card.business.name[0]
                       )
                     )
@@ -212,8 +213,8 @@ export default function CustomerDashboard() {
                                 key: i,
                                 className: `h-11 w-11 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
                                   isStamped
-                                    ? "bg-[#BD4F2A] border-[#BD4F2A] text-white shadow-md shadow-[#BD4F2A]/20 scale-105"
-                                    : "bg-[#FAF8F7] border-dashed border-[#EAE3DF] text-[#D2C0B7]"
+                                    ? "bg-[#FF6A00] border-[#FF6A00] text-white shadow-md shadow-[#FF6A00]/20 scale-105"
+                                    : "bg-[#F8FAFC] border-dashed border-[#E8EDF3] text-[#94A3B8]"
                                 }`, __self: this, __source: {fileName: _jsxFileName, lineNumber: 210}}
 
                                 , isStamped ? (
@@ -254,6 +255,99 @@ export default function CustomerDashboard() {
                             )
                           ) : (
                             React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 255}}, threshold - card.totalPoints, " points needed for next reward"     )
+                          )
+                        )
+                      )
+                    )
+                    , hasSocialLinks && React.createElement('div', { className: "border-t border-dashed border-border mt-4 pt-3 flex items-center justify-between", __self: this, __source: {fileName: _jsxFileName, lineNumber: 260} }
+                      , React.createElement('span', { className: "text-[10px] text-muted-foreground font-semibold uppercase tracking-wider", __self: this, __source: {fileName: _jsxFileName, lineNumber: 261} }, "Connect with us")
+                      , React.createElement('div', { className: "flex items-center space-x-3", __self: this, __source: {fileName: _jsxFileName, lineNumber: 262} }
+                        , card.business.instagramUrl && React.createElement('a', {
+                            href: card.business.instagramUrl.startsWith('http') ? card.business.instagramUrl : `https://${card.business.instagramUrl}`,
+                            target: "_blank",
+                            rel: "noopener noreferrer",
+                            className: "w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-500 via-red-500 to-purple-600 flex items-center justify-center text-white hover:scale-110 transition-transform shadow-sm",
+                            title: "Instagram",
+                            __self: this, __source: {fileName: _jsxFileName, lineNumber: 263}
+                          }
+                          , React.createElement('svg', {
+                              className: "w-5 h-5",
+                              viewBox: "0 0 24 24",
+                              fill: "none",
+                              stroke: "currentColor",
+                              strokeWidth: "2.5",
+                              strokeLinecap: "round",
+                              strokeLinejoin: "round",
+                              __self: this, __source: {fileName: _jsxFileName, lineNumber: 264}
+                            }
+                            , React.createElement('rect', { x: "2", y: "2", width: "20", height: "20", rx: "5", ry: "5", __self: this, __source: {fileName: _jsxFileName, lineNumber: 265} })
+                            , React.createElement('path', { d: "M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z", __self: this, __source: {fileName: _jsxFileName, lineNumber: 266} })
+                            , React.createElement('line', { x1: "17.5", y1: "6.5", x2: "17.51", y2: "6.5", __self: this, __source: {fileName: _jsxFileName, lineNumber: 267} })
+                          )
+                        )
+                        , card.business.facebookUrl && React.createElement('a', {
+                            href: card.business.facebookUrl.startsWith('http') ? card.business.facebookUrl : `https://${card.business.facebookUrl}`,
+                            target: "_blank",
+                            rel: "noopener noreferrer",
+                            className: "w-8 h-8 rounded-full bg-[#1877F2] flex items-center justify-center text-white hover:scale-110 transition-transform shadow-sm",
+                            title: "Facebook",
+                            __self: this, __source: {fileName: _jsxFileName, lineNumber: 268}
+                          }
+                          , React.createElement('svg', {
+                              className: "w-5 h-5",
+                              viewBox: "0 0 24 24",
+                              fill: "none",
+                              stroke: "currentColor",
+                              strokeWidth: "2.5",
+                              strokeLinecap: "round",
+                              strokeLinejoin: "round",
+                              __self: this, __source: {fileName: _jsxFileName, lineNumber: 269}
+                            }
+                            , React.createElement('path', { d: "M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z", __self: this, __source: {fileName: _jsxFileName, lineNumber: 270} })
+                          )
+                        )
+                        , card.business.whatsappUrl && React.createElement('a', {
+                            href: card.business.whatsappUrl.startsWith('http') ? card.business.whatsappUrl : `https://wa.me/${card.business.whatsappUrl.replace(/[^0-9]/g, '')}`,
+                            target: "_blank",
+                            rel: "noopener noreferrer",
+                            className: "w-8 h-8 rounded-full bg-[#25D366] flex items-center justify-center text-white hover:scale-110 transition-transform shadow-sm",
+                            title: "WhatsApp",
+                            __self: this, __source: {fileName: _jsxFileName, lineNumber: 271}
+                          }
+                          , React.createElement('svg', {
+                              className: "w-5 h-5",
+                              viewBox: "0 0 24 24",
+                              fill: "none",
+                              stroke: "currentColor",
+                              strokeWidth: "2.5",
+                              strokeLinecap: "round",
+                              strokeLinejoin: "round",
+                              __self: this, __source: {fileName: _jsxFileName, lineNumber: 272}
+                            }
+                            , React.createElement('path', { d: "M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z", __self: this, __source: {fileName: _jsxFileName, lineNumber: 273} })
+                          )
+                        )
+                        , card.business.googleReviewUrl && React.createElement('a', {
+                            href: card.business.googleReviewUrl.startsWith('http') ? card.business.googleReviewUrl : `https://${card.business.googleReviewUrl}`,
+                            target: "_blank",
+                            rel: "noopener noreferrer",
+                            className: "w-8 h-8 rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-blue-500 p-0.5 flex items-center justify-center hover:scale-115 transition-transform shadow-md animate-pulse ring-2 ring-yellow-400/50",
+                            title: "Google Review",
+                            __self: this, __source: {fileName: _jsxFileName, lineNumber: 274}
+                          }
+                          , React.createElement('div', { className: "w-full h-full rounded-full bg-white flex items-center justify-center" }
+                            , React.createElement('svg', {
+                                className: "w-4 h-4 fill-[#EA4335] text-[#EA4335]",
+                                viewBox: "0 0 24 24",
+                                fill: "currentColor",
+                                stroke: "currentColor",
+                                strokeWidth: "1",
+                                strokeLinecap: "round",
+                                strokeLinejoin: "round",
+                                __self: this, __source: {fileName: _jsxFileName, lineNumber: 275}
+                              }
+                              , React.createElement('polygon', { points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2", __self: this, __source: {fileName: _jsxFileName, lineNumber: 276} })
+                            )
                           )
                         )
                       )

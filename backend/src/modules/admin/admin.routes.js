@@ -76,11 +76,11 @@ router.get('/businesses', async (req, res, next) => {
       deletedAt: null,
       ...(search && {
         OR: [
-          { name: { contains: search, mode: 'insensitive'  } },
+          { name: { contains: search, mode: 'insensitive' } },
           { phone: { contains: search } },
         ],
       }),
-      ...(status && { status: status  }),
+      ...(status && { status: status }),
     };
 
     const [businesses, total] = await Promise.all([
@@ -116,8 +116,8 @@ router.patch(
   auditLog('BUSINESS_STATUS_CHANGED', 'Business'),
   async (req, res, next) => {
     try {
-      const { status } = req.body ;
-      
+      const { status } = req.body;
+
       const currentBusiness = await prisma.business.findUniqueOrThrow({
         where: { id: req.params.id },
         select: { planId: true }
@@ -125,29 +125,31 @@ router.patch(
 
       const updateData = { status };
       if (status === 'ACTIVE') {
-        const starterPlan = await prisma.plan.findFirst({
-          where: { name: 'STARTER' }
+        const activePlan = await prisma.plan.findFirst({
+          where: { isActive: true }
         });
 
-        // Count active businesses to see if they are in the first 15
+        // Count active businesses to see if they are in the promo range
         const activeCount = await prisma.business.count({
           where: { status: 'ACTIVE', deletedAt: null }
         });
 
-        const isPromoYearly = activeCount < 15;
+        const promoLimitSetting = await prisma.systemSetting.findUnique({ where: { key: 'promo_limit' } });
+        const promoLimit = promoLimitSetting ? parseInt(promoLimitSetting.value, 10) : 20;
+
+        const isPromoYearly = activeCount < promoLimit;
         let planId = currentBusiness.planId;
 
         if (isPromoYearly) {
-          // First 15 approved businesses get forced STARTER yearly plan (valued at ₹999)
-          if (starterPlan) {
-            planId = starterPlan.id;
-            updateData.planId = starterPlan.id;
+          if (activePlan) {
+            planId = activePlan.id;
+            updateData.planId = activePlan.id;
           }
         } else {
-          // Subsequent approved businesses default to STARTER monthly if they haven't chosen a plan
-          if (!planId && starterPlan) {
-            planId = starterPlan.id;
-            updateData.planId = starterPlan.id;
+          // Subsequent approved businesses default to active plan if they haven't chosen a plan
+          if (!planId && activePlan) {
+            planId = activePlan.id;
+            updateData.planId = activePlan.id;
           }
         }
 
@@ -185,6 +187,25 @@ router.patch(
   }
 );
 
+router.delete(
+  '/businesses/:id',
+  auditLog('BUSINESS_DELETED', 'Business'),
+  async (req, res, next) => {
+    try {
+      await prisma.business.update({
+        where: { id: req.params.id },
+        data: {
+          deletedAt: new Date(),
+          status: 'DELETED',
+        },
+      });
+      sendSuccess(res, null, 'Business deleted successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 // ── Plan Management (CRUD) ────────────────────────────────────
 router.get('/plans', async (_req, res, next) => {
   try {
@@ -196,7 +217,7 @@ router.get('/plans', async (_req, res, next) => {
 });
 
 const planSchema = z.object({
-  name: z.enum(['STARTER', 'GROWTH', 'ENTERPRISE']),
+  name: z.string().min(1),
   priceMonthly: z.number().positive(),
   maxBranches: z.number().int().positive(),
   maxCustomers: z.number().int().positive(),
@@ -206,6 +227,7 @@ const planSchema = z.object({
     csvExport: z.boolean(),
     apiAccess: z.boolean(),
   }),
+  isActive: z.boolean().optional(),
 });
 
 router.post('/plans', validate(planSchema), auditLog('PLAN_CREATED', 'Plan'), async (req, res, next) => {
@@ -221,6 +243,15 @@ router.patch('/plans/:id', validate(planSchema.partial()), auditLog('PLAN_UPDATE
   try {
     const plan = await prisma.plan.update({ where: { id: req.params.id }, data: req.body });
     sendSuccess(res, plan, 'Plan updated');
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete('/plans/:id', auditLog('PLAN_DELETED', 'Plan'), async (req, res, next) => {
+  try {
+    await prisma.plan.delete({ where: { id: req.params.id } });
+    sendSuccess(res, null, 'Plan deleted');
   } catch (err) {
     next(err);
   }
@@ -339,5 +370,41 @@ router.post(
     }
   }
 );
+
+// ── Platform settings (Super Admin Only) ──────────────────────
+const settingsSchema = z.object({
+  platform_fee: z.coerce.number().positive(),
+  gst_percent: z.coerce.number().min(0).max(100),
+  promo_limit: z.coerce.number().int().positive(),
+  promo_price: z.coerce.number().positive(),
+  gateway_percent: z.coerce.number().min(0).max(100).optional(),
+});
+
+router.get('/settings', async (req, res, next) => {
+  try {
+    const settings = await prisma.systemSetting.findMany();
+    const settingsMap = settings.reduce((acc, curr) => {
+      acc[curr.key] = curr.value;
+      return acc;
+    }, {});
+    sendSuccess(res, settingsMap);
+  } catch (err) { next(err); }
+});
+
+router.put('/settings', validate(settingsSchema), async (req, res, next) => {
+  try {
+    const data = req.body;
+    await prisma.$transaction(
+      Object.entries(data).map(([key, value]) =>
+        prisma.systemSetting.upsert({
+          where: { key },
+          update: { value: String(value) },
+          create: { key, value: String(value) },
+        })
+      )
+    );
+    sendSuccess(res, data, 'Settings updated successfully');
+  } catch (err) { next(err); }
+});
 
 export default router;

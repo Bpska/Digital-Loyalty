@@ -18,6 +18,10 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
             id: true,
             name: true,
             logoUrl: true,
+            instagramUrl: true,
+            facebookUrl: true,
+            whatsappUrl: true,
+            googleReviewUrl: true,
             loyaltyPrograms: {
               where: { isActive: true },
               select: { id: true, type: true, threshold: true, pointsPerVisit: true },

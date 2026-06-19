@@ -18,8 +18,7 @@ function ensureDirectories() {
   });
 }
 
-
-
+// Trigger nodemon restart
 // ── Graceful shutdown ─────────────────────────────────────────
 function setupGracefulShutdown(server) {
   const shutdown = async (signal) => {
@@ -53,6 +52,30 @@ function setupGracefulShutdown(server) {
   });
 }
 
+async function seedDefaultSettings() {
+  const defaults = [
+    { key: 'platform_fee', value: '999' },
+    { key: 'gst_percent', value: '5' },
+    { key: 'promo_limit', value: '20' },
+    { key: 'promo_price', value: '1000' }
+  ];
+  try {
+    for (const item of defaults) {
+      const existing = await prisma.systemSetting.findUnique({
+        where: { key: item.key },
+      });
+      if (!existing) {
+        await prisma.systemSetting.create({
+          data: item,
+        }).catch(() => {});
+      }
+    }
+    logger.info('✅ Default system settings seeded');
+  } catch (err) {
+    logger.error('Failed to seed default settings', { err });
+  }
+}
+
 // ── Bootstrap ─────────────────────────────────────────────────
 async function bootstrap() {
   ensureDirectories();
@@ -61,6 +84,9 @@ async function bootstrap() {
   try {
     await prisma.$connect();
     logger.info('✅ Database connection established');
+    
+    // Seed default settings
+    await seedDefaultSettings();
   } catch (err) {
     logger.error('❌ Failed to connect to database', { err });
     process.exit(1);
@@ -79,6 +105,7 @@ async function bootstrap() {
   setupGracefulShutdown(server);
 }
 
+// Trigger dev server restart
 bootstrap().catch(err => {
   console.error('Bootstrap failed:', err);
   process.exit(1);

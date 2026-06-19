@@ -46,6 +46,10 @@ const createBusinessSchema = z.object({
   address: z.string().optional(),
   timezone: z.string().default('Asia/Kolkata'),
   planId: z.string().optional(),
+  instagramUrl: z.string().optional().nullable(),
+  facebookUrl: z.string().optional().nullable(),
+  whatsappUrl: z.string().optional().nullable(),
+  googleReviewUrl: z.string().optional().nullable(),
 });
 
 const updateBusinessSchema = createBusinessSchema.partial();

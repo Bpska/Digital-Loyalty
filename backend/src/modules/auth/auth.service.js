@@ -203,7 +203,8 @@ export async function registerCustomer(
 }
 
 export async function registerBusiness(
-  input
+  input,
+  ipAddress
 ) {
   const email = input.email.trim().toLowerCase();
   const phone = normalizePhone(input.phone);
@@ -227,9 +228,12 @@ export async function registerBusiness(
   // Hash password
   const passwordHash = await argon2.hash(input.password);
 
+  let user;
+  let b;
+
   await prisma.$transaction(async (tx) => {
     // 1. Create user with role BUSINESS_ADMIN
-    const user = await tx.user.create({
+    user = await tx.user.create({
       data: {
         name: input.name,
         email,
@@ -240,7 +244,7 @@ export async function registerBusiness(
     });
 
     // 2. Create business with status PENDING
-    const b = await tx.business.create({
+    b = await tx.business.create({
       data: {
         name: input.businessName,
         phone,
@@ -269,12 +273,16 @@ export async function registerBusiness(
     });
   });
 
-  logger.info('New business admin registration request submitted', { email, businessName: input.businessName });
+  logger.info('New business admin registered and auto-logged in', { email, businessName: input.businessName });
 
-  return {
-    success: true,
-    message: 'Business signup request submitted successfully. Pending Admin approval.',
+  const tokenUser = {
+    id: user.id,
+    role: user.role,
+    businessId: b.id,
+    branchId: null,
   };
+
+  return issueTokens(tokenUser, ipAddress);
 }
 
 export async function loginWithGoogle(
@@ -418,9 +426,6 @@ export async function passwordLogin(
       where: { ownerId: user.id, deletedAt: null },
       select: { id: true, status: true },
     });
-    if (business && business.status === BusinessStatus.PENDING) {
-      throw new AppError('Your business registration request is pending approval by the Super Admin.', 403);
-    }
     tokenUser.businessId = _nullishCoalesce(_optionalChain([business, 'optionalAccess', _10 => _10.id]), () => ( null));
   }
 
@@ -480,9 +485,6 @@ export async function refreshTokens(
       where: { ownerId: user.id, deletedAt: null },
       select: { id: true, status: true },
     });
-    if (biz && biz.status === BusinessStatus.PENDING) {
-      throw new AppError('Your business registration request is pending approval by the Super Admin.', 403);
-    }
     businessId = _nullishCoalesce(_optionalChain([biz, 'optionalAccess', _13 => _13.id]), () => ( null));
   }
 

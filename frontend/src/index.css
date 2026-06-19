@@ -9,37 +9,50 @@
 /* ── Shadcn CSS Variables (Light + Dark) ────────────────────── */
 @layer base {
   :root {
-    --background: 20 17% 97%; /* #FAF7F5 - Warm cream sand background */
-    --foreground: 21 25% 14%; /* #2B201A - Deep smoky brown text */
+    --background: 0 0% 100%; /* #FFFFFF */
+    --foreground: 220 71% 10%; /* #07122A */
 
     --card: 0 0% 100%; /* #FFFFFF */
-    --card-foreground: 21 25% 14%;
+    --card-foreground: 220 71% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 21 25% 14%;
+    --popover-foreground: 220 71% 10%;
 
-    /* Brand: Vibrant Accent Glow #BD4F2A */
-    --primary: 15 64% 45%;
+    /* Brand: Accent Orange #FF6A00 */
+    --primary: 25 100% 50%;
     --primary-foreground: 0 0% 100%;
 
-    /* Mid-Tone Muted Orange #8C6553 */
-    --secondary: 19 26% 44%;
+    /* Deep Navy #07122A */
+    --secondary: 220 71% 10%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 20 12% 95%; /* #F5F2F0 - Light warm cream */
-    --muted-foreground: 24 13% 31%; /* #5A4E46 - Upper Soft Grey-Brown */
+    --muted: 210 40% 98%; /* #F8FAFC */
+    --muted-foreground: 215 16% 47%; /* Slate Gray */
 
-    --accent: 20 12% 95%;
-    --accent-foreground: 21 25% 14%;
+    --accent: 25 100% 95%; /* #FFF2E8 */
+    --accent-foreground: 220 71% 10%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 8 100% 43%; /* #D91E00 */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 20 14% 92%; /* #EAE3DF - Warm clay border */
-    --input: 20 14% 92%;
-    --ring: 15 64% 45%;
+    --border: 212 27% 93%; /* #E8EDF3 */
+    --input: 212 27% 93%;
+    --ring: 25 100% 50%;
 
     --radius: 0.5rem;
+
+    /* Hex definitions */
+    --navy: #07122A;
+    --white: #FFFFFF;
+    --orange-100: #FFF2E8;
+    --orange-200: #FFD8B8;
+    --orange: #FF8A00;
+    --orange-dark: #FF5E00;
+    --orange-red: #FF3D00;
+    --red: #E31B00;
+    --red-dark: #D91E00;
+    --gray-bg: #F8FAFC;
+    --gray-border: #E8EDF3;
   }
 }
 
@@ -82,19 +95,42 @@
 
 /* ── Custom utility classes ──────────────────────────────────── */
 @layer utilities {
-  /* Premium warm terracotta light glass card */
+  /* Premium Stripe/Linear-level card */
   .glass {
     background-color: #ffffff !important;
-    border: 1px solid #EAE3DF !important;
-    box-shadow: 0 4px 6px -1px rgba(140, 101, 83, 0.05), 0 2px 4px -1px rgba(140, 101, 83, 0.03) !important;
+    border: 1px solid #E8EDF3 !important;
+    box-shadow: 0 20px 60px rgba(7, 18, 42, 0.08) !important;
     backdrop-filter: blur(12px) !important;
     -webkit-backdrop-filter: blur(12px) !important;
-    color: #2B201A !important;
+    color: #07122A !important;
+  }
+
+  /* Gradients from brand guidelines */
+  .bg-hero-gradient {
+    background: radial-gradient(circle at top right, rgba(255, 138, 0, 0.18), transparent 40%),
+                radial-gradient(circle at bottom left, rgba(227, 27, 0, 0.12), transparent 35%),
+                #FFFFFF !important;
+  }
+
+  .bg-glow-gradient {
+    background: radial-gradient(circle, rgba(255, 138, 0, 0.45) 0%, rgba(255, 94, 0, 0.25) 40%, rgba(255, 61, 0, 0.08) 70%, transparent 100%) !important;
+  }
+
+  .bg-cta-button-gradient {
+    background: linear-gradient(90deg, #FF7A00 0%, #FF4D00 100%) !important;
+  }
+
+  .bg-main-gradient {
+    background: linear-gradient(135deg, #FF8A00 0%, #FF5E00 25%, #FF3D00 55%, #E31B00 100%) !important;
+  }
+
+  .bg-cta-section-gradient {
+    background: linear-gradient(135deg, #07122A, #0B1838) !important;
   }
 
   /* Gradient text */
   .gradient-text {
-    @apply bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-brand-400 to-brand-700 bg-clip-text text-transparent;
   }
 
   /* Overrides for bg-white to integrate with light theme */
@@ -109,6 +145,9 @@
   }
   .bg-white\/95 {
     background-color: hsla(var(--card) / 0.95) !important;
+  }
+  .bg-slate-50\/55 {
+    background-color: hsla(var(--muted) / 0.55) !important;
   }
   .bg-slate-50\/50 {
     background-color: hsla(var(--muted) / 0.5) !important;
@@ -165,22 +204,22 @@
     color: hsl(var(--foreground)) !important;
   }
   .text-slate-950 {
-    color: #2B201A !important;
+    color: #07122A !important;
   }
   .text-slate-800 {
     color: hsl(var(--foreground)) !important;
   }
   .text-slate-700 {
-    color: #5A4E46 !important;
+    color: #475569 !important;
   }
   .text-slate-650 {
-    color: #5A4E46 !important;
+    color: #475569 !important;
   }
   .text-slate-600 {
-    color: #8C6553 !important;
+    color: #64748B !important;
   }
   .text-slate-500 {
-    color: #8C6553 !important;
+    color: #64748B !important;
   }
   .border-slate-200 {
     border-color: hsl(var(--border)) !important;
@@ -189,16 +228,16 @@
     border-color: hsl(var(--border)) !important;
   }
   .text-indigo-700 {
-    color: #BD4F2A !important;
+    color: #FF6A00 !important;
   }
   .text-indigo-800 {
-    color: #BD4F2A !important;
+    color: #FF5E00 !important;
   }
   .text-indigo-950 {
-    color: #2B201A !important;
+    color: #07122A !important;
   }
   .text-indigo-600 {
-    color: #BD4F2A !important;
+    color: #FF6A00 !important;
   }
   .bg-indigo-100 {
     background-color: hsla(var(--muted) / 0.9) !important;
@@ -257,7 +296,7 @@
 }
 
 .bg-dots {
-  background-image: radial-gradient(rgba(140, 101, 83, 0.1) 1.5px, transparent 1.5px) !important;
+  background-image: radial-gradient(rgba(7, 18, 42, 0.05) 1.5px, transparent 1.5px) !important;
   background-size: 24px 24px !important;
 }
 

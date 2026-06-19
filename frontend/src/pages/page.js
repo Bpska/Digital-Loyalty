@@ -28,7 +28,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuthStore();
   const [stampsCount, setStampsCount] = useState(3);
-  const [pricingPeriod, setPricingPeriod] = useState("monthly");
+
 
   // Local interactive stamp simulator
   const maxStamps = 6;
@@ -517,202 +517,85 @@ export default function LandingPage() {
       )
 
       /* 6. Pricing Plans */
-      , React.createElement('section', { id: "pricing", className: "py-24 md:py-32 border-t border-[#EAE3DF]/30 bg-white"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 455}}
-        , React.createElement('div', { className: "max-w-7xl mx-auto px-6 text-center space-y-12"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 456}}
-          , React.createElement('div', { className: "max-w-2xl mx-auto space-y-4"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 457}}
-            , React.createElement('span', { className: "text-xs font-black text-[#BD4F2A] uppercase tracking-widest block mb-2"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 458}}, "Simple SaaS Plans"  )
-            , React.createElement('h2', { className: "text-4xl sm:text-5xl font-extrabold text-[#2B201A] tracking-tight"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 459}}, "Flexible Tiers for Every Storefront"
-
-            )
-            , React.createElement('p', { className: "text-sm sm:text-base text-[#5A4E46] leading-relaxed"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 462}}, "No hidden fees. Choose a subscription package to scale customer check-ins and reward configurations."
-
-            )
-
-            /* Toggle */
-            , React.createElement('div', { className: "inline-flex items-center bg-[#FAF7F5] p-1.5 rounded-full border border-[#EAE3DF]/60 mt-4"       , __self: this, __source: {fileName: _jsxFileName, lineNumber: 467}}
-              , React.createElement('button', { 
-                onClick: () => setPricingPeriod("monthly"),
-                className: `px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
-                  pricingPeriod === "monthly" ? "bg-white text-[#2B201A] shadow-sm border border-[#EAE3DF]/50" : "text-[#5A4E46] hover:text-[#2B201A]"
-                }`, __self: this, __source: {fileName: _jsxFileName, lineNumber: 468}}
-, "Bill Monthly"
-
-              )
-              , React.createElement('button', { 
-                onClick: () => setPricingPeriod("yearly"),
-                className: `px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  pricingPeriod === "yearly" ? "bg-white text-[#2B201A] shadow-sm border border-[#EAE3DF]/50" : "text-[#5A4E46] hover:text-[#2B201A]"
-                }`, __self: this, __source: {fileName: _jsxFileName, lineNumber: 476}}
-, "Bill Yearly "
-                  , React.createElement('span', { className: "bg-emerald-50 text-emerald-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-emerald-100"        , __self: this, __source: {fileName: _jsxFileName, lineNumber: 482}}, "Save 20%" )
-              )
-            )
+      , React.createElement('section', { id: "pricing", className: "py-24 md:py-32 border-t border-[#EAE3DF]/30 bg-white" }
+        , React.createElement('div', { className: "max-w-7xl mx-auto px-6 text-center space-y-12" }
+          , React.createElement('div', { className: "max-w-2xl mx-auto space-y-4" }
+            , React.createElement('span', { className: "text-xs font-black text-[#FF6A00] uppercase tracking-widest block mb-2" }, "Simple Yearly Plan" )
+            , React.createElement('h2', { className: "text-4xl sm:text-5xl font-extrabold text-[#07122A] tracking-tight" }, "Launch Special Pricing" )
+            , React.createElement('p', { className: "text-sm sm:text-base text-[#5A4E46] leading-relaxed" }, "No hidden surprises. Simple, transparent pricing for premium customer loyalty features." )
           )
 
-          , React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-3 gap-8 pt-4 items-stretch max-w-5xl mx-auto"       , __self: this, __source: {fileName: _jsxFileName, lineNumber: 487}}
+          , React.createElement('div', { className: "max-w-md mx-auto pt-4 relative z-10" }
+            , React.createElement('div', { className: "bg-white p-8 rounded-[32px] border-2 border-[#FF6A00] flex flex-col justify-between shadow-xl shadow-[#FF5E00]/10 relative" }
+              , React.createElement('span', { className: "absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#FF8A00] to-[#E31B00] text-white text-[9px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full" }, "Launch Offer" )
 
-            /* Starter Plan */
-            , React.createElement('div', { className: "bg-white p-8 rounded-[32px] border border-[#EAE3DF] flex flex-col justify-between hover:shadow-xl hover:shadow-[#8C6553]/5 hover:-translate-y-1 transition-all duration-300 relative"         , __self: this, __source: {fileName: _jsxFileName, lineNumber: 490}}
-              , React.createElement('div', { className: "space-y-6", __self: this, __source: {fileName: _jsxFileName, lineNumber: 491}}
-                , React.createElement('div', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 492}}
-                  , React.createElement('span', { className: "text-xs font-black text-[#8C6553] uppercase tracking-wider block"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 493}}, "Starter Tier" )
-                  , React.createElement('h4', { className: "text-xl font-bold text-[#2B201A] mt-1"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 494}}, "STARTER")
+              , React.createElement('div', { className: "space-y-6" }
+                , React.createElement('div', null
+                  , React.createElement('span', { className: "text-xs font-black text-[#FF6A00] uppercase tracking-wider block" }, "All-in-One Plan")
+                  , React.createElement('h4', { className: "text-xl font-bold text-[#07122A] mt-1" }, "LAUNCH YEAR SPECIAL")
                 )
 
-                , React.createElement('div', { className: "flex items-baseline space-x-1"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 497}}
-                  , React.createElement('span', { className: "text-4xl font-black text-[#2B201A]"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 498}}, "₹"
-                    , pricingPeriod === "monthly" ? "999" : "799"
-                  )
-                  , React.createElement('span', { className: "text-xs text-[#5A4E46]" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 501}}, "/ month" )
+                , React.createElement('div', { className: "flex items-baseline justify-center space-x-1" }
+                  , React.createElement('span', { className: "text-5xl font-black text-[#07122A]" }, "₹999")
+                  , React.createElement('span', { className: "text-xs text-[#5A4E46]" }, "/ year")
                 )
 
-                , React.createElement('p', { className: "text-xs text-[#5A4E46] leading-relaxed"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 504}}, "Perfect for local cafes, bakeries or salon shops launching their first loyalty cards."
+                , React.createElement('p', { className: "text-xs text-[#5A4E46] leading-relaxed" }, "Perfect for local cafes, bakeries, salons, or retail shops launching customer loyalty cards." )
 
-                )
+                , React.createElement('div', { className: "h-px bg-[#FFF2E8] w-full" } )
 
-                , React.createElement('div', { className: "h-px bg-[#FAF7F5] w-full"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 508}} )
-
-                , React.createElement('ul', { className: "space-y-3 text-xs text-[#5A4E46] text-left"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 510}}
-                  , React.createElement('li', { className: "flex items-center space-x-2.5"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 511}}
-                    , React.createElement(Check, { className: "h-4 w-4 text-[#BD4F2A] shrink-0 font-extrabold"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 512}} )
-                    , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 513}}, "Max " , React.createElement('strong', { className: "text-[#2B201A]" ,__self: this, __source: {fileName: _jsxFileName, lineNumber: 513}}, "1 Branch" ), " Outlet" )
+                , React.createElement('div', { className: "bg-[#FFF2E8]/60 border border-[#FFD8B8] rounded-2xl p-4 space-y-2 text-xs text-[#5A4E46] text-left" }
+                  , React.createElement('p', { className: "text-[10px] font-black text-[#FF6A00] uppercase tracking-wider mb-3" }, "Checkout Breakdown")
+                  , React.createElement('div', { className: "flex justify-between" }
+                    , React.createElement('span', null, "Base Plan Price:")
+                    , React.createElement('span', { className: "font-semibold text-[#07122A]" }, "₹999.00")
                   )
-                  , React.createElement('li', { className: "flex items-center space-x-2.5"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 515}}
-                    , React.createElement(Check, { className: "h-4 w-4 text-[#BD4F2A] shrink-0 font-extrabold"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 516}} )
-                    , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 517}}, "Max " , React.createElement('strong', { className: "text-[#2B201A]" ,__self: this, __source: {fileName: _jsxFileName, lineNumber: 517}}, "500 Customers" ))
+                  , React.createElement('div', { className: "flex justify-between" }
+                    , React.createElement('span', null, "Gateway Charges (2.3%):")
+                    , React.createElement('span', null, "₹22.98")
                   )
-                  , React.createElement('li', { className: "flex items-center space-x-2.5"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 519}}
-                    , React.createElement(Check, { className: "h-4 w-4 text-[#BD4F2A] shrink-0 font-extrabold"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 520}} )
-                    , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 521}}, "Download QR as PDF/PNG"   )
+                  , React.createElement('div', { className: "flex justify-between" }
+                    , React.createElement('span', null, "GST (5%):")
+                    , React.createElement('span', null, "₹49.95")
                   )
-                  , React.createElement('li', { className: "flex items-center space-x-2.5"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 523}}
-                    , React.createElement(Check, { className: "h-4 w-4 text-[#BD4F2A] shrink-0 font-extrabold"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 524}} )
-                    , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 525}}, "Standard Analytics" )
-                  )
-                )
-              )
-
-              , React.createElement('div', { className: "pt-8 w-full" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 530}}
-                , React.createElement(Link, { to: "/login?signup=true", className: "w-full", __self: this, __source: {fileName: _jsxFileName, lineNumber: 531}}
-                  , React.createElement(Button, { variant: "outline", className: "w-full text-xs font-bold h-11 bg-white border border-[#EAE3DF] text-[#5A4E46] hover:bg-[#FAF7F5] hover:border-[#D2B8AD] rounded-xl"       , __self: this, __source: {fileName: _jsxFileName, lineNumber: 532}}, "Start Starter Trial"
-
+                  , React.createElement('div', { className: "flex justify-between border-t border-[#FFD8B8] pt-2 font-black text-sm text-[#07122A]" }
+                    , React.createElement('span', null, "Total Payable:")
+                    , React.createElement('span', { className: "text-[#FF6A00]" }, "₹1,071.93")
                   )
                 )
-              )
-            )
 
-            /* Growth Plan */
-            , React.createElement('div', { className: "bg-white p-8 rounded-[32px] border-2 border-[#BD4F2A] flex flex-col justify-between shadow-xl shadow-[#BD4F2A]/5 relative scale-105 z-10"          , __self: this, __source: {fileName: _jsxFileName, lineNumber: 540}}
-              , React.createElement('span', { className: "absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#BD4F2A] to-[#8C6553] text-white text-[9px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full border border-[#BD4F2A]/20"              , __self: this, __source: {fileName: _jsxFileName, lineNumber: 541}}, "Most Popular"
-
-              )
-
-              , React.createElement('div', { className: "space-y-6", __self: this, __source: {fileName: _jsxFileName, lineNumber: 545}}
-                , React.createElement('div', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 546}}
-                  , React.createElement('span', { className: "text-xs font-black text-[#BD4F2A] uppercase tracking-wider block"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 547}}, "Growth Tier" )
-                  , React.createElement('h4', { className: "text-xl font-bold text-[#2B201A] mt-1"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 548}}, "GROWTH")
-                )
-
-                , React.createElement('div', { className: "flex items-baseline space-x-1"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 551}}
-                  , React.createElement('span', { className: "text-4xl font-black text-[#2B201A]"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 552}}, "₹"
-                    , pricingPeriod === "monthly" ? "2,499" : "1,999"
+                , React.createElement('ul', { className: "space-y-3 text-xs text-[#5A4E46] text-left pt-2" }
+                  , React.createElement('li', { className: "flex items-center space-x-2.5" }
+                    , React.createElement(Check, { className: "h-4 w-4 text-[#FF6A00] shrink-0 font-extrabold" } )
+                    , React.createElement('span', null, "Up to ", React.createElement('strong', { className: "text-[#07122A]" }, "5 Branches"), " Outlets" )
                   )
-                  , React.createElement('span', { className: "text-xs text-[#5A4E46]" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 555}}, "/ month" )
-                )
-
-                , React.createElement('p', { className: "text-xs text-[#5A4E46] leading-relaxed"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 558}}, "Best choice for retail chains, gyms, or restaurant brands scaling customer stamps."
-
-                )
-
-                , React.createElement('div', { className: "h-px bg-[#FAF7F5] w-full"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 562}} )
-
-                , React.createElement('ul', { className: "space-y-3 text-xs text-[#5A4E46] text-left"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 564}}
-                  , React.createElement('li', { className: "flex items-center space-x-2.5"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 565}}
-                    , React.createElement(Check, { className: "h-4 w-4 text-[#BD4F2A] shrink-0 font-extrabold"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 566}} )
-                    , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 567}}, "Max " , React.createElement('strong', { className: "text-[#2B201A]", __self: this, __source: {fileName: _jsxFileName, lineNumber: 567}}, "5 Branch" ), " Outlets" )
+                  , React.createElement('li', { className: "flex items-center space-x-2.5" }
+                    , React.createElement(Check, { className: "h-4 w-4 text-[#FF6A00] shrink-0 font-extrabold" } )
+                    , React.createElement('span', null, "Up to ", React.createElement('strong', { className: "text-[#07122A]" }, "10,000 Customers" ))
                   )
-                  , React.createElement('li', { className: "flex items-center space-x-2.5"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 569}}
-                    , React.createElement(Check, { className: "h-4 w-4 text-[#BD4F2A] shrink-0 font-extrabold"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 570}} )
-                    , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 571}}, "Max " , React.createElement('strong', { className: "text-[#2B201A]" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 571}}, "3,000 Customers" ))
+                  , React.createElement('li', { className: "flex items-center space-x-2.5" }
+                    , React.createElement(Check, { className: "h-4 w-4 text-[#FF6A00] shrink-0 font-extrabold" } )
+                    , React.createElement('span', null, "Permanent QR Codes PDF/PNG" )
                   )
-                  , React.createElement('li', { className: "flex items-center space-x-2.5"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 573}}
-                    , React.createElement(Check, { className: "h-4 w-4 text-[#BD4F2A] shrink-0 font-extrabold"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 574}} )
-                    , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 575}}, "Advanced Analytics Ledger"  )
+                  , React.createElement('li', { className: "flex items-center space-x-2.5" }
+                    , React.createElement(Check, { className: "h-4 w-4 text-[#FF6A00] shrink-0 font-extrabold" } )
+                    , React.createElement('span', null, "Advanced Analytics Dashboard" )
                   )
-                  , React.createElement('li', { className: "flex items-center space-x-2.5"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 577}}
-                    , React.createElement(Check, { className: "h-4 w-4 text-[#BD4F2A] shrink-0 font-extrabold"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 578}} )
-                    , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 579}}, "White-label Custom Branding"  )
-                  )
-                  , React.createElement('li', { className: "flex items-center space-x-2.5"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 581}}
-                    , React.createElement(Check, { className: "h-4 w-4 text-[#BD4F2A] shrink-0 font-extrabold"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 582}} )
-                    , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 583}}, "CSV/Excel Data Export"  )
+                  , React.createElement('li', { className: "flex items-center space-x-2.5" }
+                    , React.createElement(Check, { className: "h-4 w-4 text-[#FF6A00] shrink-0 font-extrabold" } )
+                    , React.createElement('span', null, "Custom Branding & Details" )
                   )
                 )
               )
 
-              , React.createElement('div', { className: "pt-8 w-full" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 588}}
-                , React.createElement(Link, { to: "/login?signup=true", className: "w-full", __self: this, __source: {fileName: _jsxFileName, lineNumber: 589}}
-                  , React.createElement(Button, { className: "w-full text-xs font-bold h-11 bg-[#BD4F2A] hover:bg-[#A34323] text-white shadow-md shadow-[#BD4F2A]/20 rounded-xl"       , __self: this, __source: {fileName: _jsxFileName, lineNumber: 590}}, "Start Growth Trial"
-
+              , React.createElement('div', { className: "pt-8 w-full" }
+                , React.createElement(Link, { to: "/login?signup=true", className: "w-full" }
+                  , React.createElement(Button, { className: "w-full text-xs font-bold h-11 bg-gradient-to-r from-[#FF7A00] to-[#FF4D00] hover:from-[#FF6A00] hover:to-[#E31B00] text-white shadow-md shadow-[#FF6A00]/20 rounded-xl" }
+                    , "Get Access Now →"
                   )
                 )
               )
             )
-
-            /* Enterprise Plan */
-            , React.createElement('div', { className: "bg-white p-8 rounded-[32px] border border-[#EAE3DF] flex flex-col justify-between hover:shadow-xl hover:shadow-[#8C6553]/5 hover:-translate-y-1 transition-all duration-300 relative"         , __self: this, __source: {fileName: _jsxFileName, lineNumber: 598}}
-              , React.createElement('div', { className: "space-y-6", __self: this, __source: {fileName: _jsxFileName, lineNumber: 599}}
-                , React.createElement('div', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 600}}
-                  , React.createElement('span', { className: "text-xs font-black text-[#8C6553] uppercase tracking-wider block"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 601}}, "Enterprise Tier" )
-                  , React.createElement('h4', { className: "text-xl font-bold text-[#2B201A] mt-1"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 602}}, "ENTERPRISE")
-                )
-
-                , React.createElement('div', { className: "flex items-baseline space-x-1"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 605}}
-                  , React.createElement('span', { className: "text-4xl font-black text-[#2B201A]"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 606}}, "₹"
-                    , pricingPeriod === "monthly" ? "5,999" : "4,799"
-                  )
-                  , React.createElement('span', { className: "text-xs text-[#5A4E46]" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 609}}, "/ month" )
-                )
-
-                , React.createElement('p', { className: "text-xs text-[#5A4E46] leading-relaxed"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 612}}, "Built for hyper-growth enterprises requiring developer API access and dedicated support."
-
-                )
-
-                , React.createElement('div', { className: "h-px bg-[#FAF7F5] w-full"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 616}} )
-
-                , React.createElement('ul', { className: "space-y-3 text-xs text-[#5A4E46] text-left"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 618}}
-                  , React.createElement('li', { className: "flex items-center space-x-2.5"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 619}}
-                    , React.createElement(Check, { className: "h-4 w-4 text-[#BD4F2A] shrink-0 font-extrabold"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 620}} )
-                    , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 621}}, React.createElement('strong', { className: "text-[#2B201A]" ,__self: this, __source: {fileName: _jsxFileName, lineNumber: 621}}, "Unlimited"), " Branches" )
-                  )
-                  , React.createElement('li', { className: "flex items-center space-x-2.5"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 623}}
-                    , React.createElement(Check, { className: "h-4 w-4 text-[#BD4F2A] shrink-0 font-extrabold"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 624}} )
-                    , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 625}}, React.createElement('strong', { className: "text-[#2B201A]" ,__self: this, __source: {fileName: _jsxFileName, lineNumber: 625}}, "Unlimited"), " Customers" )
-                  )
-                  , React.createElement('li', { className: "flex items-center space-x-2.5"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 627}}
-                    , React.createElement(Check, { className: "h-4 w-4 text-[#BD4F2A] shrink-0 font-extrabold"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 628}} )
-                    , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 629}}, "Custom White-label Branding"  )
-                  )
-                  , React.createElement('li', { className: "flex items-center space-x-2.5"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 631}}
-                    , React.createElement(Check, { className: "h-4 w-4 text-[#BD4F2A] shrink-0 font-extrabold"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 632}} )
-                    , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 633}}, "Developer REST APIs Access"   )
-                  )
-                  , React.createElement('li', { className: "flex items-center space-x-2.5"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 635}}
-                    , React.createElement(Check, { className: "h-4 w-4 text-[#BD4F2A] shrink-0 font-extrabold"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 636}} )
-                    , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 637}}, "24/7 Dedicated Support"  )
-                  )
-                )
-              )
-
-              , React.createElement('div', { className: "pt-8 w-full" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 642}}
-                , React.createElement(Link, { to: "/login?signup=true", className: "w-full", __self: this, __source: {fileName: _jsxFileName, lineNumber: 643}}
-                  , React.createElement(Button, { variant: "outline", className: "w-full text-xs font-bold h-11 bg-white border border-[#EAE3DF] text-[#5A4E46] hover:bg-[#FAF7F5] hover:border-[#D2B8AD] rounded-xl"       , __self: this, __source: {fileName: _jsxFileName, lineNumber: 644}}, "Contact Enterprise Sales"
-
-                  )
-                )
-              )
-            )
-
           )
         )
       )

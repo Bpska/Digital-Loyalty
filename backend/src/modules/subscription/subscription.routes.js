@@ -27,6 +27,190 @@ router.get('/business/:businessId', authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+async function getSetting(key, defaultValue) {
+  const setting = await prisma.systemSetting.findUnique({ where: { key } });
+  return setting ? setting.value : defaultValue;
+}
+
+// ── Get pricing calculation details ──────────────────────────
+router.get('/pricing', authenticate, async (req, res, next) => {
+  try {
+    const activeCount = await prisma.business.count({
+      where: { status: 'ACTIVE', deletedAt: null },
+    });
+    const promoLimit = parseInt(await getSetting('promo_limit', '20'), 10);
+    const promoPrice = parseFloat(await getSetting('promo_price', '999'));
+    const platformFee = parseFloat(await getSetting('platform_fee', '999'));
+    const gstPercent = parseFloat(await getSetting('gst_percent', '5'));
+    const gatewayPercent = parseFloat(await getSetting('gateway_percent', '2.3'));
+
+    const isEligibleForPromo = activeCount < promoLimit;
+    const basePrice = isEligibleForPromo ? promoPrice : platformFee;
+    const gatewayAmount = parseFloat(((basePrice * gatewayPercent) / 100).toFixed(2));
+    const gstAmount = parseFloat(((basePrice * gstPercent) / 100).toFixed(2));
+    const totalAmount = parseFloat((basePrice + gatewayAmount + gstAmount).toFixed(2));
+
+    sendSuccess(res, {
+      activeBusinesses: activeCount,
+      promoLimit,
+      isEligibleForPromo,
+      basePrice,
+      gstPercent,
+      gstAmount,
+      gatewayPercent,
+      gatewayAmount,
+      totalAmount,
+      currency: 'INR',
+    });
+  } catch (err) { next(err); }
+});
+
+// ── Create a Razorpay payment order ──────────────────────────
+router.post('/create-order', authenticate, async (req, res, next) => {
+  try {
+    const { businessId } = req.body;
+    if (!businessId) {
+      throw new AppError('Business ID is required', 400);
+    }
+
+    const activeCount = await prisma.business.count({
+      where: { status: 'ACTIVE', deletedAt: null },
+    });
+    const promoLimit = parseInt(await getSetting('promo_limit', '20'), 10);
+    const promoPrice = parseFloat(await getSetting('promo_price', '999'));
+    const platformFee = parseFloat(await getSetting('platform_fee', '999'));
+    const gstPercent = parseFloat(await getSetting('gst_percent', '5'));
+    const gatewayPercent = parseFloat(await getSetting('gateway_percent', '2.3'));
+
+    const isEligibleForPromo = activeCount < promoLimit;
+    const basePrice = isEligibleForPromo ? promoPrice : platformFee;
+    const gatewayAmount = parseFloat(((basePrice * gatewayPercent) / 100).toFixed(2));
+    const gstAmount = parseFloat(((basePrice * gstPercent) / 100).toFixed(2));
+    const totalAmount = parseFloat((basePrice + gatewayAmount + gstAmount).toFixed(2));
+
+    const amountInPaise = Math.round(totalAmount * 100);
+
+    let orderId = `mock-order-${Date.now()}`;
+    let isMock = true;
+
+    if (env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET) {
+      try {
+        const Razorpay = (await import('razorpay')).default;
+        const razorpay = new Razorpay({
+          key_id: env.RAZORPAY_KEY_ID,
+          key_secret: env.RAZORPAY_KEY_SECRET,
+        });
+
+        const order = await razorpay.orders.create({
+          amount: amountInPaise,
+          currency: 'INR',
+          receipt: `rcpt_${businessId.slice(0, 10)}_${Date.now()}`,
+        });
+        orderId = order.id;
+        isMock = false;
+      } catch (err) {
+        logger.error('Failed to create Razorpay order, falling back to mock mode', { err });
+      }
+    }
+
+    sendSuccess(res, {
+      orderId,
+      amount: amountInPaise,
+      currency: 'INR',
+      keyId: env.RAZORPAY_KEY_ID || 'rzp_test_mock_key',
+      isMock,
+    });
+  } catch (err) { next(err); }
+});
+
+// ── Verify Razorpay payment and upgrade subscription ──────────
+const verifyPaymentSchema = z.object({
+  businessId: z.string(),
+  razorpayPaymentId: z.string(),
+  razorpayOrderId: z.string(),
+  razorpaySignature: z.string().optional(),
+});
+
+router.post('/verify-payment', authenticate, validate(verifyPaymentSchema), async (req, res, next) => {
+  try {
+    const { businessId, razorpayPaymentId, razorpayOrderId, razorpaySignature } = req.body;
+
+    const isMock = razorpayOrderId.startsWith('mock-order-');
+
+    if (!isMock && env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET && razorpaySignature) {
+      const shasum = crypto.createHmac('sha256', env.RAZORPAY_KEY_SECRET);
+      shasum.update(`${razorpayOrderId}|${razorpayPaymentId}`);
+      const digest = shasum.digest('hex');
+
+      if (digest !== razorpaySignature) {
+        throw new AppError('Payment signature verification failed', 400);
+      }
+    }
+
+    const nextYear = new Date();
+    nextYear.setFullYear(nextYear.getFullYear() + 1);
+
+    const plan = await prisma.plan.findFirst({
+      where: { isActive: true },
+    });
+    if (!plan) {
+      throw new AppError('No active plan found in database', 500);
+    }
+
+    const subscription = await prisma.$transaction(async (tx) => {
+      const sub = await tx.subscription.upsert({
+        where: { businessId },
+        update: {
+          planId: plan.id,
+          status: 'ACTIVE',
+          currentPeriodEnd: nextYear,
+          razorpaySubscriptionId: razorpayOrderId,
+        },
+        create: {
+          businessId,
+          planId: plan.id,
+          status: 'ACTIVE',
+          currentPeriodEnd: nextYear,
+          razorpaySubscriptionId: razorpayOrderId,
+        },
+      });
+
+      await tx.business.update({
+        where: { id: businessId },
+        data: { planId: plan.id, status: 'ACTIVE' },
+      });
+
+      const activeCount = await tx.business.count({
+        where: { status: 'ACTIVE', deletedAt: null },
+      });
+      const promoLimit = parseInt(await getSetting('promo_limit', '20'), 10);
+      const promoPrice = parseFloat(await getSetting('promo_price', '999'));
+      const platformFee = parseFloat(await getSetting('platform_fee', '999'));
+      const gstPercent = parseFloat(await getSetting('gst_percent', '5'));
+      const gatewayPercent = parseFloat(await getSetting('gateway_percent', '2.3'));
+      const basePrice = activeCount < promoLimit ? promoPrice : platformFee;
+      const gatewayAmount = (basePrice * gatewayPercent) / 100;
+      const gstAmount = (basePrice * gstPercent) / 100;
+      const finalPrice = basePrice + gatewayAmount + gstAmount;
+
+      await tx.payment.create({
+        data: {
+          subscriptionId: sub.id,
+          amount: finalPrice,
+          razorpayPaymentId,
+          status: 'CAPTURED',
+          paidAt: new Date(),
+          metadata: { isMock, razorpayOrderId, razorpayPaymentId },
+        },
+      });
+
+      return sub;
+    });
+
+    sendSuccess(res, subscription, 'Subscription successfully upgraded to Yearly Plan');
+  } catch (err) { next(err); }
+});
+
 // ── Create/change subscription (Razorpay) ────────────────────
 const createSubscriptionSchema = z.object({
   businessId: z.string(),
