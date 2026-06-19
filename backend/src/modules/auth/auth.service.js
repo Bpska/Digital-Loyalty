@@ -162,7 +162,7 @@ export async function registerCustomer(
 
   // Check if email already exists
   const existingEmail = await prisma.user.findFirst({
-    where: { email, deletedAt: null },
+    where: { email },
   });
   if (existingEmail) {
     throw new AppError('Email already registered', 400);
@@ -170,7 +170,7 @@ export async function registerCustomer(
 
   // Check if phone already exists
   const existingPhone = await prisma.user.findFirst({
-    where: { phone, deletedAt: null },
+    where: { phone },
   });
   if (existingPhone) {
     throw new AppError('Phone number already registered', 400);
@@ -211,7 +211,7 @@ export async function registerBusiness(
 
   // Check if email already exists
   const existingEmail = await prisma.user.findFirst({
-    where: { email, deletedAt: null },
+    where: { email },
   });
   if (existingEmail) {
     throw new AppError('Email already registered', 400);
@@ -219,7 +219,7 @@ export async function registerBusiness(
 
   // Check if phone already exists
   const existingPhone = await prisma.user.findFirst({
-    where: { phone, deletedAt: null },
+    where: { phone },
   });
   if (existingPhone) {
     throw new AppError('Phone number already registered', 400);

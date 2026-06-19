@@ -82,7 +82,7 @@ export function globalErrorHandler(
 
   sendError(
     res,
-    env.NODE_ENV === 'production' ? 'Internal server error' : message,
+    env.NODE_ENV === 'production' ? `Internal server error: ${message}` : message,
     500
   );
 }
@@ -118,6 +118,6 @@ function handlePrismaError(err) {
     case 'P2014':
       return { message: 'Required relation violated', statusCode: 400 };
     default:
-      return { message: 'Database error', statusCode: 500 };
+      return { message: `Database error: ${err.message}`, statusCode: 500 };
   }
 }
