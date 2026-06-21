@@ -1,63 +1,58 @@
-const CACHE_NAME = "dlv-pwa-cache-v1";
-const ASSETS_TO_CACHE = [
-  "/",
-  "/index.html",
-  "/manifest.json"
-];
+// ScanLoyal Lightweight Service Worker for Native Mobile Notifications
+// Caching is disabled to prevent conflicts with Vite hashed asset bundles.
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => {
-      return self.skipWaiting();
-    })
-  );
+  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
+// Handle incoming push events (e.g. from Web Push server)
+self.addEventListener("push", (event) => {
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data = { message: event.data.text() };
+    }
+  }
+
+  const title = data.title || "ScanLoyal Alert";
+  const options = {
+    body: data.message || "You have a new update!",
+    icon: "/image.png",
+    badge: "/image.png",
+    vibrate: [200, 100, 200],
+    data: {
+      url: data.url || "/"
+    }
+  };
+
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
-            return caches.delete(cache);
-          }
-        })
-      );
-    }).then(() => {
-      return self.clients.claim();
-    })
+    self.registration.showNotification(title, options)
   );
 });
 
-self.addEventListener("fetch", (event) => {
-  // Do NOT intercept API calls (allow them to pass through normally)
-  if (event.request.url.includes("/api/")) {
-    return;
-  }
+// Handle clicks on push notifications to redirect/focus window
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const urlToOpen = new URL(event.notification.data?.url || "/", self.location.origin).toString();
 
-  // Handle SPA navigation requests by returning cached index.html
-  if (event.request.mode === "navigate") {
-    event.respondWith(
-      caches.match("/index.html").then((cachedResponse) => {
-        return cachedResponse || fetch(event.request);
-      })
-    );
-    return;
-  }
-
-  // Only intercept HTTP requests from our own origin (not extensions)
-  if (!event.request.url.startsWith(self.location.origin)) {
-    return;
-  }
-
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
+      // Focus if window already open
+      for (let client of windowClients) {
+        if (client.url === urlToOpen && "focus" in client) {
+          return client.focus();
+        }
       }
-      return fetch(event.request);
+      // Otherwise open new window
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(urlToOpen);
+      }
     })
   );
 });

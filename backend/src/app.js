@@ -26,6 +26,7 @@ import couponRoutes from './modules/coupon/coupon.routes.js';
 import subscriptionRoutes from './modules/subscription/subscription.routes.js';
 import analyticsRoutes from './modules/analytics/analytics.routes.js';
 import notificationRoutes from './modules/notification/notification.routes.js';
+import loyaltyApprovalRoutes from './modules/loyalty-approval/loyalty-approval.routes.js';
 
 export function createApp() {
   const app = express();
@@ -129,6 +130,7 @@ export function createApp() {
   api.use('/subscriptions', subscriptionRoutes);
   api.use('/analytics', analyticsRoutes);
   api.use('/notifications', notificationRoutes);
+  api.use('/loyalty-approval', loyaltyApprovalRoutes);
 
   app.use('/api/v1', api);
 

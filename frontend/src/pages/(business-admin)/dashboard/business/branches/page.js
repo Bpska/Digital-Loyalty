@@ -476,10 +476,15 @@ export default function BranchesPage() {
             , React.createElement('div', { className: "flex flex-col items-center justify-center p-4 space-y-4", __self: this, __source: { fileName: _jsxFileName, lineNumber: 427 } }
               , React.createElement('div', { className: "rounded-xl bg-white p-3 border border-white/10 shadow-2xl", __self: this, __source: { fileName: _jsxFileName, lineNumber: 428 } }
                 , selectedQrImage ? (
-                  React.createElement('img', { src: selectedQrImage, alt: "Branch QR Code", className: "h-48 w-48", __self: this, __source: { fileName: _jsxFileName, lineNumber: 430 } })
+                  React.createElement('div', { className: "relative flex items-center justify-center bg-white" }
+                    , React.createElement('img', { src: selectedQrImage, alt: "Branch QR Code", className: "h-48 w-48 rounded-xl" })
+                    , React.createElement('div', { className: "absolute w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-md border border-[#FF6A00]/25" }
+                      , React.createElement('span', { className: "text-sm font-black tracking-tight bg-gradient-to-tr from-[#FF6A00] to-[#800020] bg-clip-text text-transparent" }, "LS")
+                    )
+                  )
                 ) : (
-                  React.createElement('div', { className: "h-48 w-48 flex items-center justify-center", __self: this, __source: { fileName: _jsxFileName, lineNumber: 432 } }
-                    , React.createElement(Loader2, { className: "h-8 w-8 animate-spin text-zinc-500", __self: this, __source: { fileName: _jsxFileName, lineNumber: 433 } })
+                  React.createElement('div', { className: "h-48 w-48 flex items-center justify-center" }
+                    , React.createElement(Loader2, { className: "h-8 w-8 animate-spin text-zinc-500" })
                   )
                 )
               )

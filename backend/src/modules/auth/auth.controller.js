@@ -205,7 +205,7 @@ export async function refresh(req, res, next) {
     const ip = getClientIp(req);
     const tokens = await authService.refreshTokens(rawToken, ip);
     setTokenCookies(res, tokens.accessToken, tokens.refreshToken);
-    sendSuccess(res, null, 'Token refreshed');
+    sendSuccess(res, { accessToken: tokens.accessToken }, 'Token refreshed');
   } catch (err) {
     next(err);
   }

@@ -11,6 +11,17 @@ import { getClientIp } from '../../utils/ip.js';
 
 const router = Router();
 
+router.get('/public/count', async (req, res, next) => {
+  try {
+    const prisma = await import('../../config/prisma.js').then(m => m.default);
+    const count = await prisma.checkIn.count();
+    sendSuccess(res, { count }, 'Total check-ins retrieved successfully');
+  } catch (err) {
+    next(err);
+  }
+});
+
+
 const checkInSchema = z.object({
   qrToken: z.string().min(1, 'QR token is required'),
   deviceId: z.string().uuid().optional(),

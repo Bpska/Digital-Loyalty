@@ -13,47 +13,6 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Building2, Plus, Loader2, ToggleLeft, ToggleRight, } from "lucide-react";
 import { formatDate } from "@/lib/utils";
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 export default function BusinessesManagementPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("businesses");

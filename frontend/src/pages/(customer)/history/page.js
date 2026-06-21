@@ -99,7 +99,7 @@ export default function HistoryPage() {
                       )
                     )
                     , React.createElement('div', { className: "text-right shrink-0" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 100}}
-                      , React.createElement('span', { className: "text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full"        , __self: this, __source: {fileName: _jsxFileName, lineNumber: 101}}, "Verified"
+                      , React.createElement('span', { className: "text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0"        , __self: this, __source: {fileName: _jsxFileName, lineNumber: 101}}, "Verified"
 
                       )
                       , React.createElement('p', { className: "text-[9px] text-muted-foreground mt-1"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 104}}, formatDate(item.createdAt))

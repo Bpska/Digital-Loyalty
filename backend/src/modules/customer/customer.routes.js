@@ -10,6 +10,8 @@ const router = Router();
 // Get customer's loyalty dashboard (all businesses they've visited)
 router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res, next) => {
   try {
+    const now = new Date();
+
     const loyaltyCards = await prisma.customerPoints.findMany({
       where: { customerId: req.user.sub },
       include: {
@@ -23,8 +25,36 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
             whatsappUrl: true,
             googleReviewUrl: true,
             loyaltyPrograms: {
-              where: { isActive: true },
-              select: { id: true, type: true, threshold: true, pointsPerVisit: true },
+              where: {
+                isActive: true,
+                reward: { isActive: true },
+              },
+              select: {
+                id: true,
+                type: true,
+                threshold: true,
+                pointsPerVisit: true,
+                reward: { select: { id: true, title: true, description: true, isActive: true } },
+              },
+            },
+            coupons: {
+              where: {
+                isActive: true,
+                validFrom: { lte: now },
+                validTo: { gte: now },
+              },
+              select: {
+                id: true,
+                code: true,
+                title: true,
+                description: true,
+                discountType: true,
+                discountValue: true,
+                validFrom: true,
+                validTo: true,
+                usageLimit: true,
+                totalUsed: true,
+              },
             },
           },
         },
@@ -32,14 +62,29 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
       orderBy: { updatedAt: 'desc' },
     });
 
+    // Filter out coupons that have hit their usage cap
+    const loyaltyCardsWithFilteredCoupons = loyaltyCards.map(card => ({
+      ...card,
+      business: {
+        ...card.business,
+        coupons: card.business.coupons.filter(
+          c => c.usageLimit === null || c.totalUsed < c.usageLimit
+        ),
+      },
+    }));
+
     const unlockedRewards = await prisma.customerReward.findMany({
-      where: { customerId: req.user.sub, status: 'UNLOCKED' },
+      where: {
+        customerId: req.user.sub,
+        status: 'UNLOCKED',
+        reward: { isActive: true },
+      },
       include: {
-        reward: { select: { id: true, title: true, description: true, businessId: true } },
+        reward: { select: { id: true, title: true, description: true, businessId: true, isActive: true } },
       },
     });
 
-    sendSuccess(res, { loyaltyCards, unlockedRewards });
+    sendSuccess(res, { loyaltyCards: loyaltyCardsWithFilteredCoupons, unlockedRewards });
   } catch (err) { next(err); }
 });
 

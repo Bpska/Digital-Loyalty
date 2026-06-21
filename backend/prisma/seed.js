@@ -37,7 +37,7 @@ async function main() {
     update: {
       priceMonthly: 999,
       maxBranches: 5,
-      maxCustomers: 1000,
+      maxCustomers: 8000,
       features: {
         analyticsAccess: true,
         customBranding: true,
@@ -50,7 +50,7 @@ async function main() {
       name: 'Launch Year Special',
       priceMonthly: 999,
       maxBranches: 5,
-      maxCustomers: 1000,
+      maxCustomers: 8000,
       features: {
         analyticsAccess: true,
         customBranding: true,

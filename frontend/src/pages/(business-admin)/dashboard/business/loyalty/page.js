@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Settings, Plus, Star, ToggleRight, Loader2, Award, Zap, } from "lucide-react";
+import { Settings, Plus, Star, ToggleLeft, ToggleRight, Loader2, Award, Zap, } from "lucide-react";
 
 
 
@@ -42,6 +42,8 @@ export default function LoyaltyPage() {
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedProgram, setSelectedProgram] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
 
   // Form states
@@ -80,9 +82,22 @@ export default function LoyaltyPage() {
     }
   });
 
-  // 4. Deactivate loyalty program mutation
-  const deactivateMutation = useMutation({
-    mutationFn: (id) => api.patch(`/loyalty/${id}`, { isActive: false }),
+  // 3.5. Update loyalty program mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => api.patch(`/loyalty/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["businessLoyalty", businessId] });
+      setShowEditModal(false);
+      resetForm();
+    },
+    onError: (err) => {
+      setErrorMsg(err.message || "Failed to update loyalty program.");
+    }
+  });
+
+  // 4. Toggle loyalty program active / inactive
+  const toggleActiveMutation = useMutation({
+    mutationFn: ({ id, isActive }) => api.patch(`/loyalty/${id}`, { isActive }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["businessLoyalty", businessId] });
     }
@@ -134,12 +149,60 @@ export default function LoyaltyPage() {
     });
   };
 
+  const handleEditProgram = (e) => {
+    e.preventDefault();
+    if (!selectedProgram) return;
+    setErrorMsg(null);
+
+    const parsedThreshold = parseInt(threshold);
+    if (!threshold || isNaN(parsedThreshold) || parsedThreshold <= 0) {
+      setErrorMsg("Please enter a valid target number.");
+      return;
+    }
+
+    if (!rewardId) {
+      setErrorMsg("Please select a Reward Voucher.");
+      return;
+    }
+
+    let parsedPointsPerVisit = undefined;
+    if (type === "POINTS_BASED") {
+      parsedPointsPerVisit = parseInt(pointsPerVisit);
+      if (isNaN(parsedPointsPerVisit) || parsedPointsPerVisit <= 0) {
+        setErrorMsg("Please enter a valid points-per-visit value.");
+        return;
+      }
+    }
+
+    updateMutation.mutate({
+      id: selectedProgram.id,
+      data: {
+        businessId,
+        type,
+        threshold: parsedThreshold,
+        pointsPerVisit: parsedPointsPerVisit,
+        resetMode,
+        rewardId,
+      }
+    });
+  };
+
+  const handleOpenEdit = (program) => {
+    setSelectedProgram(program);
+    setType(program.type);
+    setThreshold(program.threshold.toString());
+    setPointsPerVisit(program.pointsPerVisit ? program.pointsPerVisit.toString() : "10");
+    setResetMode(program.resetMode);
+    setRewardId(program.rewardId);
+    setShowEditModal(true);
+  };
 
   const resetForm = () => {
     setThreshold("");
     setPointsPerVisit("10");
     setResetMode("FULL_RESET");
     setRewardId("");
+    setSelectedProgram(null);
     setErrorMsg(null);
   };
 
@@ -237,18 +300,35 @@ export default function LoyaltyPage() {
                       )
                     )
 
-                    , React.createElement('div', { className: "pt-2 border-t border-border flex justify-between items-center gap-2"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 207}}
+                    , React.createElement('div', { className: "pt-2 border-t border-border flex justify-between items-center gap-2 w-full"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 207}}
+                      , React.createElement(Button, { 
+                        variant: "ghost", 
+                        size: "sm", 
+                        className: "text-xs text-muted-foreground hover:text-foreground"  ,
+                        onClick: () => handleOpenEdit(program), __self: this, __source: {fileName: _jsxFileName, lineNumber: 208}}
+                        , "Configure Details"
+                      )
                       , program.isActive ? (
                         React.createElement(Button, { 
                           variant: "ghost", 
                           size: "sm", 
                           className: "text-xs text-muted-foreground hover:text-foreground"  ,
-                          onClick: () => deactivateMutation.mutate(program.id),
-                          disabled: deactivateMutation.isPending, __self: this, __source: {fileName: _jsxFileName, lineNumber: 208}}
+                          onClick: () => toggleActiveMutation.mutate({ id: program.id, isActive: false }),
+                          disabled: toggleActiveMutation.isPending, __self: this, __source: {fileName: _jsxFileName, lineNumber: 208}}
 
-                          , React.createElement(ToggleRight, { className: "mr-1.5 h-4.5 w-4.5 text-primary"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 215}} ), " Deactivate Rule"
+                          , React.createElement(ToggleRight, { className: "mr-1.5 h-4.5 w-4.5 text-primary"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 215}} ), " Deactivate"
                         )
-                      ) : React.createElement('span', null)
+                      ) : (
+                        React.createElement(Button, { 
+                          variant: "ghost", 
+                          size: "sm", 
+                          className: "text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"  ,
+                          onClick: () => toggleActiveMutation.mutate({ id: program.id, isActive: true }),
+                          disabled: toggleActiveMutation.isPending, __self: this, __source: {fileName: _jsxFileName, lineNumber: 208}}
+
+                          , React.createElement(ToggleLeft, { className: "mr-1.5 h-4.5 w-4.5 text-muted-foreground"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 215}} ), " Activate"
+                        )
+                      )
                       , React.createElement(Button, { 
                         variant: "ghost", 
                         size: "sm", 
@@ -379,6 +459,104 @@ export default function LoyaltyPage() {
                 )
               )
             )
+          )
+        )
+      )
+      /* Edit Program Modal */
+      , showEditModal && (
+        React.createElement(Dialog, { open: showEditModal, onOpenChange: (open) => !open && setShowEditModal(false), __self: this, __source: {fileName: _jsxFileName, lineNumber: 229}}
+          , React.createElement(DialogContent, { className: "max-w-[420px]", __self: this, __source: {fileName: _jsxFileName, lineNumber: 230}}
+            , React.createElement(DialogHeader, {__self: this, __source: {fileName: _jsxFileName, lineNumber: 231}}
+              , React.createElement(DialogTitle, {__self: this, __source: {fileName: _jsxFileName, lineNumber: 232}}, "Configure Loyalty Rule"  )
+              , React.createElement(DialogDescription, {__self: this, __source: {fileName: _jsxFileName, lineNumber: 233}}, "Modify target requirements, Linked Reward Voucher, or reset policies."
+              )
+            )
+
+            , errorMsg && (
+              React.createElement('div', { className: "bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-xs text-destructive text-center"       , __self: this, __source: {fileName: _jsxFileName, lineNumber: 239}}
+                , errorMsg
+              )
+            )
+
+            , React.createElement('form', { onSubmit: handleEditProgram, className: "space-y-4 py-2" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 255}}
+                , React.createElement('div', { className: "space-y-1.5", __self: this, __source: {fileName: _jsxFileName, lineNumber: 256}}
+                  , React.createElement(Label, { htmlFor: "edit-program-type", __self: this, __source: {fileName: _jsxFileName, lineNumber: 257}}, "Rule Type" )
+                  , React.createElement(Select, { onValueChange: (val) => setType(val), defaultValue: type, value: type, __self: this, __source: {fileName: _jsxFileName, lineNumber: 258}}
+                    , React.createElement(SelectTrigger, { className: "w-full bg-background border-border"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 259}}
+                      , React.createElement(SelectValue, { placeholder: "Select type" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 260}} )
+                    )
+                    , React.createElement(SelectContent, {__self: this, __source: {fileName: _jsxFileName, lineNumber: 262}}
+                      , React.createElement(SelectItem, { value: "VISIT_BASED", __self: this, __source: {fileName: _jsxFileName, lineNumber: 263}}, "Visit Stamp Card (Stamp grids)"    )
+                      , React.createElement(SelectItem, { value: "POINTS_BASED", __self: this, __source: {fileName: _jsxFileName, lineNumber: 264}}, "Points Goal Card (Progress bar)"    )
+                    )
+                  )
+                )
+
+                , React.createElement('div', { className: "space-y-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 269}}
+                  , React.createElement(Label, { htmlFor: "edit-program-thresh", __self: this, __source: {fileName: _jsxFileName, lineNumber: 270}}
+                    , type === "VISIT_BASED" ? "Target Visits Required" : "Target Points Goal"
+                  )
+                  , React.createElement(Input, { 
+                    id: "edit-program-thresh", 
+                    type: "number",
+                    placeholder: type === "VISIT_BASED" ? "e.g. 10 visits" : "e.g. 500 points", 
+                    value: threshold,
+                    onChange: (e) => setThreshold(e.target.value),
+                    required: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 273}} 
+                  )
+                )
+
+                , type === "POINTS_BASED" && (
+                  React.createElement('div', { className: "space-y-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 284}}
+                    , React.createElement(Label, { htmlFor: "edit-program-ppv", __self: this, __source: {fileName: _jsxFileName, lineNumber: 285}}, "Points Awarded Per Visit"   )
+                    , React.createElement(Input, { 
+                      id: "edit-program-ppv", 
+                      type: "number",
+                      placeholder: "e.g. 10 points"  , 
+                      value: pointsPerVisit,
+                      onChange: (e) => setPointsPerVisit(e.target.value),
+                      required: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 286}} 
+                    )
+                  )
+                )
+
+                , React.createElement('div', { className: "space-y-1.5", __self: this, __source: {fileName: _jsxFileName, lineNumber: 297}}
+                  , React.createElement(Label, { htmlFor: "edit-program-reset", __self: this, __source: {fileName: _jsxFileName, lineNumber: 298}}, "Reset Policy on Reward Unlock"    )
+                  , React.createElement(Select, { onValueChange: (val) => setResetMode(val), defaultValue: resetMode, value: resetMode, __self: this, __source: {fileName: _jsxFileName, lineNumber: 299}}
+                    , React.createElement(SelectTrigger, { className: "w-full bg-background border-border"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 300}}
+                      , React.createElement(SelectValue, { placeholder: "Select reset mode"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 301}} )
+                    )
+                    , React.createElement(SelectContent, {__self: this, __source: {fileName: _jsxFileName, lineNumber: 303}}
+                      , React.createElement(SelectItem, { value: "FULL_RESET", __self: this, __source: {fileName: _jsxFileName, lineNumber: 304}}, "Reset Counter completely to 0"    )
+                      , React.createElement(SelectItem, { value: "CARRY_REMAINDER", __self: this, __source: {fileName: _jsxFileName, lineNumber: 305}}, "Carry Over Remainder surplus"   )
+                    )
+                  )
+                )
+
+                , React.createElement('div', { className: "space-y-1.5", __self: this, __source: {fileName: _jsxFileName, lineNumber: 310}}
+                  , React.createElement(Label, { htmlFor: "edit-program-reward", __self: this, __source: {fileName: _jsxFileName, lineNumber: 311}}, "Linked Reward Gift Voucher"   )
+                  , React.createElement(Select, { onValueChange: setRewardId, defaultValue: rewardId, value: rewardId, __self: this, __source: {fileName: _jsxFileName, lineNumber: 312}}
+                    , React.createElement(SelectTrigger, { className: "w-full bg-background border-border"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 313}}
+                      , React.createElement(SelectValue, { placeholder: "Select Reward Voucher"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 314}} )
+                    )
+                    , React.createElement(SelectContent, {__self: this, __source: {fileName: _jsxFileName, lineNumber: 316}}
+                      , rewards.map((reward) => (
+                        React.createElement(SelectItem, { key: reward.id, value: reward.id, __self: this, __source: {fileName: _jsxFileName, lineNumber: 318}}
+                          , reward.title
+                        )
+                      ))
+                    )
+                  )
+                )
+
+                , React.createElement(DialogFooter, { className: "pt-2", __self: this, __source: {fileName: _jsxFileName, lineNumber: 326}}
+                  , React.createElement(Button, { type: "button", variant: "outline", onClick: () => setShowEditModal(false), __self: this, __source: {fileName: _jsxFileName, lineNumber: 327}}, "Cancel"
+                  )
+                  , React.createElement(Button, { type: "submit", className: "bg-primary", disabled: updateMutation.isPending, __self: this, __source: {fileName: _jsxFileName, lineNumber: 330}}
+                    , updateMutation.isPending ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 331}} ) : "Save Changes"
+                  )
+                )
+              )
           )
         )
       )

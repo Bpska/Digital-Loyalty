@@ -18,13 +18,15 @@ import {
   Menu, 
   X, 
   Bell, 
-  Loader2 
+  Loader2,
+  ClipboardCheck,
+  Settings2
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { api } from "@/lib/api";
+import { api, getImageUrl } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 
 export default function BusinessAdminLayout({
@@ -152,11 +154,56 @@ export default function BusinessAdminLayout({
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [pendingApprovals, setPendingApprovals] = React.useState(0);
+  const [notifiedIds, setNotifiedIds] = useState(new Set());
+
+  // Helper to trigger standard browser/mobile notification bar alert
+  const triggerMobileNotification = (title, body) => {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (Notification.permission === "granted") {
+      try {
+        new Notification(title, {
+          body,
+          icon: "/image.png",
+          vibrate: [200, 100, 200],
+        });
+      } catch (e) {
+        // Fallback for mobile Chrome/Android where a Service Worker registration is required to show notification
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.ready.then((registration) => {
+            registration.showNotification(title, {
+              body,
+              icon: "/image.png",
+              vibrate: [200, 100, 200],
+            });
+          }).catch(err => console.error("SW notification error:", err));
+        }
+      }
+    }
+  };
 
   const fetchNotifications = async () => {
     try {
       const res = await api.get("/notifications");
-      setNotifications(res.data || []);
+      const fetched = res.data || [];
+
+      // Update local unread notifications matching native system bar
+      if (notifiedIds.size === 0) {
+        const initialIds = new Set(fetched.map(n => n.id));
+        setNotifiedIds(initialIds);
+      } else {
+        const newUnread = fetched.filter(n => !n.isRead && !notifiedIds.has(n.id));
+        if (newUnread.length > 0) {
+          const updatedIds = new Set(notifiedIds);
+          newUnread.forEach(n => {
+            updatedIds.add(n.id);
+            triggerMobileNotification("ScanLoyal Notification", n.message);
+          });
+          setNotifiedIds(updatedIds);
+        }
+      }
+
+      setNotifications(fetched);
       const countRes = await api.get("/notifications/unread-count");
       setUnreadCount(countRes.data?.count || 0);
     } catch (err) {
@@ -168,9 +215,30 @@ export default function BusinessAdminLayout({
     if (authorized && !isPending) {
       fetchNotifications();
       const interval = setInterval(fetchNotifications, 20000);
+
+      // Request native browser/mobile phone notification permission
+      if (typeof window !== "undefined" && "Notification" in window) {
+        if (Notification.permission === "default") {
+          Notification.requestPermission();
+        }
+      }
+
       return () => clearInterval(interval);
     }
   }, [authorized, isPending]);
+
+  React.useEffect(() => {
+    if (!businessId || isPending) return;
+    const fetchPending = async () => {
+      try {
+        const res = await api.get(`/loyalty-approval/analytics/${businessId}`);
+        setPendingApprovals(res.data?.pendingCount ?? 0);
+      } catch (_) {}
+    };
+    fetchPending();
+    const iv = setInterval(fetchPending, 30000);
+    return () => clearInterval(iv);
+  }, [businessId, isPending]);
 
   const handleMarkAllRead = async () => {
     try {
@@ -371,6 +439,8 @@ export default function BusinessAdminLayout({
 
 
 
+
+
   const menuItems = isPending
     ? [{ label: "Subscription Required", icon: LayoutDashboard, href: "/dashboard/business" }]
     : [
@@ -380,6 +450,8 @@ export default function BusinessAdminLayout({
         { label: "Rewards", icon: Award, href: "/dashboard/business/rewards" },
         { label: "Coupons", icon: Percent, href: "/dashboard/business/coupons" },
         { label: "Analytics", icon: BarChart3, href: "/dashboard/business/analytics" },
+        { label: "Loyalty Approvals", icon: ClipboardCheck, href: "/dashboard/business/approvals", badge: pendingApprovals },
+        { label: "Loyalty Config", icon: Settings2, href: "/dashboard/business/loyalty-config" },
       ];
 
   return (
@@ -387,7 +459,9 @@ export default function BusinessAdminLayout({
       /* Desktop Sidebar */
       , React.createElement('aside', { className: "w-64 border-r border-border bg-card hidden md:flex flex-col h-screen sticky top-0"         , __self: this, __source: {fileName: _jsxFileName, lineNumber: 65}}
         , React.createElement('div', { className: "p-6 border-b border-border flex items-center space-x-2"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 66}}
-          , React.createElement('img', { src: "/image.png", alt: "LogiSaar Logo", className: "h-7 w-auto object-contain" })
+          , business?.logoUrl 
+            ? React.createElement('img', { src: getImageUrl(business.logoUrl), alt: business.name, className: "h-7 w-7 rounded-lg object-cover border border-border shrink-0" })
+            : React.createElement('img', { src: "/image.png", alt: "LogiSaar Logo", className: "h-7 w-auto object-contain" })
           , React.createElement('span', { className: "text-base font-bold text-foreground tracking-tight"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 70}}, "Business" )
         )
         , React.createElement('nav', { className: "flex-1 p-4 space-y-1 overflow-y-auto"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 72}}
@@ -407,6 +481,7 @@ export default function BusinessAdminLayout({
 
                 , React.createElement(Icon, { className: "h-4.5 w-4.5" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 87}} )
                 , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 88}}, item.label)
+                , item.badge > 0 && React.createElement('span', { className: "ml-auto bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center" }, item.badge)
               )
             );
           })
@@ -437,7 +512,9 @@ export default function BusinessAdminLayout({
       ), __self: this, __source: {fileName: _jsxFileName, lineNumber: 113}}
         , React.createElement('div', { className: "p-6 border-b border-border flex items-center justify-between"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 117}}
           , React.createElement('div', { className: "flex items-center space-x-2"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 118}}
-            , React.createElement('img', { src: "/image.png", alt: "LogiSaar Logo", className: "h-7 w-auto object-contain" })
+            , business?.logoUrl 
+              ? React.createElement('img', { src: getImageUrl(business.logoUrl), alt: business.name, className: "h-7 w-7 rounded-lg object-cover border border-border shrink-0" })
+              : React.createElement('img', { src: "/image.png", alt: "LogiSaar Logo", className: "h-7 w-auto object-contain" })
             , React.createElement('span', { className: "text-base font-bold text-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 122}}, "Business" )
           )
           , React.createElement('button', { onClick: () => setMobileOpen(false), className: "text-muted-foreground", __self: this, __source: {fileName: _jsxFileName, lineNumber: 124}}
@@ -462,6 +539,7 @@ export default function BusinessAdminLayout({
 
                 , React.createElement(Icon, { className: "h-4.5 w-4.5" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 144}} )
                 , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 145}}, item.label)
+                , item.badge > 0 && React.createElement('span', { className: "ml-auto bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center" }, item.badge)
               )
             );
           })
@@ -478,7 +556,7 @@ export default function BusinessAdminLayout({
       )
 
       /* Main Container */
-      , React.createElement('div', { className: "flex-1 flex flex-col min-w-0 bg-background bg-dots"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 162}}
+      , React.createElement('div', { className: "flex-1 flex flex-col min-w-0 bg-background bg-dots pb-20 md:pb-0"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 162}}
         /* Top Navbar */
         , React.createElement('header', { className: "h-16 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-30"           , __self: this, __source: {fileName: _jsxFileName, lineNumber: 164}}
           , React.createElement('div', { className: "flex items-center space-x-4"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 165}}
@@ -555,6 +633,43 @@ export default function BusinessAdminLayout({
                 )
               )
             )
+          )
+        /* Mobile Bottom Navigation */
+        , !isPending && React.createElement('div', { className: "fixed bottom-0 left-0 right-0 z-40 bg-card/85 backdrop-blur-lg border-t border-border px-2 py-2.5 flex justify-around items-center md:hidden safe-bottom shadow-[0_-4px_12px_rgba(0,0,0,0.05)]" }
+          , [
+              { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard/business" },
+              { label: "Branches", icon: MapPin, href: "/dashboard/business/branches" },
+              { label: "Rewards", icon: Award, href: "/dashboard/business/rewards" },
+              { label: "Coupons", icon: Percent, href: "/dashboard/business/coupons" },
+              { label: "Menu", icon: Menu, onClick: () => setMobileOpen(true) }
+            ].map((item, idx) => {
+              const isActive = item.href ? pathname === item.href : false;
+              const Icon = item.icon;
+              
+              if (item.onClick) {
+                return React.createElement('button', {
+                  key: idx,
+                  onClick: item.onClick,
+                  className: "flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-200 text-muted-foreground hover:text-foreground active:scale-95 min-w-[56px]"
+                }
+                  , React.createElement(Icon, { className: "h-5 w-5 mb-0.5 stroke-[2px]" })
+                  , React.createElement('span', { className: "text-[9px] tracking-tight font-medium" }, item.label)
+                );
+              }
+
+              return React.createElement(Link, {
+                key: item.href,
+                to: item.href,
+                className: cn(
+                  "flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-200 relative min-w-[56px]",
+                  isActive ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground"
+                )
+              }
+                , React.createElement(Icon, { className: cn("h-5 w-5 mb-0.5", isActive ? "stroke-[2.5px]" : "stroke-[2px]") })
+                , React.createElement('span', { className: "text-[9px] tracking-tight font-medium" }, item.label)
+                , isActive && React.createElement('span', { className: "absolute -bottom-1 w-4 h-1 bg-primary rounded-full" })
+              );
+            })
           )
       )
     )

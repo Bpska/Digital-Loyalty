@@ -165,10 +165,16 @@ export async function processCheckIn(input) {
       include: { reward: true },
     });
 
+    const hasActiveProgram = activePrograms.length > 0;
+
     // Determine points to award from active POINTS_BASED program
     const pointsProgram = activePrograms.find(p => p.type === LoyaltyType.POINTS_BASED);
     const visitProgram = activePrograms.find(p => p.type === LoyaltyType.VISIT_BASED);
-    const pointsToAdd = (pointsProgram?.pointsPerVisit) ?? env.DEFAULT_POINTS_PER_VISIT;
+    
+    // Award points only if there is an active points program. If no program is active, add 0 points.
+    const pointsToAdd = hasActiveProgram 
+      ? ((pointsProgram?.pointsPerVisit) ?? env.DEFAULT_POINTS_PER_VISIT)
+      : 0;
 
     const customerPoints = await tx.customerPoints.upsert({
       where: {
@@ -177,14 +183,14 @@ export async function processCheckIn(input) {
       update: {
         totalPoints: { increment: pointsToAdd },
         totalVisits: { increment: 1 },
-        visitStreak: { increment: 1 },
+        visitStreak: hasActiveProgram ? { increment: 1 } : undefined,
       },
       create: {
         customerId,
         businessId: branch.businessId,
         totalPoints: pointsToAdd,
         totalVisits: 1,
-        visitStreak: 1,
+        visitStreak: hasActiveProgram ? 1 : 0,
       },
     });
 
@@ -258,9 +264,9 @@ export async function processCheckIn(input) {
     return {
       checkIn,
       pointsEarned: pointsToAdd,
-      totalPoints: customerPoints.totalPoints + pointsToAdd,
-      totalVisits: customerPoints.totalVisits + 1,
-      visitStreak: customerPoints.visitStreak + 1,
+      totalPoints: customerPoints.totalPoints,
+      totalVisits: customerPoints.totalVisits,
+      visitStreak: customerPoints.visitStreak,
       newlyUnlockedReward,
     };
   });

@@ -3,6 +3,13 @@
 // Standard Backend API is hosted at localhost:4000
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api/v1";
 
+export const getImageUrl = (url) => {
+  if (!url) return null;
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  const baseUrl = API_URL.replace("/api/v1", "");
+  return `${baseUrl}${url}`;
+};
+
 export const api = axios.create({
   baseURL: API_URL,
   withCredentials: true, // Crucial for sending httpOnly cookies (Access and Refresh Tokens)
@@ -29,10 +36,7 @@ api.interceptors.request.use(
 
 // Response interceptor to handle token refresh automatically on 401
 let isRefreshing = false;
-let failedQueue
-
-
- = [];
+let failedQueue = [];
 
 const processQueue = (error, token = null) => {
   failedQueue.forEach((prom) => {

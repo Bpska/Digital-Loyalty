@@ -144,7 +144,9 @@ export default function LoginPage() {
     clearError();
     if (isSignUp) {
       if (!name || !email || !phone || !password) return;
-      await registerCustomer(name, email, phone, password);
+      if (password.length < 8) return;
+      const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+      await registerCustomer(name, email, formattedPhone, password);
     } else {
       if (!email || !password) return;
       await loginWithPassword(email, password);
@@ -300,7 +302,7 @@ export default function LoginPage() {
                       placeholder: "••••••••",
                       value: password,
                       onChange: (e) => setPassword(e.target.value),
-                      className: "pl-10 pr-10" ,
+                      className: "pl-10 pr-10 " + (isSignUp && password.length > 0 && password.length < 8 ? "border-destructive focus-visible:ring-destructive" : "") ,
                       required: true,
                       disabled: loading, __self: this, __source: {fileName: _jsxFileName, lineNumber: 292}}
                     )
@@ -312,9 +314,11 @@ export default function LoginPage() {
                       , showPassword ? React.createElement(EyeOff, { className: "h-4 w-4" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 307}} ) : React.createElement(Eye, { className: "h-4 w-4" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 307}} )
                     )
                   )
+                  , isSignUp && password.length > 0 && password.length < 8 && React.createElement('p', { className: "text-xs text-destructive mt-1" }, "Password must be at least 8 characters")
+                  , isSignUp && password.length === 0 && React.createElement('p', { className: "text-xs text-muted-foreground mt-1" }, "Minimum 8 characters required")
                 )
 
-                , React.createElement(Button, { type: "submit", className: "w-full mt-4" , disabled: loading, __self: this, __source: {fileName: _jsxFileName, lineNumber: 312}}
+                , React.createElement(Button, { type: "submit", className: "w-full mt-4" , disabled: loading || (isSignUp && (!name || !email || !phone || !password || password.length < 8)), __self: this, __source: {fileName: _jsxFileName, lineNumber: 312}}
                   , loading ? (
                     React.createElement(React.Fragment, null
                       , React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 315}} ), " Working..."

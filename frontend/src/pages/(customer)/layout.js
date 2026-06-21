@@ -4,7 +4,7 @@ const _jsxFileName = "src\\pages\\(customer)\\layout.tsx";"use client";
 import React, { useEffect, useState } from "react";
 
 import { useAuthStore } from "@/store/authStore";
-import { Home, Scan, History, User, LogOut, Loader2, Bell } from "lucide-react";
+import { Home, Scan, History, User, LogOut, Loader2, Bell, Award } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -25,11 +25,55 @@ export default function CustomerLayout({
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notifiedIds, setNotifiedIds] = useState(new Set());
+
+  // Helper to trigger standard browser/mobile notification bar alert
+  const triggerMobileNotification = (title, body) => {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (Notification.permission === "granted") {
+      try {
+        new Notification(title, {
+          body,
+          icon: "/image.png",
+          vibrate: [200, 100, 200],
+        });
+      } catch (e) {
+        // Fallback for mobile Chrome/Android where a Service Worker registration is required to show notification
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.ready.then((registration) => {
+            registration.showNotification(title, {
+              body,
+              icon: "/image.png",
+              vibrate: [200, 100, 200],
+            });
+          }).catch(err => console.error("SW notification error:", err));
+        }
+      }
+    }
+  };
 
   const fetchNotifications = async () => {
     try {
       const res = await api.get("/notifications");
-      setNotifications(res.data || []);
+      const fetched = res.data || [];
+      
+      // Update local unread notifications matching native system bar
+      if (notifiedIds.size === 0) {
+        const initialIds = new Set(fetched.map(n => n.id));
+        setNotifiedIds(initialIds);
+      } else {
+        const newUnread = fetched.filter(n => !n.isRead && !notifiedIds.has(n.id));
+        if (newUnread.length > 0) {
+          const updatedIds = new Set(notifiedIds);
+          newUnread.forEach(n => {
+            updatedIds.add(n.id);
+            triggerMobileNotification("ScanLoyal Notification", n.message);
+          });
+          setNotifiedIds(updatedIds);
+        }
+      }
+
+      setNotifications(fetched);
       const countRes = await api.get("/notifications/unread-count");
       setUnreadCount(countRes.data?.count || 0);
     } catch (err) {
@@ -41,6 +85,14 @@ export default function CustomerLayout({
     if (authorized) {
       fetchNotifications();
       const interval = setInterval(fetchNotifications, 20000);
+
+      // Request native browser/mobile phone notification permission
+      if (typeof window !== "undefined" && "Notification" in window) {
+        if (Notification.permission === "default") {
+          Notification.requestPermission();
+        }
+      }
+
       return () => clearInterval(interval);
     }
   }, [authorized]);
@@ -85,6 +137,7 @@ export default function CustomerLayout({
     { label: "Home", icon: Home, href: "/dashboard" },
     { label: "Check In", icon: Scan, href: "/checkin", highlight: true },
     { label: "History", icon: History, href: "/history" },
+    { label: "Points", icon: Award, href: "/loyalty-history" },
     { label: "Profile", icon: User, href: "/profile" },
   ];
 
@@ -94,8 +147,12 @@ export default function CustomerLayout({
 
         /* Header Bar */
         , React.createElement('header', { className: "sticky top-0 z-30 flex items-center justify-between border-b border-border bg-white/80 p-4 backdrop-blur-md"          , __self: this, __source: {fileName: _jsxFileName, lineNumber: 59}}
-          , React.createElement('div', { className: "flex items-center space-x-2"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 60}}
-            , React.createElement('span', { className: "text-sm font-semibold tracking-tight text-foreground" }, "ScanLoyal")
+          , React.createElement('div', { className: "flex items-center space-x-2" }
+            , React.createElement('img', { src: "/image.png", alt: "LogiSaar Logo", className: "h-6 w-auto object-contain" })
+            , React.createElement('div', { className: "flex flex-col justify-center" }
+              , React.createElement('span', { className: "text-xs font-extrabold tracking-tight text-foreground leading-tight" }, "LogiSaar")
+              , React.createElement('span', { className: "text-[8px] font-black text-[#FF6A00] uppercase tracking-wider leading-none" }, "ScanLoyal")
+            )
           )
           , React.createElement('div', { className: "flex items-center space-x-1" }
             , React.createElement('button', {

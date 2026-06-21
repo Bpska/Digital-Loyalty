@@ -23,7 +23,13 @@ router.get('/business/:businessId', authenticate, async (req, res, next) => {
     const rewards = await prisma.reward.findMany({
       where: { businessId: req.params.businessId },
       orderBy: { createdAt: 'desc' },
-      include: { _count: { select: { customerRewards: true } } },
+      include: {
+        _count: { select: { customerRewards: true } },
+        loyaltyPrograms: {
+          where: { isActive: true },
+          select: { id: true, type: true, isActive: true },
+        },
+      },
     });
     sendSuccess(res, rewards);
   } catch (err) { next(err); }
@@ -45,8 +51,9 @@ router.patch('/:rewardId', authenticate, authorize(Role.BUSINESS_ADMIN, Role.SUP
 
 router.delete('/:rewardId', authenticate, authorize(Role.BUSINESS_ADMIN, Role.SUPER_ADMIN), async (req, res, next) => {
   try {
-    await prisma.reward.update({ where: { id: req.params.rewardId }, data: { isActive: false } });
-    sendSuccess(res, null, 'Reward deactivated');
+    const { rewardId } = req.params;
+    await prisma.reward.delete({ where: { id: rewardId } });
+    sendSuccess(res, null, 'Reward deleted successfully');
   } catch (err) { next(err); }
 });
 

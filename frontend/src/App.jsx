@@ -16,6 +16,7 @@ import CustomerDashboard from './pages/(customer)/dashboard/page.js';
 import CustomerHistory from './pages/(customer)/history/page.js';
 import CustomerProfile from './pages/(customer)/profile/page.js';
 import CustomerCheckin from './pages/(customer)/checkin/page.js';
+import CustomerLoyaltyHistory from './pages/(customer)/loyalty-history/page.js';
 
 // Business Admin Pages
 import BusinessDashboard from './pages/(business-admin)/dashboard/business/page.js';
@@ -25,6 +26,8 @@ import BusinessCoupons from './pages/(business-admin)/dashboard/business/coupons
 import BusinessLoyalty from './pages/(business-admin)/dashboard/business/loyalty/page.js';
 import BusinessRewards from './pages/(business-admin)/dashboard/business/rewards/page.js';
 import BusinessCheckins from './pages/(business-admin)/dashboard/business/checkins/page.js';
+import BusinessApprovals from './pages/(business-admin)/dashboard/business/approvals/page.js';
+import BusinessLoyaltyConfig from './pages/(business-admin)/dashboard/business/loyalty-config/page.js';
 
 // Super Admin Pages
 import SuperDashboard from './pages/(super-admin)/dashboard/super/page.js';
@@ -47,6 +50,7 @@ export default function App() {
             <Route path="/history" element={<CustomerHistory />} />
             <Route path="/profile" element={<CustomerProfile />} />
             <Route path="/checkin" element={<CustomerCheckin />} />
+            <Route path="/loyalty-history" element={<CustomerLoyaltyHistory />} />
           </Route>
 
           {/* Business Admin Routes */}
@@ -58,6 +62,8 @@ export default function App() {
             <Route path="/dashboard/business/loyalty" element={<BusinessLoyalty />} />
             <Route path="/dashboard/business/rewards" element={<BusinessRewards />} />
             <Route path="/dashboard/business/checkins" element={<BusinessCheckins />} />
+            <Route path="/dashboard/business/approvals" element={<BusinessApprovals />} />
+            <Route path="/dashboard/business/loyalty-config" element={<BusinessLoyaltyConfig />} />
           </Route>
 
           {/* Super Admin Routes */}

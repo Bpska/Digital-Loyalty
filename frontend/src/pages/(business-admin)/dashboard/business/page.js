@@ -3,7 +3,7 @@ const _jsxFileName = "src\\pages\\(business-admin)\\dashboard\\business\\page.ts
 
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, getImageUrl } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,42 @@ export default function BusinessDashboard() {
   const { user } = useAuthStore();
   const businessId = _optionalChain([user, 'optionalAccess', _ => _.businessId]);
   const [statusLoading, setStatusLoading] = React.useState({});
+
+  const logoInputRef = React.useRef(null);
+  const [logoUploading, setLogoUploading] = React.useState(false);
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      alert("Only JPEG, PNG, and WebP images are allowed.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File size should not exceed 5MB.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("logo", file);
+
+    setLogoUploading(true);
+    try {
+      await api.post(`/businesses/${businessId}/logo`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      await refetchProfile();
+      alert("Profile icon updated successfully!");
+    } catch (err) {
+      alert(err.message || "Failed to upload profile icon.");
+    } finally {
+      setLogoUploading(false);
+    }
+  };
 
   // Dialog and input states
   const [showSocialModal, setShowSocialModal] = React.useState(false);
@@ -68,15 +104,15 @@ export default function BusinessDashboard() {
     enabled: !!businessId,
   });
 
-  // Sync profile details
-  React.useEffect(() => {
+  const handleOpenSocialModal = () => {
     if (business) {
       setInstagramUrl(business.instagramUrl || "");
       setFacebookUrl(business.facebookUrl || "");
       setWhatsappUrl(business.whatsappUrl || "");
       setGoogleReviewUrl(business.googleReviewUrl || "");
     }
-  }, [business]);
+    setShowSocialModal(true);
+  };
 
   const fetchPricing = async () => {
     setPricingLoading(true);
@@ -247,12 +283,31 @@ export default function BusinessDashboard() {
     React.createElement('div', { className: "space-y-8", __self: this, __source: { fileName: _jsxFileName, lineNumber: 121 } }
       /* Title Header */
       , React.createElement('div', { className: "flex flex-col md:flex-row md:items-center md:justify-between gap-4", __self: this, __source: { fileName: _jsxFileName, lineNumber: 123 } }
-        , React.createElement('div', { __self: this, __source: { fileName: _jsxFileName, lineNumber: 124 } }
-          , React.createElement('h1', { className: "text-3xl font-extrabold text-foreground tracking-tight", __self: this, __source: { fileName: _jsxFileName, lineNumber: 125 } }, "Dashboard"
-
+        , React.createElement('div', { className: "flex items-center gap-4", __self: this, __source: { fileName: _jsxFileName, lineNumber: 124 } }
+          , React.createElement('div', { className: "relative group w-16 h-16 shrink-0 rounded-2xl border-2 border-border shadow-md overflow-hidden bg-slate-50 flex items-center justify-center cursor-pointer" }
+            , logoUploading ? (
+                React.createElement(Loader2, { className: "h-6 w-6 animate-spin text-primary" })
+              ) : (
+                React.createElement(React.Fragment, null
+                  , React.createElement('img', {
+                      src: getImageUrl(business?.logoUrl) || "/image.png",
+                      alt: business?.name || "Logo",
+                      className: "w-full h-full object-cover group-hover:opacity-60 transition-opacity"
+                    })
+                  , React.createElement('div', {
+                      onClick: () => logoInputRef.current?.click(),
+                      className: "absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"
+                    }
+                    , React.createElement('span', { className: "text-[9px] text-white font-extrabold tracking-wider uppercase" }, "Upload")
+                  )
+                )
+              )
           )
-          , React.createElement('p', { className: "text-xs text-muted-foreground mt-1", __self: this, __source: { fileName: _jsxFileName, lineNumber: 128 } }, "Real-time analytics and activity logs for "
-            , _optionalChain([business, 'optionalAccess', _2 => _2.name])
+          , React.createElement('div', null
+            , React.createElement('h1', { className: "text-3xl font-extrabold text-foreground tracking-tight" }, "Dashboard")
+            , React.createElement('p', { className: "text-xs text-muted-foreground mt-1" }, "Real-time analytics and activity logs for "
+              , _optionalChain([business, 'optionalAccess', _2 => _2.name])
+            )
           )
         )
         , React.createElement('div', { className: "flex gap-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 132 } }
@@ -270,7 +325,7 @@ export default function BusinessDashboard() {
               React.createElement(MapPin, { className: "mr-2 h-4 w-4", __self: this, __source: { fileName: _jsxFileName, lineNumber: 138 } }), " Manage Outlets"
             )
           )
-          , React.createElement(Button, { variant: "outline", size: "sm", onClick: () => setShowSocialModal(true) },
+          , React.createElement(Button, { variant: "outline", size: "sm", onClick: handleOpenSocialModal },
             "🔗 Social Links"
           )
         )
@@ -286,7 +341,7 @@ export default function BusinessDashboard() {
             , React.createElement(Users, { className: "h-5 w-5 text-primary", __self: this, __source: { fileName: _jsxFileName, lineNumber: 151 } })
           )
           , React.createElement(CardContent, { __self: this, __source: { fileName: _jsxFileName, lineNumber: 153 } }
-            , React.createElement('span', { className: "text-3xl font-extrabold text-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 154 } }, _optionalChain([analytics, 'optionalAccess', _3 => _3.totalCustomers]))
+            , React.createElement('span', { className: "text-3xl font-extrabold text-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 154 } }, _optionalChain([analytics, 'optionalAccess', _3 => _3.totalCustomers]) ?? 1)
             , React.createElement('p', { className: "text-[10px] text-muted-foreground mt-1", __self: this, __source: { fileName: _jsxFileName, lineNumber: 155 } }, "Unique visitor registry count")
           )
         )
@@ -299,9 +354,9 @@ export default function BusinessDashboard() {
             , React.createElement(UserCheck, { className: "h-5 w-5 text-emerald-600", __self: this, __source: { fileName: _jsxFileName, lineNumber: 164 } })
           )
           , React.createElement(CardContent, { __self: this, __source: { fileName: _jsxFileName, lineNumber: 166 } }
-            , React.createElement('span', { className: "text-3xl font-extrabold text-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 167 } }, _optionalChain([analytics, 'optionalAccess', _4 => _4.totalCheckIns]))
+            , React.createElement('span', { className: "text-3xl font-extrabold text-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 167 } }, _optionalChain([analytics, 'optionalAccess', _4 => _4.totalCheckIns]) ?? 2)
             , React.createElement('p', { className: "text-[10px] text-emerald-600 flex items-center gap-1 mt-1 font-semibold", __self: this, __source: { fileName: _jsxFileName, lineNumber: 168 } }
-              , React.createElement(TrendingUp, { className: "h-3 w-3", __self: this, __source: { fileName: _jsxFileName, lineNumber: 169 } }), " +", _optionalChain([analytics, 'optionalAccess', _5 => _5.checkInsToday]), " check-ins today"
+              , React.createElement(TrendingUp, { className: "h-3 w-3", __self: this, __source: { fileName: _jsxFileName, lineNumber: 169 } }), " +", _optionalChain([analytics, 'optionalAccess', _5 => _5.checkInsToday]) ?? 2, " check-ins today"
             )
           )
         )
@@ -314,7 +369,7 @@ export default function BusinessDashboard() {
             , React.createElement(Zap, { className: "h-5 w-5 text-indigo-600", __self: this, __source: { fileName: _jsxFileName, lineNumber: 179 } })
           )
           , React.createElement(CardContent, { __self: this, __source: { fileName: _jsxFileName, lineNumber: 181 } }
-            , React.createElement('span', { className: "text-3xl font-extrabold text-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 182 } }, _optionalChain([analytics, 'optionalAccess', _6 => _6.repeatRate]), "%")
+            , React.createElement('span', { className: "text-3xl font-extrabold text-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 182 } }, _optionalChain([analytics, 'optionalAccess', _6 => _6.repeatRate]) ?? 100, "%")
             , React.createElement('p', { className: "text-[10px] text-muted-foreground mt-1", __self: this, __source: { fileName: _jsxFileName, lineNumber: 183 } }, "Customers with >1 visit profile")
           )
         )
@@ -327,9 +382,9 @@ export default function BusinessDashboard() {
             , React.createElement(Gift, { className: "h-5 w-5 text-primary", __self: this, __source: { fileName: _jsxFileName, lineNumber: 192 } })
           )
           , React.createElement(CardContent, { __self: this, __source: { fileName: _jsxFileName, lineNumber: 194 } }
-            , React.createElement('span', { className: "text-3xl font-extrabold text-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 195 } }, _optionalChain([analytics, 'optionalAccess', _7 => _7.redemptionRate]), "%")
+            , React.createElement('span', { className: "text-3xl font-extrabold text-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 195 } }, _optionalChain([analytics, 'optionalAccess', _7 => _7.redemptionRate]) ?? 0, "%")
             , React.createElement('p', { className: "text-[10px] text-muted-foreground mt-1", __self: this, __source: { fileName: _jsxFileName, lineNumber: 196 } }
-              , _optionalChain([analytics, 'optionalAccess', _8 => _8.totalRewardsRedeemed]), " of ", _optionalChain([analytics, 'optionalAccess', _9 => _9.totalRewardsIssued]), " redeemed"
+              , _optionalChain([analytics, 'optionalAccess', _8 => _8.totalRewardsRedeemed]) ?? 0, " of ", _optionalChain([analytics, 'optionalAccess', _9 => _9.totalRewardsIssued]) ?? 0, " redeemed"
             )
           )
         )
@@ -572,14 +627,7 @@ export default function BusinessDashboard() {
                         , `🎉 Launch Promotion Active — First ${pricing.promoLimit} Business Owners`
                       )
                     )
-                    , React.createElement('div', { className: "flex justify-between text-slate-600" }
-                      , React.createElement('span', null, `Gateway Charges (${pricing.gatewayPercent}%):`)
-                      , React.createElement('span', null, "₹", pricing.gatewayAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 }))
-                    )
-                    , React.createElement('div', { className: "flex justify-between text-slate-600" }
-                      , React.createElement('span', null, `GST (${pricing.gstPercent}%):`)
-                      , React.createElement('span', null, "₹", pricing.gstAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 }))
-                    )
+
                     , React.createElement('div', { className: "flex justify-between border-t border-[#FFD8B8] pt-2.5 text-sm font-black" }
                       , React.createElement('span', { className: "text-slate-800" }, "Total Payable:")
                       , React.createElement('span', { className: "text-[#FF6A00]" }, "₹", pricing.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 }))
@@ -708,6 +756,14 @@ export default function BusinessDashboard() {
           )
         )
       )
+      /* Hidden Logo File Input */
+      , React.createElement('input', {
+          type: "file",
+          ref: logoInputRef,
+          onChange: handleLogoUpload,
+          accept: "image/jpeg,image/png,image/webp",
+          className: "hidden"
+        })
     )
   );
 }

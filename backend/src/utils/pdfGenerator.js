@@ -93,6 +93,24 @@ export async function generateQrPdf(
       // Embed the QR Code image buffer
       doc.image(qrBuffer, qrX, qrY, { width: qrWidth, height: qrWidth });
 
+      // Draw "LS" logo in the center of the QR code
+      const logoSize = 34;
+      const logoX = qrX + (qrWidth - logoSize) / 2;
+      const logoY = qrY + (qrWidth - logoSize) / 2;
+
+      // Draw a white rectangle with a border in the center
+      doc.roundedRect(logoX, logoY, logoSize, logoSize, 6)
+        .fillColor('#ffffff')
+        .strokeColor('#FF6A00')
+        .lineWidth(1.5)
+        .fillAndStroke();
+
+      // Draw "LS" text inside the white rectangle
+      doc.fillColor('#FF6A00')
+        .font('Helvetica-Bold')
+        .fontSize(14)
+        .text('LS', logoX, logoY + 10, { align: 'center', width: logoSize });
+
       // ── Instructions Panel ─────────────────────────────────────
       const ibY = 505;
       const ibWidth = doc.page.width - 120;

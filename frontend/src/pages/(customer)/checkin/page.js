@@ -19,6 +19,7 @@ export default function CheckinPage() {
   const [status, setStatus] = useState("idle");
   const [errorMsg, setErrorMsg] = useState(null);
   const [checkInDetails, setCheckInDetails] = useState(null);
+  const [loyaltyRequestSent, setLoyaltyRequestSent] = useState(false);
 
   const scannerRef = useRef(null);
   const html5QrCodeRef = useRef(null);
@@ -177,11 +178,29 @@ export default function CheckinPage() {
       });
 
       if (response.success && response.data) {
-        setCheckInDetails(response.data);
+        const data = response.data;
+        setCheckInDetails(data);
         setStatus("success");
         queryClient.invalidateQueries({ queryKey: ["customerDashboard"] });
         queryClient.invalidateQueries({ queryKey: ["checkinHistory"] });
         queryClient.invalidateQueries({ queryKey: ["rewardsHistory"] });
+
+        // Auto-submit loyalty approval request (non-blocking)
+        const businessId = data.checkIn?.businessId;
+        if (businessId) {
+          try {
+            const reqRes = await api.post("/loyalty-approval/request", {
+              businessId,
+              checkInId: data.checkIn?.id,
+            });
+            if (reqRes.data?.sent) {
+              setLoyaltyRequestSent(true);
+              queryClient.invalidateQueries({ queryKey: ["loyaltyHistory"] });
+            }
+          } catch (_) {
+            // Silently ignore — loyalty approval request is best-effort
+          }
+        }
       } else {
         throw new Error(response.message || "Failed to complete check-in.");
       }
@@ -211,11 +230,19 @@ export default function CheckinPage() {
             ),
 
             React.createElement('div', { className: "space-y-1" },
-              React.createElement(CardTitle, { className: "text-xl font-bold text-foreground" }, "Check-in Successful! 🎉"),
-              React.createElement(CardDescription, { className: "text-sm text-muted-foreground" }, "Your loyalty points have been added.")
+              React.createElement(CardTitle, { className: "text-xl font-bold text-foreground" },
+                checkInDetails.pointsEarned > 0 ? "Check-in Successful! 🎉" : "Visit Recorded ✅"
+              ),
+              React.createElement(CardDescription, { className: "text-sm text-muted-foreground" }, 
+                checkInDetails.pointsEarned > 0 
+                  ? "Your loyalty points have been added." 
+                  : loyaltyRequestSent
+                    ? "Your loyalty request has been sent to the business."
+                    : "No active loyalty program is running at this business right now."
+              )
             ),
 
-            React.createElement('div', { className: "w-full bg-slate-50 rounded-xl p-4 border border-border/50 space-y-2" },
+            checkInDetails.pointsEarned > 0 && React.createElement('div', { className: "w-full bg-slate-50 rounded-xl p-4 border border-border/50 space-y-2" },
               React.createElement('div', { className: "flex justify-between items-center text-sm" },
                 React.createElement('span', { className: "text-muted-foreground" }, "Points Added:"),
                 React.createElement('span', { className: "font-bold text-primary" }, "+", checkInDetails.pointsEarned, " Points")
@@ -225,8 +252,8 @@ export default function CheckinPage() {
                 React.createElement('span', { className: "font-semibold text-foreground" }, checkInDetails.visitStreak, " Visits")
               ),
               React.createElement('div', { className: "flex justify-between items-center text-xs text-muted-foreground pt-2 border-t border-border" },
-                React.createElement('span', null, "Total Balance:"),
-                React.createElement('span', null, checkInDetails.totalPoints, " points")
+                React.createElement('span', null, "Total Visits Recorded:"),
+                React.createElement('span', null, checkInDetails.totalVisits, " visits")
               )
             ),
 
@@ -245,6 +272,21 @@ export default function CheckinPage() {
                 ),
                 React.createElement('p', { className: "text-[10px] text-muted-foreground" },
                   "This voucher is saved in your wallet. Show it to staff anytime to claim it."
+                )
+              )
+            ),
+
+            /* Loyalty Request Sent Banner */
+            loyaltyRequestSent && checkInDetails.pointsEarned === 0 && React.createElement('div', {
+              className: "w-full rounded-xl bg-blue-50 border border-blue-200 p-4 flex items-start gap-3"
+            },
+              React.createElement('div', { className: "h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0" },
+                React.createElement(Award, { className: "h-4 w-4 text-blue-700" })
+              ),
+              React.createElement('div', { className: "text-left" },
+                React.createElement('p', { className: "font-bold text-sm text-blue-900" }, "Loyalty Request Sent!"),
+                React.createElement('p', { className: "text-xs text-blue-700 mt-0.5" },
+                  "The business owner will review your visit and award you loyalty points shortly."
                 )
               )
             ),
@@ -310,7 +352,16 @@ export default function CheckinPage() {
                 status === "scanning" ? (
                   React.createElement(React.Fragment, null,
                     React.createElement('div', { id: "reader", className: "absolute inset-0 w-full h-full" }),
-                    React.createElement('div', { className: "absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent shadow-[0_0_8px_rgba(99,102,241,0.8)] animate-scan-laser pointer-events-none" })
+                    React.createElement('div', { className: "absolute inset-0 flex items-center justify-center pointer-events-none z-10" },
+                      React.createElement('div', { className: "w-48 h-48 rounded-2xl shadow-[0_0_0_9999px_rgba(7,18,42,0.65)] border border-white/20 relative overflow-hidden flex items-center justify-center" }
+                        , React.createElement('div', { className: "absolute top-0 left-0 w-6 h-6 border-t-[4px] border-l-[4px] border-[#10B981] rounded-tl-lg" })
+                        , React.createElement('div', { className: "absolute top-0 right-0 w-6 h-6 border-t-[4px] border-r-[4px] border-[#10B981] rounded-tr-lg" })
+                        , React.createElement('div', { className: "absolute bottom-0 left-0 w-6 h-6 border-b-[4px] border-l-[4px] border-[#10B981] rounded-bl-lg" })
+                        , React.createElement('div', { className: "absolute bottom-0 right-0 w-6 h-6 border-b-[4px] border-r-[4px] border-[#10B981] rounded-br-lg" })
+                        , React.createElement('div', { className: "absolute left-1 right-1 h-[3px] bg-emerald-400 shadow-[0_0_12px_#34d399] animate-scan-laser pointer-events-none" })
+                        , React.createElement('div', { className: "absolute inset-0 bg-[linear-gradient(rgba(52,211,153,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(52,211,153,0.04)_1px,transparent_1px)] bg-[size:12px_12px] pointer-events-none" })
+                      )
+                    )
                   )
                 ) : (
                   React.createElement('div', { className: "flex flex-col items-center justify-center space-y-2 text-muted-foreground" },

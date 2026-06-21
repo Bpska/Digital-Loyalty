@@ -94,7 +94,7 @@ export default function CouponsPage() {
 
   // 5. Toggle active/inactive mutation
   const toggleActiveMutation = useMutation({
-    mutationFn: ({ id, active }) => api.patch(`/coupons/${id}`, { isActive: active }),
+    mutationFn: ({ id, isActive }) => api.patch(`/coupons/${id}`, { isActive }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["businessCoupons", businessId] });
     }
@@ -287,13 +287,13 @@ export default function CouponsPage() {
                         variant: "ghost", 
                         size: "sm", 
                         className: "text-xs text-muted-foreground hover:text-foreground"  ,
-                        onClick: () => toggleActiveMutation.mutate({ id: coupon.id, active: !coupon.isActive }),
+                        onClick: () => toggleActiveMutation.mutate({ id: coupon.id, isActive: !coupon.isActive }),
                         disabled: isExpired, __self: this, __source: {fileName: _jsxFileName, lineNumber: 209}}
 
                         , coupon.isActive ? (
-                          React.createElement(React.Fragment, null, React.createElement(ToggleRight, { className: "mr-1.5 h-4.5 w-4.5 text-primary"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 217}} ), " Disable" )
+                          React.createElement(React.Fragment, null, React.createElement(ToggleRight, { className: "mr-1.5 h-4.5 w-4.5 text-primary"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 217}} ), " Active" )
                         ) : (
-                          React.createElement(React.Fragment, null, React.createElement(ToggleLeft, { className: "mr-1.5 h-4.5 w-4.5 text-muted-foreground"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 219}} ), " Enable" )
+                          React.createElement(React.Fragment, null, React.createElement(ToggleLeft, { className: "mr-1.5 h-4.5 w-4.5 text-muted-foreground"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 219}} ), " Inactive" )
                         )
                       )
                     )

@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Award, Plus, Loader2, Gift, ToggleLeft, ToggleRight } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { Award, Plus, Loader2, Gift, ToggleLeft, ToggleRight, AlertCircle, CheckCircle2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
 
@@ -76,9 +77,20 @@ export default function RewardsPage() {
 
   // 4. Toggle active status
   const toggleActiveMutation = useMutation({
-    mutationFn: ({ id, active }) => api.patch(`/rewards/${id}`, { isActive: active }),
+    mutationFn: ({ id, isActive }) => api.patch(`/rewards/${id}`, { isActive }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["businessRewards", businessId] });
+    }
+  });
+
+  // 5. Delete reward mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id) => api.delete(`/rewards/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["businessRewards", businessId] });
+    },
+    onError: (err) => {
+      setErrorMsg(err.message || "Failed to delete reward.");
     }
   });
 
@@ -210,26 +222,64 @@ export default function RewardsPage() {
                     , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 210}}, "Claims count: "  , React.createElement('strong', { className: "text-foreground", __self: this, __source: {fileName: _jsxFileName, lineNumber: 210}}, reward._count.customerRewards))
                   )
 
+                  /* Linked program status — THIS is what shows in the user panel */
+                  , (() => {
+                    const activePrograms = reward.loyaltyPrograms || [];
+                    if (activePrograms.length > 0) {
+                      return React.createElement('div', { className: "flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2" },
+                        React.createElement(CheckCircle2, { className: "h-3.5 w-3.5 text-emerald-600 flex-shrink-0" }),
+                        React.createElement('div', { className: "min-w-0" },
+                          React.createElement('p', { className: "text-[11px] font-bold text-emerald-800" }, "Showing to customers ✓"),
+                          React.createElement('p', { className: "text-[10px] text-emerald-600" },
+                            "Linked to ", activePrograms.length, " active loyalty program", activePrograms.length > 1 ? "s" : "",
+                            " (", activePrograms.map(p => p.type === "VISIT_BASED" ? "Stamp Card" : "Points").join(", "), ")"
+                          )
+                        )
+                      );
+                    }
+                    return React.createElement('div', { className: "rounded-lg bg-amber-50 border border-amber-200 px-3 py-2" },
+                      React.createElement('div', { className: "flex items-center gap-2" },
+                        React.createElement(AlertCircle, { className: "h-3.5 w-3.5 text-amber-600 flex-shrink-0" }),
+                        React.createElement('p', { className: "text-[11px] font-bold text-amber-800" }, "Not visible to customers")
+                      ),
+                      React.createElement('p', { className: "text-[10px] text-amber-700 mt-1 leading-relaxed" },
+                        "This reward is not linked to any active Loyalty Rule. Go to ",
+                        React.createElement(Link, { to: "/dashboard/business/loyalty", className: "underline font-bold text-amber-800 hover:text-amber-900" }, "Loyalty Rules"),
+                        " and create or activate a rule using this reward."
+                      )
+                    );
+                  })()
+
                   /* Settings / Actions */
-                  , React.createElement('div', { className: "flex gap-2 pt-2 border-t border-border justify-between"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 214}}
+                  , React.createElement('div', { className: "flex gap-2 pt-2 border-t border-border justify-between w-full"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 214}}
                     , React.createElement(Button, { 
                       variant: "ghost", 
                       size: "sm", 
                       className: "text-xs text-muted-foreground hover:text-foreground"  ,
                       onClick: () => handleOpenEdit(reward), __self: this, __source: {fileName: _jsxFileName, lineNumber: 215}}
-, "Configure Details"
-
+                      , "Configure Details"
+                    )
+                    , React.createElement(Button, { 
+                      variant: "ghost", 
+                      size: "sm", 
+                      className: "text-xs text-destructive hover:text-destructive hover:bg-destructive/10"  ,
+                      onClick: () => {
+                        if (window.confirm(`Are you sure you want to permanently delete reward "${reward.title}"?`)) {
+                          deleteMutation.mutate(reward.id);
+                        }
+                      }, __self: this, __source: {fileName: _jsxFileName, lineNumber: 216}}
+                      , "Delete"
                     )
                     , React.createElement(Button, { 
                       variant: "ghost", 
                       size: "sm", 
                       className: "text-xs text-muted-foreground hover:text-foreground"  ,
-                      onClick: () => toggleActiveMutation.mutate({ id: reward.id, active: !reward.isActive }), __self: this, __source: {fileName: _jsxFileName, lineNumber: 223}}
+                      onClick: () => toggleActiveMutation.mutate({ id: reward.id, isActive: !reward.isActive }), __self: this, __source: {fileName: _jsxFileName, lineNumber: 223}}
 
                       , reward.isActive ? (
-                        React.createElement(React.Fragment, null, React.createElement(ToggleRight, { className: "mr-1.5 h-4.5 w-4.5 text-primary"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 230}} ), " Disable" )
+                        React.createElement(React.Fragment, null, React.createElement(ToggleRight, { className: "mr-1.5 h-4.5 w-4.5 text-primary"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 230}} ), " Active" )
                       ) : (
-                        React.createElement(React.Fragment, null, React.createElement(ToggleLeft, { className: "mr-1.5 h-4.5 w-4.5 text-muted-foreground"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 232}} ), " Enable" )
+                        React.createElement(React.Fragment, null, React.createElement(ToggleLeft, { className: "mr-1.5 h-4.5 w-4.5 text-muted-foreground"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 232}} ), " Inactive" )
                       )
                     )
                   )

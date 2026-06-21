@@ -82,6 +82,12 @@ enum NotificationType {
   GENERAL
 }
 
+enum LoyaltyRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // ─────────────────────────────────────────────────────────────
 // MODELS
 // ─────────────────────────────────────────────────────────────
@@ -101,15 +107,17 @@ model User {
   updatedAt    DateTime  @updatedAt
 
   // Relations
-  ownedBusinesses  Business[]        @relation("BusinessOwner")
-  staffProfile     Staff?
-  customerPoints   CustomerPoints[]
-  checkIns         CheckIn[]
-  customerRewards  CustomerReward[]
-  notifications    Notification[]
-  auditLogs        AuditLog[]
-  otpVerifications OtpVerification[]
-  refreshTokens    RefreshToken[]
+  ownedBusinesses      Business[]           @relation("BusinessOwner")
+  staffProfile         Staff?
+  customerPoints       CustomerPoints[]
+  checkIns             CheckIn[]
+  customerRewards      CustomerReward[]
+  notifications        Notification[]
+  auditLogs            AuditLog[]
+  otpVerifications     OtpVerification[]
+  refreshTokens        RefreshToken[]
+  loyaltyRequests      LoyaltyRequest[]
+  loyaltyTransactions  LoyaltyTransaction[]
 
   @@index([phone])
   @@index([role])
@@ -141,15 +149,18 @@ model Business {
   planId String?
   plan   Plan?   @relation(fields: [planId], references: [id])
 
-  subscription    Subscription?
-  branches        Branch[]
-  staff           Staff[]
-  loyaltyPrograms LoyaltyProgram[]
-  rewards         Reward[]
-  coupons         Coupon[]
-  customerPoints  CustomerPoints[]
-  checkIns        CheckIn[]
-  notifications   Notification[]
+  subscription         Subscription?
+  branches             Branch[]
+  staff                Staff[]
+  loyaltyPrograms      LoyaltyProgram[]
+  rewards              Reward[]
+  coupons              Coupon[]
+  customerPoints       CustomerPoints[]
+  checkIns             CheckIn[]
+  notifications        Notification[]
+  loyaltyLevels        LoyaltyLevel[]
+  loyaltyRequests      LoyaltyRequest[]
+  loyaltyTransactions  LoyaltyTransaction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -535,4 +546,74 @@ model RefreshToken {
   @@index([tokenHash])
   @@index([expiresAt])
   @@map("refresh_tokens")
+}
+
+// ─────────────────────────────────────────────────────────────
+// MANUAL LOYALTY LEVEL APPROVAL SYSTEM
+// ─────────────────────────────────────────────────────────────
+
+/// Custom loyalty tier defined by a business owner (e.g. Bronze=1pt, Gold=5pt).
+model LoyaltyLevel {
+  id          String  @id @default(cuid())
+  name        String                          // e.g. "Gold"
+  description String?                         // e.g. "Frequent buyer"
+  points      Int                             // e.g. 5
+  sortOrder   Int     @default(0)
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  loyaltyRequests      LoyaltyRequest[]
+  loyaltyTransactions  LoyaltyTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId])
+  @@map("loyalty_levels")
+}
+
+/// Pending loyalty approval request — created by customer after check-in.
+model LoyaltyRequest {
+  id     String               @id @default(cuid())
+  status LoyaltyRequestStatus @default(PENDING)
+
+  customerId   String
+  customer     User          @relation(fields: [customerId], references: [id])
+  businessId   String
+  business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  checkInId    String?                        // Reference to triggering CheckIn
+  levelId      String?                        // Set when approved
+  level        LoyaltyLevel? @relation(fields: [levelId], references: [id])
+  approvedById String?                        // User ID of Business Admin who approved
+  approvedAt   DateTime?
+
+  loyaltyTransaction LoyaltyTransaction?
+
+  createdAt DateTime @default(now())
+
+  @@index([businessId, status])
+  @@index([customerId])
+  @@map("loyalty_requests")
+}
+
+/// Immutable record of points awarded to a customer via manual approval.
+model LoyaltyTransaction {
+  id     String @id @default(cuid())
+  points Int
+
+  customerId String
+  customer   User          @relation(fields: [customerId], references: [id])
+  businessId String
+  business   Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  levelId    String?
+  level      LoyaltyLevel? @relation(fields: [levelId], references: [id])
+  requestId  String?       @unique
+  request    LoyaltyRequest? @relation(fields: [requestId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([customerId])
+  @@index([businessId])
+  @@map("loyalty_transactions")
 }

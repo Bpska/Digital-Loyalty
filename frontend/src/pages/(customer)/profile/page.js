@@ -39,11 +39,11 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    if (profile) {
+    if (profile && !isEditing) {
       setName(profile.name);
       setEmail(profile.email || "");
     }
-  }, [profile]);
+  }, [profile, isEditing]);
 
   if (isLoading) {
     return (

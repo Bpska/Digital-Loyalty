@@ -20,6 +20,7 @@ const couponSchema = z.object({
   validFrom: z.coerce.date(),
   validTo: z.coerce.date(),
   usageLimit: z.coerce.number().int().positive().optional(),
+  isActive: z.boolean().optional(),
 });
 
 router.get('/business/:businessId', authenticate, async (req, res, next) => {

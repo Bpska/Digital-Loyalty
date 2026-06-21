@@ -52,7 +52,17 @@ const createBusinessSchema = z.object({
   googleReviewUrl: z.string().optional().nullable(),
 });
 
-const updateBusinessSchema = createBusinessSchema.partial();
+const updateBusinessSchema = z.object({
+  name: z.string().min(2).max(100).optional(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  timezone: z.string().optional(),
+  planId: z.string().optional(),
+  instagramUrl: z.string().optional().nullable(),
+  facebookUrl: z.string().optional().nullable(),
+  whatsappUrl: z.string().optional().nullable(),
+  googleReviewUrl: z.string().optional().nullable(),
+});
 
 // ── Routes ────────────────────────────────────────────────────
 
