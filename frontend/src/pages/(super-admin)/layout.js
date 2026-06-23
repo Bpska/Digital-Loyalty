@@ -6,13 +6,13 @@ import React, { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { 
   ShieldCheck, 
-  Building2,
- 
+  Building2, 
   AlertTriangle, 
   LogOut, 
   Menu, 
   X, 
-  Loader2 
+  Loader2,
+  MessageSquare
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -50,6 +50,7 @@ export default function SuperAdminLayout({
     { label: "Console Overview", icon: ShieldCheck, href: "/dashboard/super" },
     { label: "Businesses & Plans", icon: Building2, href: "/dashboard/super/businesses" },
     { label: "Fraud Monitor", icon: AlertTriangle, href: "/dashboard/super/fraud" },
+    { label: "Support Messages", icon: MessageSquare, href: "/dashboard/super/support" },
   ];
 
   return (

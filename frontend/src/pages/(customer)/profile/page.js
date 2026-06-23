@@ -32,6 +32,8 @@ export default function ProfilePage() {
   const [deleteConfirmPhone, setDeleteConfirmPhone] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [message, setMessage] = useState(null);
+  const [supportMsg, setSupportMsg] = useState("");
+  const [supportLoading, setSupportLoading] = useState(false);
 
   const { data: profile, isLoading, refetch } = useQuery({
     queryKey: ["customerProfile"],
@@ -54,6 +56,21 @@ export default function ProfilePage() {
       )
     );
   }
+
+  const handleSendSupport = async (e) => {
+    e.preventDefault();
+    if (!supportMsg.trim()) return;
+    setSupportLoading(true);
+    try {
+      await api.post("/customer/support-message", { message: supportMsg });
+      setMessage({ type: "success", text: "Support message sent successfully!" });
+      setSupportMsg("");
+    } catch (err) {
+      setMessage({ type: "error", text: err.message || "Failed to send message." });
+    } finally {
+      setSupportLoading(false);
+    }
+  };
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
@@ -155,7 +172,7 @@ export default function ProfilePage() {
                 )
               )
 
-              , React.createElement(Button, { variant: "outline", className: "w-full text-xs font-semibold h-10 mt-2"    , onClick: () => setIsEditing(true), __self: this, __source: {fileName: _jsxFileName, lineNumber: 157}}, "Edit Profile Info"
+              , React.createElement(Button, { variant: "outline", className: "w-full text-xs font-semibold h-10 mt-2 rounded-full"    , onClick: () => setIsEditing(true), __self: this, __source: {fileName: _jsxFileName, lineNumber: 157}}, "Edit Profile Info"
 
               )
             )
@@ -185,13 +202,39 @@ export default function ProfilePage() {
               )
 
               , React.createElement('div', { className: "flex gap-2 pt-2"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 186}}
-                , React.createElement(Button, { type: "button", variant: "outline", className: "flex-1 text-xs h-10"  , onClick: () => setIsEditing(false), __self: this, __source: {fileName: _jsxFileName, lineNumber: 187}}, "Cancel"
+                , React.createElement(Button, { type: "button", variant: "outline", className: "flex-1 text-xs h-10 rounded-full"  , onClick: () => setIsEditing(false), __self: this, __source: {fileName: _jsxFileName, lineNumber: 187}}, "Cancel"
 
                 )
-                , React.createElement(Button, { type: "submit", className: "flex-1 text-xs h-10 bg-primary text-primary-foreground hover:bg-primary/90"     , disabled: submitLoading, __self: this, __source: {fileName: _jsxFileName, lineNumber: 190}}
+                , React.createElement(Button, { type: "submit", className: "flex-1 text-xs h-10 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full"     , disabled: submitLoading, __self: this, __source: {fileName: _jsxFileName, lineNumber: 190}}
                   , submitLoading ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 191}} ) : "Save Changes"
                 )
               )
+            )
+          )
+        )
+      )
+
+      /* Customer Support Card */
+      , React.createElement(Card, { className: "glass", glass: true }
+        , React.createElement(CardHeader, { className: "p-4 pb-2" }
+          , React.createElement(CardTitle, { className: "text-base font-bold text-foreground" }, "Customer Support")
+          , React.createElement(CardDescription, { className: "text-xs text-muted-foreground" }, "Submit a query or request assistance directly from platform admins.")
+        )
+        , React.createElement(CardContent, { className: "p-4 pt-3" }
+          , React.createElement('form', { onSubmit: handleSendSupport, className: "space-y-4" }
+            , React.createElement('div', { className: "space-y-1.5" }
+              , React.createElement(Label, { htmlFor: "support-message", className: "text-xs font-semibold text-muted-foreground" }, "Your Message")
+              , React.createElement('textarea', {
+                  id: "support-message",
+                  placeholder: "Describe your issue, ask for help, or submit feedback...",
+                  value: supportMsg,
+                  onChange: (e) => setSupportMsg(e.target.value),
+                  required: true,
+                  className: "w-full min-h-[80px] text-xs p-2 border border-border bg-white rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+                })
+            )
+            , React.createElement(Button, { type: "submit", className: "w-full text-xs font-semibold h-10 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full", disabled: supportLoading }
+              , supportLoading ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin" }) : "Send Support Message"
             )
           )
         )
@@ -211,7 +254,7 @@ export default function ProfilePage() {
           , React.createElement('p', { className: "text-[11px] text-red-700 mb-3"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 210}}, "Deleting your account will erase all your active loyalty cards, visit history, and unredeemed vouchers. This action cannot be undone."
 
           )
-          , React.createElement(Button, { variant: "destructive", className: "w-full text-xs font-semibold h-10 bg-red-600 hover:bg-red-700 text-white"      , onClick: () => setShowDeleteModal(true), __self: this, __source: {fileName: _jsxFileName, lineNumber: 213}}, "Request Account Deletion"
+          , React.createElement(Button, { variant: "destructive", className: "w-full text-xs font-semibold h-10 bg-red-600 hover:bg-red-700 text-white rounded-full"      , onClick: () => setShowDeleteModal(true), __self: this, __source: {fileName: _jsxFileName, lineNumber: 213}}, "Request Account Deletion"
 
           )
         )
@@ -243,10 +286,10 @@ export default function ProfilePage() {
               )
             )
             , React.createElement(DialogFooter, { className: "flex gap-2" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 244}}
-              , React.createElement(Button, { variant: "outline", className: "flex-1", onClick: () => setShowDeleteModal(false), __self: this, __source: {fileName: _jsxFileName, lineNumber: 245}}, "Cancel"
+              , React.createElement(Button, { variant: "outline", className: "flex-1 rounded-full", onClick: () => setShowDeleteModal(false), __self: this, __source: {fileName: _jsxFileName, lineNumber: 245}}, "Cancel"
 
               )
-              , React.createElement(Button, { variant: "destructive", className: "flex-1 bg-red-600 hover:bg-red-700 text-white"   , onClick: handleDeleteAccount, disabled: deleteLoading, __self: this, __source: {fileName: _jsxFileName, lineNumber: 248}}
+              , React.createElement(Button, { variant: "destructive", className: "flex-1 bg-red-600 hover:bg-red-700 text-white rounded-full"   , onClick: handleDeleteAccount, disabled: deleteLoading, __self: this, __source: {fileName: _jsxFileName, lineNumber: 248}}
                 , deleteLoading ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 249}} ) : "Delete Forever"
               )
             )

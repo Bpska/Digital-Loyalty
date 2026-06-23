@@ -36,7 +36,7 @@ async function main() {
     where: { name: 'Launch Year Special' },
     update: {
       priceMonthly: 999,
-      maxBranches: 5,
+      maxBranches: 1,
       maxCustomers: 8000,
       features: {
         analyticsAccess: true,
@@ -49,7 +49,7 @@ async function main() {
     create: {
       name: 'Launch Year Special',
       priceMonthly: 999,
-      maxBranches: 5,
+      maxBranches: 1,
       maxCustomers: 8000,
       features: {
         analyticsAccess: true,

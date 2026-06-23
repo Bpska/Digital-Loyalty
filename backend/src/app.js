@@ -27,6 +27,7 @@ import subscriptionRoutes from './modules/subscription/subscription.routes.js';
 import analyticsRoutes from './modules/analytics/analytics.routes.js';
 import notificationRoutes from './modules/notification/notification.routes.js';
 import loyaltyApprovalRoutes from './modules/loyalty-approval/loyalty-approval.routes.js';
+import reviewRoutes from './modules/reviews/review.routes.js';
 
 export function createApp() {
   const app = express();
@@ -38,6 +39,7 @@ export function createApp() {
   app.use(
     helmet({
       crossOriginEmbedderPolicy: false, // Needed for Swagger UI
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
@@ -131,6 +133,7 @@ export function createApp() {
   api.use('/analytics', analyticsRoutes);
   api.use('/notifications', notificationRoutes);
   api.use('/loyalty-approval', loyaltyApprovalRoutes);
+  api.use('/reviews', reviewRoutes);
 
   app.use('/api/v1', api);
 

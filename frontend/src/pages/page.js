@@ -28,7 +28,7 @@ import {
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const { user, loading } = useAuthStore();
+  const { user, loading, logout } = useAuthStore();
   const [stampsCount, setStampsCount] = useState(3);
   const [totalScans, setTotalScans] = useState(847);
 
@@ -88,13 +88,14 @@ export default function LandingPage() {
             , loading ? (
               React.createElement('div', { className: "h-8 w-20 rounded-xl bg-[#F2ECE9] animate-pulse"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 65}} )
             ) : user ? (
-              React.createElement(Link, { to: 
-                user.role === "SUPER_ADMIN" ? "/dashboard/super" :
-                user.role === "BUSINESS_ADMIN" ? "/dashboard/business" : "/dashboard"
-              , __self: this, __source: {fileName: _jsxFileName, lineNumber: 67}}
-                , React.createElement(Button, { size: "sm", className: "bg-[#FF6A00] hover:bg-[#E05E00] text-white shadow-md shadow-[#FF6A00]/10 rounded-xl flex items-center gap-1.5 font-bold"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 71}}, "Go to Dashboard "
-                     , React.createElement(ArrowRight, { className: "h-4 w-4" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 72}} )
+              React.createElement(React.Fragment, null
+                , React.createElement(Link, { to: 
+                  user.role === "SUPER_ADMIN" ? "/dashboard/super" :
+                  user.role === "BUSINESS_ADMIN" ? "/dashboard/business" : "/dashboard"
+                , __self: this, __source: {fileName: _jsxFileName, lineNumber: 67}}
+                  , React.createElement(Button, { variant: "ghost", size: "sm", className: "text-[#5A4E46] hover:text-[#2B201A] font-bold text-xs uppercase tracking-wider" }, "Go to Dashboard")
                 )
+                , React.createElement(Button, { size: "sm", onClick: logout, className: "bg-[#FF6A00] hover:bg-[#E05E00] text-white shadow-md shadow-[#FF6A00]/10 rounded-xl font-bold text-xs" }, "Sign Out")
               )
             ) : (
               React.createElement(React.Fragment, null
@@ -572,14 +573,7 @@ export default function LandingPage() {
 
                 , React.createElement('div', { className: "bg-white/60 backdrop-blur-lg border border-[#FF6A00]/30 rounded-2xl p-4 space-y-2 text-xs text-[#5A4E46] text-left shadow-inner" }
                   , React.createElement('p', { className: "text-[10px] font-black text-[#FF6A00] uppercase tracking-wider mb-3" }, "Checkout Breakdown")
-                  , React.createElement('div', { className: "flex justify-between" }
-                    , React.createElement('span', null, "Base Plan Price:")
-                    , React.createElement('span', { className: "font-semibold text-[#07122A]" }, "₹999.00")
-                  )
-                  , React.createElement('div', { className: "flex justify-between border-t border-[#FFD8B8] pt-2 font-black text-sm text-[#07122A]" }
-                    , React.createElement('span', null, "Total Payable:")
-                    , React.createElement('span', { className: "text-[#FF6A00]" }, "₹1,071.93")
-                  )
+
                 )
 
                 , React.createElement('ul', { className: "space-y-3 text-xs text-[#5A4E46] text-left pt-2" }

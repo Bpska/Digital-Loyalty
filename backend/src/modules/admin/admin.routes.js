@@ -407,4 +407,18 @@ router.put('/settings', validate(settingsSchema), async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Get support messages
+router.get('/support-messages', async (req, res, next) => {
+  try {
+    const messages = await prisma.notification.findMany({
+      where: {
+        type: 'GENERAL',
+        title: { startsWith: 'Support Message from' },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    sendSuccess(res, messages);
+  } catch (err) { next(err); }
+});
+
 export default router;

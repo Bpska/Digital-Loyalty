@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api, getImageUrl } from "@/lib/api";
+import { useAuthStore } from "@/store/authStore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -290,6 +291,7 @@ function BusinessCard({ card }) {
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function CustomerDashboard() {
+  const { user } = useAuthStore();
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["customerDashboard"],
     queryFn: () => api.get("/customer/dashboard").then((res) => res.data),
@@ -318,14 +320,8 @@ export default function CustomerDashboard() {
     // Top bar
     React.createElement("div", { className: "flex items-center justify-between" },
       React.createElement("div", null,
-        React.createElement("h2", { className: "text-xl font-extrabold text-foreground" }, "Namaste 👋"),
+        React.createElement("h2", { className: "text-xl font-extrabold text-foreground" }, `Namaste ${user?.name || ""} 👋`),
         React.createElement("p", { className: "text-xs text-muted-foreground" }, "Your active programs & deals")
-      ),
-      React.createElement(Link, { to: "/checkin" },
-        React.createElement(Button, { size: "sm", className: "bg-primary hover:bg-primary/95 text-primary-foreground shadow-sm" },
-          React.createElement(QrCode, { className: "mr-2 h-4 w-4" }),
-          "Check In"
-        )
       )
     ),
 
@@ -356,7 +352,7 @@ export default function CustomerDashboard() {
             React.createElement("span", { className: "text-[11px] text-muted-foreground font-mono" },
               "Code: ", reward.redemptionCode.slice(0, 8), "…"
             ),
-            React.createElement(Button, { size: "sm", variant: "outline", className: "h-8 text-xs font-semibold bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50" }, "Redeem Now")
+            React.createElement(Button, { size: "sm", variant: "outline", className: "h-8 text-xs font-semibold bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50 rounded-full" }, "Redeem Now")
           ))
         )
       )
@@ -379,7 +375,7 @@ export default function CustomerDashboard() {
                 "Visit a business and scan their QR code to start earning rewards!"
               ),
               React.createElement(Link, { to: "/checkin" },
-                React.createElement(Button, { size: "sm", variant: "outline", className: "mt-2" }, "Scan QR to Start")
+                React.createElement(Button, { size: "sm", variant: "outline", className: "mt-2 rounded-full" }, "Scan QR to Start")
               )
             )
           )

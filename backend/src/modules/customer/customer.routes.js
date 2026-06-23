@@ -136,4 +136,41 @@ router.get('/rewards', authenticate, authorize(Role.CUSTOMER), async (req, res, 
   } catch (err) { next(err); }
 });
 
+// Submit support message
+router.post('/support-message', authenticate, authorize(Role.CUSTOMER), async (req, res, next) => {
+  try {
+    const { message } = req.body;
+    if (!message || message.trim().length === 0) {
+      return res.status(400).json({ success: false, message: 'Message is required' });
+    }
+
+    const customer = await prisma.user.findUniqueOrThrow({ where: { id: req.user.sub } });
+    const superAdmins = await prisma.user.findMany({
+      where: { role: Role.SUPER_ADMIN, deletedAt: null },
+    });
+
+    await Promise.all(
+      superAdmins.map(admin =>
+        prisma.notification.create({
+          data: {
+            userId: admin.id,
+            title: `Support Message from ${customer.name}`,
+            body: message.trim(),
+            type: 'GENERAL',
+            metadata: {
+              senderId: customer.id,
+              senderName: customer.name,
+              senderPhone: customer.phone,
+              senderEmail: customer.email,
+              message: message.trim(),
+            },
+          },
+        })
+      )
+    );
+
+    sendSuccess(res, null, 'Message sent to customer support');
+  } catch (err) { next(err); }
+});
+
 export default router;

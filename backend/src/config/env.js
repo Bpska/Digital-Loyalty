@@ -13,7 +13,7 @@ const envSchema = z.object({
   JWT_ACCESS_SECRET: z.string().min(32),
   JWT_REFRESH_SECRET: z.string().min(32),
   JWT_ACCESS_EXPIRY: z.string().default('15m'),
-  JWT_REFRESH_EXPIRY: z.string().default('7d'),
+  JWT_REFRESH_EXPIRY: z.string().default('14d'),
 
   // ── OTP ──────────────────────────────────────────────────
   OTP_PROVIDER: z.enum(['msg91', 'twilio', 'stub']).default('stub'),
@@ -58,6 +58,11 @@ const envSchema = z.object({
   // ── Google OAuth ──────────────────────────────────────────
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
+
+  // ── Ollama AI ─────────────────────────────────────────────
+  OLLAMA_URL: z.string().url().default('http://localhost:11434'),
+  OLLAMA_MODEL: z.string().default('qwen2.5:3b'),
+
 
   // ── Logging ──────────────────────────────────────────────
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),

@@ -32,4 +32,4 @@ RUN mkdir -p uploads logs
 EXPOSE 4000
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["sh", "-c", "./node_modules/.bin/prisma db push --accept-data-loss --force-reset && node --experimental-specifier-resolution=node src/server.js"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma db push --accept-data-loss && node --experimental-specifier-resolution=node src/server.js"]

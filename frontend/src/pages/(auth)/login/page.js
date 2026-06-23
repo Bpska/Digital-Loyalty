@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-const _jsxFileName = "src\\pages\\(auth)\\login\\page.tsx"; function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }"use client";
+const _jsxFileName = "src\\pages\\(auth)\\login\\page.tsx"; function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; } "use client";
 
 import React, { useState, useEffect } from "react";
 
@@ -25,6 +25,7 @@ export default function LoginPage() {
   const [businessName, setBusinessName] = useState("");
   const [businessAddress, setBusinessAddress] = useState("");
   const [successMsg, setSuccessMsg] = useState(null);
+  const [showForgotDialog, setShowForgotDialog] = useState(false);
 
   // Active tab state
   const [activeTab, setActiveTab] = useState("customer");
@@ -84,9 +85,9 @@ export default function LoginPage() {
     let interval;
 
     const initGoogle = () => {
-      if (_optionalChain([(window ), 'access', _ => _.google, 'optionalAccess', _2 => _2.accounts, 'optionalAccess', _3 => _3.id])) {
+      if (_optionalChain([(window), 'access', _ => _.google, 'optionalAccess', _2 => _2.accounts, 'optionalAccess', _3 => _3.id])) {
         clearInterval(interval);
-        (window ).google.accounts.id.initialize({
+        (window).google.accounts.id.initialize({
           client_id: "240748277924-ds46b01veci1o7k23e7s9hkiuf3khes4.apps.googleusercontent.com",
           callback: handleGoogleCredential,
         });
@@ -99,11 +100,11 @@ export default function LoginPage() {
   }, []);
 
   useEffect(() => {
-    if (googleInitialized && activeTab === "customer" && _optionalChain([(window ), 'access', _4 => _4.google, 'optionalAccess', _5 => _5.accounts, 'optionalAccess', _6 => _6.id])) {
+    if (googleInitialized && activeTab === "customer" && _optionalChain([(window), 'access', _4 => _4.google, 'optionalAccess', _5 => _5.accounts, 'optionalAccess', _6 => _6.id])) {
       setTimeout(() => {
         const btnContainer = document.getElementById("google-signin-btn");
         if (btnContainer) {
-          (window ).google.accounts.id.renderButton(btnContainer, {
+          (window).google.accounts.id.renderButton(btnContainer, {
             theme: "outline",
             size: "large",
             width: btnContainer.clientWidth || 340,
@@ -175,221 +176,235 @@ export default function LoginPage() {
   };
 
   return (
-    React.createElement('div', { className: "relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-4 py-12"         , __self: this, __source: {fileName: _jsxFileName, lineNumber: 169}}
+    React.createElement('div', { className: "relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-4 py-12", __self: this, __source: { fileName: _jsxFileName, lineNumber: 169 } }
 
       /* Brand Header */
-      , React.createElement('div', { className: "mb-8 flex flex-col items-center text-center animate-fade-in"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 172}}
+      , React.createElement('div', { className: "mb-8 flex flex-col items-center text-center animate-fade-in", __self: this, __source: { fileName: _jsxFileName, lineNumber: 172 } }
         , React.createElement('img', { src: "/image.png", alt: "LogiSaar Logo", className: "h-11 w-auto object-contain mb-3" })
-        , React.createElement('h1', { className: "text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 176}}, "ScanLoyal"
+        , React.createElement('h1', { className: "text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl", __self: this, __source: { fileName: _jsxFileName, lineNumber: 176 } }, "ScanLoyal"
 
         )
-        , React.createElement('p', { className: "mt-2 text-sm text-muted-foreground max-w-sm"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 179}}, "Digital Loyalty Voucher Platform — Elevating customer retention in India"
+        , React.createElement('p', { className: "mt-2 text-sm text-muted-foreground max-w-sm", __self: this, __source: { fileName: _jsxFileName, lineNumber: 179 } }, "Digital Loyalty Voucher Platform — Elevating customer retention in India"
 
         )
       )
 
       , successMsg ? (
-        React.createElement(Card, { className: "w-full max-w-[420px] glass animate-fade-in"   , glass: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 185}}
-          , React.createElement(CardHeader, { className: "space-y-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 186}}
-            , React.createElement(CardTitle, { className: "text-2xl text-center flex items-center justify-center gap-2 text-emerald-600"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 187}}
-              , React.createElement(Sparkles, { className: "h-6 w-6" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 188}} ), " Request Submitted"
+        React.createElement(Card, { className: "w-full max-w-[420px] glass animate-fade-in", glass: true, __self: this, __source: { fileName: _jsxFileName, lineNumber: 185 } }
+          , React.createElement(CardHeader, { className: "space-y-1", __self: this, __source: { fileName: _jsxFileName, lineNumber: 186 } }
+            , React.createElement(CardTitle, { className: "text-2xl text-center flex items-center justify-center gap-2 text-emerald-600", __self: this, __source: { fileName: _jsxFileName, lineNumber: 187 } }
+              , React.createElement(Sparkles, { className: "h-6 w-6", __self: this, __source: { fileName: _jsxFileName, lineNumber: 188 } }), " Request Submitted"
             )
-            , React.createElement(CardDescription, { className: "text-center text-muted-foreground" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 190}}, "Your business registration is pending approval."
+            , React.createElement(CardDescription, { className: "text-center text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 190 } }, "Your business registration is pending approval."
 
             )
           )
-          , React.createElement(CardContent, { className: "space-y-4 text-center pb-6"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 194}}
-            , React.createElement('p', { className: "text-sm text-foreground" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 195}}
+          , React.createElement(CardContent, { className: "space-y-4 text-center pb-6", __self: this, __source: { fileName: _jsxFileName, lineNumber: 194 } }
+            , React.createElement('p', { className: "text-sm text-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 195 } }
               , successMsg
             )
           )
-          , React.createElement(CardFooter, { className: "flex justify-center border-t border-border pt-6 pb-6"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 199}}
-            , React.createElement(Button, { onClick: () => { setSuccessMsg(null); setIsSignUp(false); }, className: "w-full", __self: this, __source: {fileName: _jsxFileName, lineNumber: 200}}, "Back to Sign In"
+          , React.createElement(CardFooter, { className: "flex justify-center border-t border-border pt-6 pb-6", __self: this, __source: { fileName: _jsxFileName, lineNumber: 199 } }
+            , React.createElement(Button, { onClick: () => { setSuccessMsg(null); setIsSignUp(false); }, className: "w-full", __self: this, __source: { fileName: _jsxFileName, lineNumber: 200 } }, "Back to Sign In"
 
             )
           )
         )
       ) : (
-        React.createElement(Card, { className: "w-full max-w-[420px] glass animate-fade-in"   , glass: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 206}}
-        , React.createElement(CardHeader, { className: "space-y-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 207}}
-          , React.createElement(CardTitle, { className: "text-2xl text-center" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 208}}
-            , isSignUp ? "Create an Account" : "Welcome Back"
-          )
-          , React.createElement(CardDescription, { className: "text-center text-muted-foreground" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 211}}
-            , isSignUp ? "Sign up to start earning rewards" : "Sign in to access your dashboard"
-          )
-        )
-        , React.createElement(CardContent, {__self: this, __source: {fileName: _jsxFileName, lineNumber: 215}}
-          , error && (
-            React.createElement('div', { className: "mb-4 rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive text-center"        , __self: this, __source: {fileName: _jsxFileName, lineNumber: 217}}
-              , error
+        React.createElement(Card, { className: "w-full max-w-[420px] glass animate-fade-in", glass: true, __self: this, __source: { fileName: _jsxFileName, lineNumber: 206 } }
+          , React.createElement(CardHeader, { className: "space-y-1", __self: this, __source: { fileName: _jsxFileName, lineNumber: 207 } }
+            , React.createElement(CardTitle, { className: "text-2xl text-center", __self: this, __source: { fileName: _jsxFileName, lineNumber: 208 } }
+              , isSignUp ? "Create an Account" : "Welcome Back"
+            )
+            , React.createElement(CardDescription, { className: "text-center text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 211 } }
+              , isSignUp ? "Sign up to start earning rewards" : "Sign in to access your dashboard"
             )
           )
-
-          , React.createElement(Tabs, { defaultValue: "customer", className: "w-full", onValueChange: (val) => { setActiveTab(val); clearError(); setEmail(""); setPassword(""); setPhone(""); setName(""); setBusinessName(""); setBusinessAddress(""); setIsSignUp(false); }, __self: this, __source: {fileName: _jsxFileName, lineNumber: 222}}
-            , React.createElement(TabsList, { className: "grid w-full grid-cols-2 mb-6"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 223}}
-              , React.createElement(TabsTrigger, { value: "customer", __self: this, __source: {fileName: _jsxFileName, lineNumber: 224}}, "Customer")
-              , React.createElement(TabsTrigger, { value: "business", __self: this, __source: {fileName: _jsxFileName, lineNumber: 225}}, "Business Admin" )
+          , React.createElement(CardContent, { __self: this, __source: { fileName: _jsxFileName, lineNumber: 215 } }
+            , error && (
+              React.createElement('div', { className: "mb-4 rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive text-center", __self: this, __source: { fileName: _jsxFileName, lineNumber: 217 } }
+                , error
+              )
             )
 
-            /* Customer (Email / Password / Sign Up) */
-            , React.createElement(TabsContent, { value: "customer", __self: this, __source: {fileName: _jsxFileName, lineNumber: 229}}
-              , React.createElement('form', { onSubmit: handleCustomerSubmit, className: "space-y-4", __self: this, __source: {fileName: _jsxFileName, lineNumber: 230}}
-                , isSignUp && (
-                  React.createElement('div', { className: "space-y-2", __self: this, __source: {fileName: _jsxFileName, lineNumber: 232}}
-                    , React.createElement(Label, { htmlFor: "name", __self: this, __source: {fileName: _jsxFileName, lineNumber: 233}}, "Full Name" )
-                    , React.createElement('div', { className: "relative", __self: this, __source: {fileName: _jsxFileName, lineNumber: 234}}
-                      , React.createElement(User, { className: "absolute inset-y-0 left-3 h-5 w-5 top-1/2 -translate-y-1/2 text-zinc-500"       , __self: this, __source: {fileName: _jsxFileName, lineNumber: 235}} )
+            , React.createElement(Tabs, { defaultValue: "customer", className: "w-full", onValueChange: (val) => { setActiveTab(val); clearError(); setEmail(""); setPassword(""); setPhone(""); setName(""); setBusinessName(""); setBusinessAddress(""); setIsSignUp(false); }, __self: this, __source: { fileName: _jsxFileName, lineNumber: 222 } }
+              , React.createElement(TabsList, { className: "grid w-full grid-cols-2 mb-6", __self: this, __source: { fileName: _jsxFileName, lineNumber: 223 } }
+                , React.createElement(TabsTrigger, { value: "customer", __self: this, __source: { fileName: _jsxFileName, lineNumber: 224 } }, "Customer")
+                , React.createElement(TabsTrigger, { value: "business", __self: this, __source: { fileName: _jsxFileName, lineNumber: 225 } }, "Business Admin")
+              )
+
+              /* Customer (Email / Password / Sign Up) */
+              , React.createElement(TabsContent, { value: "customer", __self: this, __source: { fileName: _jsxFileName, lineNumber: 229 } }
+                , React.createElement('form', { onSubmit: handleCustomerSubmit, className: "space-y-4", __self: this, __source: { fileName: _jsxFileName, lineNumber: 230 } }
+                  , isSignUp && (
+                    React.createElement('div', { className: "space-y-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 232 } }
+                      , React.createElement(Label, { htmlFor: "name", __self: this, __source: { fileName: _jsxFileName, lineNumber: 233 } }, "Full Name")
+                      , React.createElement('div', { className: "relative", __self: this, __source: { fileName: _jsxFileName, lineNumber: 234 } }
+                        , React.createElement(User, { className: "absolute inset-y-0 left-3 h-5 w-5 top-1/2 -translate-y-1/2 text-zinc-500", __self: this, __source: { fileName: _jsxFileName, lineNumber: 235 } })
+                        , React.createElement(Input, {
+                          id: "name",
+                          type: "text",
+                          placeholder: "Ananya Mishra",
+                          value: name,
+                          onChange: (e) => setName(e.target.value),
+                          className: "pl-10",
+                          required: true,
+                          disabled: loading, __self: this, __source: { fileName: _jsxFileName, lineNumber: 236 }
+                        }
+                        )
+                      )
+                    )
+                  )
+
+                  , React.createElement('div', { className: "space-y-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 250 } }
+                    , React.createElement(Label, { htmlFor: "email", __self: this, __source: { fileName: _jsxFileName, lineNumber: 251 } }, "Email Address")
+                    , React.createElement('div', { className: "relative", __self: this, __source: { fileName: _jsxFileName, lineNumber: 252 } }
+                      , React.createElement(Mail, { className: "absolute inset-y-0 left-3 h-5 w-5 top-1/2 -translate-y-1/2 text-zinc-500", __self: this, __source: { fileName: _jsxFileName, lineNumber: 253 } })
                       , React.createElement(Input, {
-                        id: "name",
-                        type: "text",
-                        placeholder: "Ananya Mishra" ,
-                        value: name,
-                        onChange: (e) => setName(e.target.value),
+                        id: "email",
+                        type: "email",
+                        placeholder: "ananya@gmail.com",
+                        value: email,
+                        onChange: (e) => setEmail(e.target.value),
                         className: "pl-10",
                         required: true,
-                        disabled: loading, __self: this, __source: {fileName: _jsxFileName, lineNumber: 236}}
+                        disabled: loading, __self: this, __source: { fileName: _jsxFileName, lineNumber: 254 }
+                      }
                       )
                     )
                   )
-                )
 
-                , React.createElement('div', { className: "space-y-2", __self: this, __source: {fileName: _jsxFileName, lineNumber: 250}}
-                  , React.createElement(Label, { htmlFor: "email", __self: this, __source: {fileName: _jsxFileName, lineNumber: 251}}, "Email Address" )
-                  , React.createElement('div', { className: "relative", __self: this, __source: {fileName: _jsxFileName, lineNumber: 252}}
-                    , React.createElement(Mail, { className: "absolute inset-y-0 left-3 h-5 w-5 top-1/2 -translate-y-1/2 text-zinc-500"       , __self: this, __source: {fileName: _jsxFileName, lineNumber: 253}} )
-                    , React.createElement(Input, {
-                      id: "email",
-                      type: "email",
-                      placeholder: "ananya@gmail.com",
-                      value: email,
-                      onChange: (e) => setEmail(e.target.value),
-                      className: "pl-10",
-                      required: true,
-                      disabled: loading, __self: this, __source: {fileName: _jsxFileName, lineNumber: 254}}
-                    )
-                  )
-                )
+                  , isSignUp && (
+                    React.createElement('div', { className: "space-y-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 268 } }
+                      , React.createElement(Label, { htmlFor: "phone", __self: this, __source: { fileName: _jsxFileName, lineNumber: 269 } }, "Phone Number")
+                      , React.createElement('div', { className: "relative", __self: this, __source: { fileName: _jsxFileName, lineNumber: 270 } }
+                        , React.createElement('span', { className: "absolute inset-y-0 left-3 flex items-center text-zinc-500 text-sm", __self: this, __source: { fileName: _jsxFileName, lineNumber: 271 } }, "+91"
 
-                , isSignUp && (
-                  React.createElement('div', { className: "space-y-2", __self: this, __source: {fileName: _jsxFileName, lineNumber: 268}}
-                    , React.createElement(Label, { htmlFor: "phone", __self: this, __source: {fileName: _jsxFileName, lineNumber: 269}}, "Phone Number" )
-                    , React.createElement('div', { className: "relative", __self: this, __source: {fileName: _jsxFileName, lineNumber: 270}}
-                      , React.createElement('span', { className: "absolute inset-y-0 left-3 flex items-center text-zinc-500 text-sm"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 271}}, "+91"
-
+                        )
+                        , React.createElement(Input, {
+                          id: "phone",
+                          type: "tel",
+                          placeholder: "99370 XXXXX",
+                          value: phone,
+                          onChange: (e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10)),
+                          className: "pl-12",
+                          required: true,
+                          disabled: loading, __self: this, __source: { fileName: _jsxFileName, lineNumber: 274 }
+                        }
+                        )
                       )
+                    )
+                  ), React.createElement('div', { className: "space-y-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 288 } }
+                    , React.createElement(Label, { htmlFor: "password", __self: this, __source: { fileName: _jsxFileName, lineNumber: 289 } }, "Password")
+                    , React.createElement('div', { className: "relative", __self: this, __source: { fileName: _jsxFileName, lineNumber: 290 } }
+                      , React.createElement(Lock, { className: "absolute inset-y-0 left-3 h-5 w-5 top-1/2 -translate-y-1/2 text-zinc-500", __self: this, __source: { fileName: _jsxFileName, lineNumber: 291 } })
                       , React.createElement(Input, {
-                        id: "phone",
-                        type: "tel",
-                        placeholder: "99370 XXXXX" ,
-                        value: phone,
-                        onChange: (e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10)),
-                        className: "pl-12",
+                        id: "password",
+                        type: showPassword ? "text" : "password",
+                        placeholder: "••••••••",
+                        value: password,
+                        onChange: (e) => setPassword(e.target.value),
+                        className: "pl-10 pr-10 " + (isSignUp && password.length > 0 && password.length < 8 ? "border-destructive focus-visible:ring-destructive" : ""),
                         required: true,
-                        disabled: loading, __self: this, __source: {fileName: _jsxFileName, lineNumber: 274}}
+                        disabled: loading, __self: this, __source: { fileName: _jsxFileName, lineNumber: 292 }
+                      }
+                      )
+                      , React.createElement('button', {
+                        type: "button",
+                        onClick: () => setShowPassword(!showPassword),
+                        className: "absolute inset-y-0 right-3 flex items-center text-zinc-500 hover:text-zinc-300", __self: this, __source: { fileName: _jsxFileName, lineNumber: 302 }
+                      }
+
+                        , showPassword ? React.createElement(EyeOff, { className: "h-4 w-4", __self: this, __source: { fileName: _jsxFileName, lineNumber: 307 } }) : React.createElement(Eye, { className: "h-4 w-4", __self: this, __source: { fileName: _jsxFileName, lineNumber: 307 } })
                       )
                     )
-                  )
-                )
-
-                , React.createElement('div', { className: "space-y-2", __self: this, __source: {fileName: _jsxFileName, lineNumber: 288}}
-                  , React.createElement(Label, { htmlFor: "password", __self: this, __source: {fileName: _jsxFileName, lineNumber: 289}}, "Password")
-                  , React.createElement('div', { className: "relative", __self: this, __source: {fileName: _jsxFileName, lineNumber: 290}}
-                    , React.createElement(Lock, { className: "absolute inset-y-0 left-3 h-5 w-5 top-1/2 -translate-y-1/2 text-zinc-500"       , __self: this, __source: {fileName: _jsxFileName, lineNumber: 291}} )
-                    , React.createElement(Input, {
-                      id: "password",
-                      type: showPassword ? "text" : "password",
-                      placeholder: "••••••••",
-                      value: password,
-                      onChange: (e) => setPassword(e.target.value),
-                      className: "pl-10 pr-10 " + (isSignUp && password.length > 0 && password.length < 8 ? "border-destructive focus-visible:ring-destructive" : "") ,
-                      required: true,
-                      disabled: loading, __self: this, __source: {fileName: _jsxFileName, lineNumber: 292}}
+                    , !isSignUp && (
+                      React.createElement('div', { className: "flex justify-end mt-1" }
+                        , React.createElement('button', {
+                          type: "button",
+                          onClick: () => setShowForgotDialog(true),
+                          className: "text-[11px] text-primary hover:underline font-semibold"
+                        }, "Forgot Password?")
+                      )
                     )
-                    , React.createElement('button', {
-                      type: "button",
-                      onClick: () => setShowPassword(!showPassword),
-                      className: "absolute inset-y-0 right-3 flex items-center text-zinc-500 hover:text-zinc-300"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 302}}
-
-                      , showPassword ? React.createElement(EyeOff, { className: "h-4 w-4" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 307}} ) : React.createElement(Eye, { className: "h-4 w-4" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 307}} )
-                    )
+                    , isSignUp && password.length > 0 && password.length < 8 && React.createElement('p', { className: "text-xs text-destructive mt-1" }, "Password must be at least 8 characters")
+                    , isSignUp && password.length === 0 && React.createElement('p', { className: "text-xs text-muted-foreground mt-1" }, "Minimum 8 characters required")
                   )
-                  , isSignUp && password.length > 0 && password.length < 8 && React.createElement('p', { className: "text-xs text-destructive mt-1" }, "Password must be at least 8 characters")
-                  , isSignUp && password.length === 0 && React.createElement('p', { className: "text-xs text-muted-foreground mt-1" }, "Minimum 8 characters required")
-                )
 
-                , React.createElement(Button, { type: "submit", className: "w-full mt-4" , disabled: loading || (isSignUp && (!name || !email || !phone || !password || password.length < 8)), __self: this, __source: {fileName: _jsxFileName, lineNumber: 312}}
+                , React.createElement(Button, { type: "submit", className: "w-full mt-4", disabled: loading || (isSignUp && (!name || !email || !phone || !password || password.length < 8)), __self: this, __source: { fileName: _jsxFileName, lineNumber: 312 } }
                   , loading ? (
                     React.createElement(React.Fragment, null
-                      , React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 315}} ), " Working..."
+                      , React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin", __self: this, __source: { fileName: _jsxFileName, lineNumber: 315 } }), " Working..."
                     )
                   ) : (
                     isSignUp ? "Sign Up" : "Sign In"
                   )
                 )
 
-                , React.createElement('div', { className: "text-center text-xs text-zinc-500 mt-2"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 322}}
+                , React.createElement('div', { className: "text-center text-xs text-zinc-500 mt-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 322 } }
                   , isSignUp ? "Already have an account?" : "New to the platform?", " "
                   , React.createElement('button', {
                     type: "button",
                     onClick: () => { clearError(); setIsSignUp(!isSignUp); },
-                    className: "text-primary hover:underline font-semibold"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 324}}
+                    className: "text-primary hover:underline font-semibold", __self: this, __source: { fileName: _jsxFileName, lineNumber: 324 }
+                  }
 
                     , isSignUp ? "Sign In" : "Sign Up"
                   )
                 )
 
                 , googleError && (
-                  React.createElement('div', { className: "mt-3 rounded-lg bg-destructive/10 border border-destructive/20 p-2.5 text-xs text-destructive text-center"        , __self: this, __source: {fileName: _jsxFileName, lineNumber: 334}}
+                  React.createElement('div', { className: "mt-3 rounded-lg bg-destructive/10 border border-destructive/20 p-2.5 text-xs text-destructive text-center", __self: this, __source: { fileName: _jsxFileName, lineNumber: 334 } }
                     , googleError
                   )
                 )
 
-                , React.createElement('div', { className: "relative flex py-2 items-center w-full"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 339}}
-                  , React.createElement('div', { className: "flex-grow border-t border-border"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 340}})
-                  , React.createElement('span', { className: "flex-shrink mx-3 text-[10px] text-muted-foreground uppercase tracking-widest"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 341}}, "Or")
-                  , React.createElement('div', { className: "flex-grow border-t border-border"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 342}})
+                , React.createElement('div', { className: "relative flex py-2 items-center w-full", __self: this, __source: { fileName: _jsxFileName, lineNumber: 339 } }
+                  , React.createElement('div', { className: "flex-grow border-t border-border", __self: this, __source: { fileName: _jsxFileName, lineNumber: 340 } })
+                  , React.createElement('span', { className: "flex-shrink mx-3 text-[10px] text-muted-foreground uppercase tracking-widest", __self: this, __source: { fileName: _jsxFileName, lineNumber: 341 } }, "Or")
+                  , React.createElement('div', { className: "flex-grow border-t border-border", __self: this, __source: { fileName: _jsxFileName, lineNumber: 342 } })
                 )
 
-                , React.createElement('div', { className: "w-full flex flex-col items-center justify-center space-y-2"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 345}}
+                , React.createElement('div', { className: "w-full flex flex-col items-center justify-center space-y-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 345 } }
                   , googleLoading ? (
-                    React.createElement('div', { className: "flex items-center space-x-2 py-2 text-xs text-muted-foreground"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 347}}
-                      , React.createElement(Loader2, { className: "h-4 w-4 animate-spin text-primary"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 348}} )
-                      , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 349}}, "Verifying Google session..."  )
+                    React.createElement('div', { className: "flex items-center space-x-2 py-2 text-xs text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 347 } }
+                      , React.createElement(Loader2, { className: "h-4 w-4 animate-spin text-primary", __self: this, __source: { fileName: _jsxFileName, lineNumber: 348 } })
+                      , React.createElement('span', { __self: this, __source: { fileName: _jsxFileName, lineNumber: 349 } }, "Verifying Google session...")
                     )
                   ) : (
-                    React.createElement('div', { id: "google-signin-btn", className: "w-full min-h-[44px] flex justify-center"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 352}} )
+                    React.createElement('div', { id: "google-signin-btn", className: "w-full min-h-[44px] flex justify-center", __self: this, __source: { fileName: _jsxFileName, lineNumber: 352 } })
                   )
                 )
               )
             )
 
             /* Business / Staff (Email / Password based) */
-            , React.createElement(TabsContent, { value: "business", __self: this, __source: {fileName: _jsxFileName, lineNumber: 359}}
-              , React.createElement('form', { onSubmit: handlePasswordLogin, className: "space-y-4", __self: this, __source: {fileName: _jsxFileName, lineNumber: 360}}
+            , React.createElement(TabsContent, { value: "business", __self: this, __source: { fileName: _jsxFileName, lineNumber: 359 } }
+              , React.createElement('form', { onSubmit: handlePasswordLogin, className: "space-y-4", __self: this, __source: { fileName: _jsxFileName, lineNumber: 360 } }
                 , isSignUp && (
-                  React.createElement('div', { className: "space-y-2", __self: this, __source: {fileName: _jsxFileName, lineNumber: 362}}
-                    , React.createElement(Label, { htmlFor: "biz-name", __self: this, __source: {fileName: _jsxFileName, lineNumber: 363}}, "Full Name" )
-                    , React.createElement('div', { className: "relative", __self: this, __source: {fileName: _jsxFileName, lineNumber: 364}}
-                      , React.createElement(User, { className: "absolute inset-y-0 left-3 h-5 w-5 top-1/2 -translate-y-1/2 text-zinc-500"       , __self: this, __source: {fileName: _jsxFileName, lineNumber: 365}} )
+                  React.createElement('div', { className: "space-y-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 362 } }
+                    , React.createElement(Label, { htmlFor: "biz-name", __self: this, __source: { fileName: _jsxFileName, lineNumber: 363 } }, "Full Name")
+                    , React.createElement('div', { className: "relative", __self: this, __source: { fileName: _jsxFileName, lineNumber: 364 } }
+                      , React.createElement(User, { className: "absolute inset-y-0 left-3 h-5 w-5 top-1/2 -translate-y-1/2 text-zinc-500", __self: this, __source: { fileName: _jsxFileName, lineNumber: 365 } })
                       , React.createElement(Input, {
                         id: "biz-name",
                         type: "text",
-                        placeholder: "Ramesh Pattnaik" ,
+                        placeholder: "Ramesh Pattnaik",
                         value: name,
                         onChange: (e) => setName(e.target.value),
                         className: "pl-10",
                         required: true,
-                        disabled: loading, __self: this, __source: {fileName: _jsxFileName, lineNumber: 366}}
+                        disabled: loading, __self: this, __source: { fileName: _jsxFileName, lineNumber: 366 }
+                      }
                       )
                     )
                   )
                 )
 
-                , React.createElement('div', { className: "space-y-2", __self: this, __source: {fileName: _jsxFileName, lineNumber: 380}}
-                  , React.createElement(Label, { htmlFor: "biz-email", __self: this, __source: {fileName: _jsxFileName, lineNumber: 381}}, "Email Address" )
-                  , React.createElement('div', { className: "relative", __self: this, __source: {fileName: _jsxFileName, lineNumber: 382}}
-                    , React.createElement(Mail, { className: "absolute inset-y-0 left-3 h-5 w-5 top-1/2 -translate-y-1/2 text-zinc-500"       , __self: this, __source: {fileName: _jsxFileName, lineNumber: 383}} )
+                , React.createElement('div', { className: "space-y-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 380 } }
+                  , React.createElement(Label, { htmlFor: "biz-email", __self: this, __source: { fileName: _jsxFileName, lineNumber: 381 } }, "Email Address")
+                  , React.createElement('div', { className: "relative", __self: this, __source: { fileName: _jsxFileName, lineNumber: 382 } }
+                    , React.createElement(Mail, { className: "absolute inset-y-0 left-3 h-5 w-5 top-1/2 -translate-y-1/2 text-zinc-500", __self: this, __source: { fileName: _jsxFileName, lineNumber: 383 } })
                     , React.createElement(Input, {
                       id: "biz-email",
                       type: "email",
@@ -398,106 +413,119 @@ export default function LoginPage() {
                       onChange: (e) => setEmail(e.target.value),
                       className: "pl-10",
                       required: true,
-                      disabled: loading, __self: this, __source: {fileName: _jsxFileName, lineNumber: 384}}
+                      disabled: loading, __self: this, __source: { fileName: _jsxFileName, lineNumber: 384 }
+                    }
                     )
                   )
                 )
 
-                , isSignUp && (
-                  React.createElement(React.Fragment, null
-                    , React.createElement('div', { className: "space-y-2", __self: this, __source: {fileName: _jsxFileName, lineNumber: 399}}
-                      , React.createElement(Label, { htmlFor: "biz-phone", __self: this, __source: {fileName: _jsxFileName, lineNumber: 400}}, "Phone Number" )
-                      , React.createElement('div', { className: "relative", __self: this, __source: {fileName: _jsxFileName, lineNumber: 401}}
-                        , React.createElement('span', { className: "absolute inset-y-0 left-3 flex items-center text-zinc-500 text-sm"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 402}}, "+91"
+                , isSignUp && React.createElement(React.Fragment, null
+                    , React.createElement('div', { className: "space-y-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 399 } }
+                      , React.createElement(Label, { htmlFor: "biz-phone", __self: this, __source: { fileName: _jsxFileName, lineNumber: 400 } }, "Phone Number")
+                      , React.createElement('div', { className: "relative", __self: this, __source: { fileName: _jsxFileName, lineNumber: 401 } }
+                        , React.createElement('span', { className: "absolute inset-y-0 left-3 flex items-center text-zinc-500 text-sm", __self: this, __source: { fileName: _jsxFileName, lineNumber: 402 } }, "+91"
 
                         )
                         , React.createElement(Input, {
                           id: "biz-phone",
                           type: "tel",
-                          placeholder: "99370 XXXXX" ,
+                          placeholder: "99370 XXXXX",
                           value: phone,
                           onChange: (e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10)),
                           className: "pl-12",
                           required: true,
-                          disabled: loading, __self: this, __source: {fileName: _jsxFileName, lineNumber: 405}}
+                          disabled: loading, __self: this, __source: { fileName: _jsxFileName, lineNumber: 405 }
+                        }
                         )
                       )
                     )
 
-                    , React.createElement('div', { className: "space-y-2", __self: this, __source: {fileName: _jsxFileName, lineNumber: 418}}
-                      , React.createElement(Label, { htmlFor: "biz-company", __self: this, __source: {fileName: _jsxFileName, lineNumber: 419}}, "Business / Company Name"   )
-                      , React.createElement('div', { className: "relative", __self: this, __source: {fileName: _jsxFileName, lineNumber: 420}}
-                        , React.createElement(Sparkles, { className: "absolute inset-y-0 left-3 h-5 w-5 top-1/2 -translate-y-1/2 text-zinc-500"       , __self: this, __source: {fileName: _jsxFileName, lineNumber: 421}} )
+                    , React.createElement('div', { className: "space-y-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 418 } }
+                      , React.createElement(Label, { htmlFor: "biz-company", __self: this, __source: { fileName: _jsxFileName, lineNumber: 419 } }, "Business / Company Name")
+                      , React.createElement('div', { className: "relative", __self: this, __source: { fileName: _jsxFileName, lineNumber: 420 } }
+                        , React.createElement(Sparkles, { className: "absolute inset-y-0 left-3 h-5 w-5 top-1/2 -translate-y-1/2 text-zinc-500", __self: this, __source: { fileName: _jsxFileName, lineNumber: 421 } })
                         , React.createElement(Input, {
                           id: "biz-company",
                           type: "text",
-                          placeholder: "Brews by Pattnaik"  ,
+                          placeholder: "Brews by Pattnaik",
                           value: businessName,
                           onChange: (e) => setBusinessName(e.target.value),
                           className: "pl-10",
                           required: true,
-                          disabled: loading, __self: this, __source: {fileName: _jsxFileName, lineNumber: 422}}
+                          disabled: loading, __self: this, __source: { fileName: _jsxFileName, lineNumber: 422 }
+                        }
                         )
                       )
                     )
 
-                    , React.createElement('div', { className: "space-y-2", __self: this, __source: {fileName: _jsxFileName, lineNumber: 435}}
-                      , React.createElement(Label, { htmlFor: "biz-address", __self: this, __source: {fileName: _jsxFileName, lineNumber: 436}}, "Business Address (Optional)"  )
+                    , React.createElement('div', { className: "space-y-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 435 } }
+                      , React.createElement(Label, { htmlFor: "biz-address", __self: this, __source: { fileName: _jsxFileName, lineNumber: 436 } }, "Business Address (Optional)")
                       , React.createElement(Input, {
                         id: "biz-address",
                         type: "text",
-                        placeholder: "MG Road, Bhubaneswar, Odisha"   ,
+                        placeholder: "MG Road, Bhubaneswar, Odisha",
                         value: businessAddress,
                         onChange: (e) => setBusinessAddress(e.target.value),
-                        disabled: loading, __self: this, __source: {fileName: _jsxFileName, lineNumber: 437}}
+                        disabled: loading, __self: this, __source: { fileName: _jsxFileName, lineNumber: 437 }
+                      }
                       )
                     )
                   )
-                )
+                  , React.createElement('div', { className: "space-y-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 449 } }
+                    , React.createElement(Label, { htmlFor: "biz-password", __self: this, __source: { fileName: _jsxFileName, lineNumber: 450 } }, "Password")
+                    , React.createElement('div', { className: "relative", __self: this, __source: { fileName: _jsxFileName, lineNumber: 451 } }
+                      , React.createElement(Lock, { className: "absolute inset-y-0 left-3 h-5 w-5 top-1/2 -translate-y-1/2 text-zinc-500", __self: this, __source: { fileName: _jsxFileName, lineNumber: 452 } })
+                      , React.createElement(Input, {
+                        id: "biz-password",
+                        type: showPassword ? "text" : "password",
+                        placeholder: "Min. 8 characters",
+                        value: password,
+                        onChange: (e) => setPassword(e.target.value),
+                        className: `pl-10 pr-10 ${isSignUp && password.length > 0 && password.length < 8 ? 'border-destructive focus-visible:ring-destructive' : ''}`,
+                        minLength: 8,
+                        required: true,
+                        disabled: loading, __self: this, __source: { fileName: _jsxFileName, lineNumber: 453 }
+                      }
+                      )
+                      , React.createElement('button', {
+                        type: "button",
+                        onClick: () => setShowPassword(!showPassword),
+                        className: "absolute inset-y-0 right-3 flex items-center text-zinc-500 hover:text-zinc-300", __self: this, __source: { fileName: _jsxFileName, lineNumber: 463 }
+                      }
 
-                , React.createElement('div', { className: "space-y-2", __self: this, __source: {fileName: _jsxFileName, lineNumber: 449}}
-                  , React.createElement(Label, { htmlFor: "biz-password", __self: this, __source: {fileName: _jsxFileName, lineNumber: 450}}, "Password")
-                  , React.createElement('div', { className: "relative", __self: this, __source: {fileName: _jsxFileName, lineNumber: 451}}
-                    , React.createElement(Lock, { className: "absolute inset-y-0 left-3 h-5 w-5 top-1/2 -translate-y-1/2 text-zinc-500"       , __self: this, __source: {fileName: _jsxFileName, lineNumber: 452}} )
-                    , React.createElement(Input, {
-                      id: "biz-password",
-                      type: showPassword ? "text" : "password",
-                      placeholder: "Min. 8 characters",
-                      value: password,
-                      onChange: (e) => setPassword(e.target.value),
-                      className: `pl-10 pr-10 ${isSignUp && password.length > 0 && password.length < 8 ? 'border-destructive focus-visible:ring-destructive' : ''}`,
-                      minLength: 8,
-                      required: true,
-                      disabled: loading, __self: this, __source: {fileName: _jsxFileName, lineNumber: 453}}
+                        , showPassword ? React.createElement(EyeOff, { className: "h-4 w-4", __self: this, __source: { fileName: _jsxFileName, lineNumber: 468 } }) : React.createElement(Eye, { className: "h-4 w-4", __self: this, __source: { fileName: _jsxFileName, lineNumber: 468 } })
+                      )
                     )
-                    , React.createElement('button', {
-                      type: "button",
-                      onClick: () => setShowPassword(!showPassword),
-                      className: "absolute inset-y-0 right-3 flex items-center text-zinc-500 hover:text-zinc-300"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 463}}
-
-                      , showPassword ? React.createElement(EyeOff, { className: "h-4 w-4" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 468}} ) : React.createElement(Eye, { className: "h-4 w-4" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 468}} )
+                    , !isSignUp && (
+                      React.createElement('div', { className: "flex justify-end mt-1" }
+                        , React.createElement('button', {
+                          type: "button",
+                          onClick: () => setShowForgotDialog(true),
+                          className: "text-[11px] text-primary hover:underline font-semibold"
+                        }, "Forgot Password?")
+                      )
                     )
+                    , isSignUp && password.length > 0 && password.length < 8 && React.createElement('p', { className: "text-xs text-destructive mt-1", __self: this, __source: { fileName: _jsxFileName, lineNumber: 472 } }, "Password must be at least 8 characters")
+                    , isSignUp && password.length === 0 && React.createElement('p', { className: "text-xs text-muted-foreground mt-1", __self: this, __source: { fileName: _jsxFileName, lineNumber: 473 } }, "Minimum 8 characters required")
                   )
-                  , isSignUp && password.length > 0 && password.length < 8 && React.createElement('p', { className: "text-xs text-destructive mt-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 472}}, "Password must be at least 8 characters")
-                  , isSignUp && password.length === 0 && React.createElement('p', { className: "text-xs text-muted-foreground mt-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 473}}, "Minimum 8 characters required")
-                )
 
-                , React.createElement(Button, { type: "submit", className: "w-full mt-4" , disabled: loading || !email || !password || (isSignUp && (!name || !phone || !businessName || password.length < 8)), __self: this, __source: {fileName: _jsxFileName, lineNumber: 473}}
+                , React.createElement(Button, { type: "submit", className: "w-full mt-4", disabled: loading || !email || !password || (isSignUp && (!name || !phone || !businessName || password.length < 8)), __self: this, __source: { fileName: _jsxFileName, lineNumber: 473 } }
                   , loading ? (
                     React.createElement(React.Fragment, null
-                      , React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 476}} ), " " , isSignUp ? "Submitting..." : "Logging in..."
+                      , React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin", __self: this, __source: { fileName: _jsxFileName, lineNumber: 476 } }), " ", isSignUp ? "Submitting..." : "Logging in..."
                     )
                   ) : (
                     isSignUp ? "Submit Registration Request" : "Secure Sign In"
                   )
                 )
 
-                , React.createElement('div', { className: "text-center text-xs text-zinc-500 mt-2"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 483}}
+                , React.createElement('div', { className: "text-center text-xs text-zinc-500 mt-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 483 } }
                   , isSignUp ? "Already have a business account?" : "Want to register your business?", " "
                   , React.createElement('button', {
                     type: "button",
                     onClick: () => { clearError(); setIsSignUp(!isSignUp); },
-                    className: "text-primary hover:underline font-semibold"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 485}}
+                    className: "text-primary hover:underline font-semibold", __self: this, __source: { fileName: _jsxFileName, lineNumber: 485 }
+                  }
 
                     , isSignUp ? "Sign In" : "Register Business"
                   )
@@ -506,53 +534,73 @@ export default function LoginPage() {
             )
           )
         )
-        , React.createElement(CardFooter, { className: "flex flex-col text-center space-y-2 pb-6"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 497}}
-          , React.createElement('div', { className: "text-xs text-muted-foreground" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 498}}, "For development seeds try default passwords like:"
+        , React.createElement(CardFooter, { className: "flex flex-col text-center space-y-2 pb-6", __self: this, __source: { fileName: _jsxFileName, lineNumber: 497 } }
+          , React.createElement('div', { className: "text-xs text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 498 } }, "For development seeds try default passwords like:"
 
           )
-          , React.createElement('div', { className: "text-xs text-slate-600 bg-slate-50 p-3 rounded-lg border border-border space-y-1 font-mono text-left w-full"          , __self: this, __source: {fileName: _jsxFileName, lineNumber: 501}}
-            , React.createElement('div', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 502}}, "SuperAdmin: admin@dlvsaas.com / SuperAdmin@123"   )
-            , React.createElement('div', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 503}}, "Biz Owner: ramesh@brewsbypattnaik.com / Business@123"    )
-            , React.createElement('div', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 504}}, "Customer: ananya@gmail.com / Customer@123"   )
+          , React.createElement('div', { className: "text-xs text-slate-600 bg-slate-50 p-3 rounded-lg border border-border space-y-1 font-mono text-left w-full", __self: this, __source: { fileName: _jsxFileName, lineNumber: 501 } }
+            , React.createElement('div', { __self: this, __source: { fileName: _jsxFileName, lineNumber: 502 } }, "SuperAdmin: admin@dlvsaas.com / SuperAdmin@123")
+            , React.createElement('div', { __self: this, __source: { fileName: _jsxFileName, lineNumber: 503 } }, "Biz Owner: ramesh@brewsbypattnaik.com / Business@123")
+            , React.createElement('div', { __self: this, __source: { fileName: _jsxFileName, lineNumber: 504 } }, "Customer: ananya@gmail.com / Customer@123")
           )
         )
       )
-      )
+    )
       , showPhoneDialog && (
-        React.createElement(Dialog, { open: showPhoneDialog, onOpenChange: setShowPhoneDialog, __self: this, __source: {fileName: _jsxFileName, lineNumber: 510}}
-          , React.createElement(DialogContent, { className: "max-w-[400px]", __self: this, __source: {fileName: _jsxFileName, lineNumber: 511}}
-            , React.createElement(DialogHeader, {__self: this, __source: {fileName: _jsxFileName, lineNumber: 512}}
-              , React.createElement(DialogTitle, {__self: this, __source: {fileName: _jsxFileName, lineNumber: 513}}, "Complete Google Registration"  )
-              , React.createElement(DialogDescription, {__self: this, __source: {fileName: _jsxFileName, lineNumber: 514}}, "Please provide your phone number to complete your loyalty profile."
+        React.createElement(Dialog, { open: showPhoneDialog, onOpenChange: setShowPhoneDialog, __self: this, __source: { fileName: _jsxFileName, lineNumber: 510 } }
+          , React.createElement(DialogContent, { className: "max-w-[400px]", __self: this, __source: { fileName: _jsxFileName, lineNumber: 511 } }
+            , React.createElement(DialogHeader, { __self: this, __source: { fileName: _jsxFileName, lineNumber: 512 } }
+              , React.createElement(DialogTitle, { __self: this, __source: { fileName: _jsxFileName, lineNumber: 513 } }, "Complete Google Registration")
+              , React.createElement(DialogDescription, { __self: this, __source: { fileName: _jsxFileName, lineNumber: 514 } }, "Please provide your phone number to complete your loyalty profile."
 
               )
             )
-            , React.createElement('form', { onSubmit: handlePhoneSubmit, className: "space-y-4 py-2" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 518}}
-              , React.createElement('div', { className: "space-y-2", __self: this, __source: {fileName: _jsxFileName, lineNumber: 519}}
-                , React.createElement(Label, { htmlFor: "reg-phone", __self: this, __source: {fileName: _jsxFileName, lineNumber: 520}}, "Phone Number" )
-                , React.createElement('div', { className: "relative", __self: this, __source: {fileName: _jsxFileName, lineNumber: 521}}
-                  , React.createElement('span', { className: "absolute inset-y-0 left-3 flex items-center text-zinc-500 text-sm"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 522}}, "+91"
+            , React.createElement('form', { onSubmit: handlePhoneSubmit, className: "space-y-4 py-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 518 } }
+              , React.createElement('div', { className: "space-y-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 519 } }
+                , React.createElement(Label, { htmlFor: "reg-phone", __self: this, __source: { fileName: _jsxFileName, lineNumber: 520 } }, "Phone Number")
+                , React.createElement('div', { className: "relative", __self: this, __source: { fileName: _jsxFileName, lineNumber: 521 } }
+                  , React.createElement('span', { className: "absolute inset-y-0 left-3 flex items-center text-zinc-500 text-sm", __self: this, __source: { fileName: _jsxFileName, lineNumber: 522 } }, "+91"
 
                   )
                   , React.createElement(Input, {
                     id: "reg-phone",
                     type: "tel",
-                    placeholder: "99370 XXXXX" ,
+                    placeholder: "99370 XXXXX",
                     value: regPhone,
                     onChange: (e) => setRegPhone(e.target.value.replace(/\D/g, "").slice(0, 10)),
                     className: "pl-12",
-                    required: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 525}}
+                    required: true, __self: this, __source: { fileName: _jsxFileName, lineNumber: 525 }
+                  }
                   )
                 )
               )
-              , React.createElement(DialogFooter, { className: "pt-2", __self: this, __source: {fileName: _jsxFileName, lineNumber: 536}}
-                , React.createElement(Button, { type: "button", variant: "outline", onClick: () => setShowPhoneDialog(false), __self: this, __source: {fileName: _jsxFileName, lineNumber: 537}}, "Cancel"
+              , React.createElement(DialogFooter, { className: "pt-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 536 } }
+                , React.createElement(Button, { type: "button", variant: "outline", onClick: () => setShowPhoneDialog(false), __self: this, __source: { fileName: _jsxFileName, lineNumber: 537 } }, "Cancel"
 
                 )
-                , React.createElement(Button, { type: "submit", className: "bg-primary", disabled: googleLoading, __self: this, __source: {fileName: _jsxFileName, lineNumber: 540}}
-                  , googleLoading ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 541}} ) : "Complete Registration"
+                , React.createElement(Button, { type: "submit", className: "bg-primary", disabled: googleLoading, __self: this, __source: { fileName: _jsxFileName, lineNumber: 540 } }
+                  , googleLoading ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin", __self: this, __source: { fileName: _jsxFileName, lineNumber: 541 } }) : "Complete Registration"
                 )
               )
+            )
+          )
+        )
+      )
+      , showForgotDialog && (
+        React.createElement(Dialog, { open: showForgotDialog, onOpenChange: setShowForgotDialog }
+          , React.createElement(DialogContent, { className: "max-w-[360px]" }
+            , React.createElement(DialogHeader, { className: "text-center" }
+              , React.createElement(DialogTitle, { className: "text-lg font-bold text-foreground flex items-center justify-center gap-2" }
+                , React.createElement(Lock, { className: "h-5 w-5 text-primary" }), "Reset Password"
+              )
+              , React.createElement(DialogDescription, { className: "text-xs mt-2 text-muted-foreground leading-relaxed" }
+                , "To reset your password, please contact our support team at "
+                , React.createElement("strong", { className: "text-foreground" }, "contact@logisaar.in")
+                , " or reach out to your administrator."
+              )
+            )
+            , React.createElement(DialogFooter, { className: "pt-4" }
+              , React.createElement(Button, { className: "w-full", onClick: () => setShowForgotDialog(false) }, "Close")
             )
           )
         )

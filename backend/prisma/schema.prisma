@@ -118,6 +118,7 @@ model User {
   refreshTokens        RefreshToken[]
   loyaltyRequests      LoyaltyRequest[]
   loyaltyTransactions  LoyaltyTransaction[]
+  reviewGenerations    ReviewGeneration[]
 
   @@index([phone])
   @@index([role])
@@ -161,6 +162,8 @@ model Business {
   loyaltyLevels        LoyaltyLevel[]
   loyaltyRequests      LoyaltyRequest[]
   loyaltyTransactions  LoyaltyTransaction[]
+  reviewSettings       BusinessReviewSettings?
+  reviewGenerations    ReviewGeneration[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -616,4 +619,46 @@ model LoyaltyTransaction {
   @@index([customerId])
   @@index([businessId])
   @@map("loyalty_transactions")
+}
+
+// ─────────────────────────────────────────────────────────────
+// AI REVIEW GENERATOR
+// ─────────────────────────────────────────────────────────────
+
+/// Review generator settings per business (business type + social/review URLs).
+model BusinessReviewSettings {
+  id              String   @id @default(cuid())
+  businessType    String?  // e.g. "Cafe", "Restaurant", "Salon"
+  googleReviewUrl String?
+  instagramUrl    String?
+  facebookUrl     String?
+
+  businessId String   @unique
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("business_review_settings")
+}
+
+/// Analytics record for each AI review generation session.
+model ReviewGeneration {
+  id               String   @id @default(cuid())
+  rating           Int
+  generatedReviews Json     // String[] — the 5 AI suggestions
+  selectedReview   String?  // Which suggestion the customer picked
+  reviewLinkClicked Boolean @default(false)
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([businessId])
+  @@index([rating])
+  @@map("review_generations")
 }

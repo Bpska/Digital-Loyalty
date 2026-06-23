@@ -17,6 +17,7 @@ import CustomerHistory from './pages/(customer)/history/page.js';
 import CustomerProfile from './pages/(customer)/profile/page.js';
 import CustomerCheckin from './pages/(customer)/checkin/page.js';
 import CustomerLoyaltyHistory from './pages/(customer)/loyalty-history/page.js';
+import CustomerReview from './pages/(customer)/review/page.js';
 
 // Business Admin Pages
 import BusinessDashboard from './pages/(business-admin)/dashboard/business/page.js';
@@ -33,6 +34,7 @@ import BusinessLoyaltyConfig from './pages/(business-admin)/dashboard/business/l
 import SuperDashboard from './pages/(super-admin)/dashboard/super/page.js';
 import SuperBusinesses from './pages/(super-admin)/dashboard/super/businesses/page.js';
 import SuperFraud from './pages/(super-admin)/dashboard/super/fraud/page.js';
+import SuperSupport from './pages/(super-admin)/dashboard/super/support/page.js';
 
 export default function App() {
   return (
@@ -51,6 +53,7 @@ export default function App() {
             <Route path="/profile" element={<CustomerProfile />} />
             <Route path="/checkin" element={<CustomerCheckin />} />
             <Route path="/loyalty-history" element={<CustomerLoyaltyHistory />} />
+            <Route path="/review" element={<CustomerReview />} />
           </Route>
 
           {/* Business Admin Routes */}
@@ -71,6 +74,7 @@ export default function App() {
             <Route path="/dashboard/super" element={<SuperDashboard />} />
             <Route path="/dashboard/super/businesses" element={<SuperBusinesses />} />
             <Route path="/dashboard/super/fraud" element={<SuperFraud />} />
+            <Route path="/dashboard/super/support" element={<SuperSupport />} />
           </Route>
         </Route>
       </Routes>

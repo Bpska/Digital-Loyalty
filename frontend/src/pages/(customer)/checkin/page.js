@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import React, { useState, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
-import { api } from "@/lib/api";
+import { api, getImageUrl } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -225,8 +225,20 @@ export default function CheckinPage() {
       status === "success" && checkInDetails && (
         React.createElement(Card, { className: "border-emerald-100 bg-emerald-50/20 text-center p-6 animate-fade-in", glass: true },
           React.createElement(CardContent, { className: "flex flex-col items-center justify-center space-y-4 pt-4" },
-            React.createElement('div', { className: "h-16 w-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center" },
-              React.createElement(CheckCircle, { className: "h-10 w-10" })
+            /* Business Branding Header */
+            React.createElement('div', { className: "flex flex-col items-center space-y-2 pb-2" },
+              checkInDetails.businessLogo ? React.createElement('img', {
+                src: getImageUrl(checkInDetails.businessLogo),
+                alt: checkInDetails.businessName || "Business Logo",
+                className: "h-16 w-16 rounded-full object-cover border-2 border-emerald-500/20 shadow-md"
+              }) : React.createElement('div', {
+                className: "h-16 w-16 rounded-full bg-gradient-to-br from-emerald-100 to-teal-50 border-2 border-emerald-500/20 flex items-center justify-center font-bold text-emerald-700 shadow-md text-xl"
+              }, (checkInDetails.businessName?.[0] || "B")),
+              React.createElement('h3', { className: "text-sm font-black text-foreground" }, checkInDetails.businessName)
+            ),
+
+            React.createElement('div', { className: "h-12 w-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center" },
+              React.createElement(CheckCircle, { className: "h-6 w-6" })
             ),
 
             React.createElement('div', { className: "space-y-1" },
@@ -292,7 +304,13 @@ export default function CheckinPage() {
             ),
 
             React.createElement(Button, {
-              className: "w-full bg-primary text-primary-foreground hover:bg-primary/90",
+              variant: "outline",
+              className: "w-full rounded-full border-primary text-primary hover:bg-primary/10",
+              onClick: () => navigate(`/review?businessId=${checkInDetails.checkIn?.businessId}`),
+            }, "⭐ Rate Your Experience"),
+
+            React.createElement(Button, {
+              className: "w-full bg-primary text-primary-foreground hover:bg-primary/90 rounded-full",
               onClick: () => navigate("/dashboard"),
             }, "Go to Dashboard")
           )
@@ -311,9 +329,9 @@ export default function CheckinPage() {
               React.createElement(CardDescription, { className: "text-xs text-muted-foreground max-w-xs" }, errorMsg)
             ),
             React.createElement('div', { className: "flex gap-2 w-full" },
-              React.createElement(Button, { variant: "outline", className: "flex-1", onClick: () => setStatus("idle") }, "Cancel"),
+              React.createElement(Button, { variant: "outline", className: "flex-1 rounded-full", onClick: () => setStatus("idle") }, "Cancel"),
               React.createElement(Button, {
-                className: "flex-1 bg-primary text-primary-foreground hover:bg-primary/90",
+                className: "flex-1 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full",
                 onClick: () => scanResult ? handleQrDecoded(scanResult) : startScanner(),
               }, scanResult ? "Try Again" : "Scan Again")
             )
@@ -378,11 +396,11 @@ export default function CheckinPage() {
               ),
 
               status === "idle" ? (
-                React.createElement(Button, { className: "w-full bg-primary text-primary-foreground hover:bg-primary/90", onClick: startScanner },
+                React.createElement(Button, { className: "w-full bg-primary text-primary-foreground hover:bg-primary/90 rounded-full", onClick: startScanner },
                   React.createElement(Camera, { className: "mr-2 h-4 w-4" }), " Open Camera Scanner"
                 )
               ) : (
-                React.createElement(Button, { variant: "outline", className: "w-full", onClick: stopScanner }, "Close Camera")
+                React.createElement(Button, { variant: "outline", className: "w-full rounded-full", onClick: stopScanner }, "Close Camera")
               ),
 
               React.createElement('div', { className: "relative flex py-2 items-center w-full" },

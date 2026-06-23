@@ -188,7 +188,7 @@ export function setTokenCookies(
     httpOnly: true,
     secure: isProd,
     sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
     path: '/api/v1/auth/refresh',     // Restrict to refresh endpoint only
   });
 }

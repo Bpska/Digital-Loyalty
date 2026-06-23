@@ -20,8 +20,13 @@ import {
   Bell, 
   Loader2,
   ClipboardCheck,
-  Settings2
+  Settings2,
+  Upload,
+  Users
 } from "lucide-react";
+
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -40,7 +45,45 @@ export default function BusinessAdminLayout({
   const [authorized, setAuthorized] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [profilePhone, setProfilePhone] = useState("");
+  const [profileAddress, setProfileAddress] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
+
   const businessId = _optionalChain([user, 'optionalAccess', _ => _.businessId]);
+
+  const handleOpenProfileModal = () => {
+    if (business) {
+      setProfileName(business.name || "");
+      setProfilePhone(business.phone || "");
+      setProfileAddress(business.address || "");
+    }
+    setShowProfileModal(true);
+  };
+
+  const handleUpdateProfileDetails = async (e) => {
+    e.preventDefault();
+    if (!profileName.trim()) {
+      alert("Business Name cannot be empty.");
+      return;
+    }
+    setProfileSaving(true);
+    try {
+      await api.patch(`/businesses/${businessId}`, {
+        name: profileName,
+        phone: profilePhone || null,
+        address: profileAddress || null,
+      });
+      await refetchProfile();
+      setShowProfileModal(false);
+      alert("Business profile updated successfully!");
+    } catch (err) {
+      alert(err.message || "Failed to update business profile.");
+    } finally {
+      setProfileSaving(false);
+    }
+  };
 
   const { data: business, refetch: refetchProfile } = useQuery({
     queryKey: ["businessProfile", businessId],
@@ -317,10 +360,6 @@ export default function BusinessAdminLayout({
                     , React.createElement('span', null, `GST (${pricing.gstPercent}%):`)
                     , React.createElement('span', null, "₹", pricing.gstAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 }))
                   )
-                  , React.createElement('div', { className: "flex justify-between border-t border-[#FFD8B8] pt-3.5 text-sm font-black mt-2" }
-                    , React.createElement('span', { className: "text-slate-800" }, "Total Payable:")
-                    , React.createElement('span', { className: "text-[#FF6A00]" }, "₹", pricing.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 }))
-                  )
                 )
                 , React.createElement('div', { className: "space-y-2.5 text-xs text-slate-600" }
                   , React.createElement('p', { className: "font-bold text-slate-700 text-[10px] uppercase tracking-wider" }, "What's included:")
@@ -556,7 +595,10 @@ export default function BusinessAdminLayout({
       )
 
       /* Main Container */
-      , React.createElement('div', { className: "flex-1 flex flex-col min-w-0 bg-background bg-dots pb-20 md:pb-0"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 162}}
+      , React.createElement('div', { className: "flex-1 flex flex-col min-w-0 bg-background bg-dots pb-20 md:pb-0 relative overflow-hidden"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 162}}
+        /* Background Glows for Orange Glassy Effect */
+        , React.createElement('div', { className: "absolute top-1/4 -right-48 w-[600px] h-[600px] bg-primary/8 rounded-full blur-[120px] pointer-events-none z-0" })
+        , React.createElement('div', { className: "absolute bottom-1/4 -left-48 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] pointer-events-none z-0" })
         /* Top Navbar */
         , React.createElement('header', { className: "h-16 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-30"           , __self: this, __source: {fileName: _jsxFileName, lineNumber: 164}}
           , React.createElement('div', { className: "flex items-center space-x-4"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 165}}
@@ -588,11 +630,16 @@ export default function BusinessAdminLayout({
             )
             , React.createElement('div', { className: "h-px bg-border w-4 hidden sm:block"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 182}} )
             /* User avatar */
-            , React.createElement('div', { className: "flex items-center space-x-2"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 184}}
-              , React.createElement('div', { className: "h-8 w-8 rounded-full bg-indigo-50 border border-indigo-100 text-primary font-bold flex items-center justify-center text-xs"           , __self: this, __source: {fileName: _jsxFileName, lineNumber: 185}}
+            , React.createElement('button', { 
+                onClick: handleOpenProfileModal,
+                className: "flex items-center space-x-2 p-1 rounded-lg hover:bg-muted transition-colors outline-none",
+                __self: this, 
+                __source: {fileName: _jsxFileName, lineNumber: 184}
+              }
+              , React.createElement('div', { className: "h-8 w-8 rounded-full bg-indigo-50 border border-indigo-100 text-primary font-bold flex items-center justify-center text-xs" }
                 , _optionalChain([user, 'optionalAccess', _ => _.name, 'optionalAccess', _2 => _2[0], 'optionalAccess', _3 => _3.toUpperCase, 'optionalCall', _4 => _4()])
               )
-              , React.createElement('span', { className: "text-xs text-foreground font-semibold hidden md:block"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 188}}
+              , React.createElement('span', { className: "text-xs text-foreground font-semibold hidden md:block" }
                 , _optionalChain([user, 'optionalAccess', _5 => _5.name])
               )
             )
@@ -600,7 +647,7 @@ export default function BusinessAdminLayout({
         )
 
         /* Content Box */
-        , React.createElement('main', { className: "flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 196}}
+        , React.createElement('main', { className: "flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto relative z-10"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 196}}
           , React.createElement(Outlet, null)
         )
         /* Notifications Modal Dialog */
@@ -634,8 +681,92 @@ export default function BusinessAdminLayout({
               )
             )
           )
-        /* Mobile Bottom Navigation */
-        , !isPending && React.createElement('div', { className: "fixed bottom-0 left-0 right-0 z-40 bg-card/85 backdrop-blur-lg border-t border-border px-2 py-2.5 flex justify-around items-center md:hidden safe-bottom shadow-[0_-4px_12px_rgba(0,0,0,0.05)]" }
+        /* Profile Settings Modal Dialog */
+        , showProfileModal && (
+            React.createElement(Dialog, { open: showProfileModal, onOpenChange: (open) => !open && setShowProfileModal(false) }
+              , React.createElement(DialogContent, { className: "max-w-[420px] bg-white border border-border p-6 rounded-2xl text-slate-800" }
+                , React.createElement(DialogHeader, { className: "pb-4 border-b border-border/60" }
+                  , React.createElement(DialogTitle, { className: "text-base font-bold text-foreground flex items-center gap-2" }
+                      , React.createElement(Users, { className: "h-4.5 w-4.5 text-primary" })
+                      , "Business Settings & Profile"
+                  )
+                  , React.createElement(DialogDescription, { className: "text-xs mt-1 text-muted-foreground" }
+                    , "Update your business details and view owner credentials"
+                  )
+                )
+                
+                , React.createElement('form', { onSubmit: handleUpdateProfileDetails, className: "space-y-4 py-4" }
+                  , React.createElement('div', { className: "space-y-1.5" }
+                    , React.createElement(Label, { htmlFor: "modal-profile-name", className: "text-xs font-semibold text-muted-foreground" }, "Business Name")
+                    , React.createElement(Input, {
+                        id: "modal-profile-name",
+                        value: profileName,
+                        onChange: (e) => setProfileName(e.target.value),
+                        placeholder: "e.g. Brews by Pattnaik",
+                        className: "text-xs border-border bg-white",
+                        required: true
+                      })
+                  )
+                  , React.createElement('div', { className: "space-y-1.5" }
+                    , React.createElement(Label, { htmlFor: "modal-profile-phone", className: "text-xs font-semibold text-muted-foreground" }, "Business Phone")
+                    , React.createElement(Input, {
+                        id: "modal-profile-phone",
+                        value: profilePhone,
+                        onChange: (e) => setProfilePhone(e.target.value),
+                        placeholder: "e.g. +91 99370 XXXXX",
+                        className: "text-xs border-border bg-white"
+                      })
+                  )
+                  , React.createElement('div', { className: "space-y-1.5" }
+                    , React.createElement(Label, { htmlFor: "modal-profile-address", className: "text-xs font-semibold text-muted-foreground" }, "Business Address")
+                    , React.createElement(Input, {
+                        id: "modal-profile-address",
+                        value: profileAddress,
+                        onChange: (e) => setProfileAddress(e.target.value),
+                        placeholder: "e.g. MG Road, Bhubaneswar",
+                        className: "text-xs border-border bg-white"
+                      })
+                  )
+                  
+                  , React.createElement(Button, { type: "submit", className: "w-full rounded-full bg-primary hover:bg-primary/95 text-white font-semibold text-xs mt-2", disabled: profileSaving }
+                    , profileSaving ? React.createElement(Loader2, { className: "h-3.5 w-3.5 animate-spin mr-1.5" }) : null
+                    , "Save Profile Changes"
+                  )
+                )
+
+                /* Read-only details / Metadata Block */
+                , React.createElement('div', { className: "border-t border-dashed border-border pt-4 space-y-2 text-xs" }
+                  , React.createElement('p', { className: "text-[10px] font-black text-muted-foreground uppercase tracking-wider mb-2" }, "Account Metadata")
+                  , React.createElement('div', { className: "flex justify-between" }
+                    , React.createElement('span', { className: "text-muted-foreground" }, "Owner Name:")
+                    , React.createElement('span', { className: "font-semibold text-foreground" }, business?.owner?.name || "—")
+                  )
+                  , React.createElement('div', { className: "flex justify-between" }
+                    , React.createElement('span', { className: "text-muted-foreground" }, "Owner Email:")
+                    , React.createElement('span', { className: "font-semibold text-foreground" }, business?.owner?.email || "—")
+                  )
+                  , React.createElement('div', { className: "flex justify-between" }
+                    , React.createElement('span', { className: "text-muted-foreground" }, "Owner Phone:")
+                    , React.createElement('span', { className: "font-semibold text-foreground font-mono" }, business?.owner?.phone || "—")
+                  )
+                  , React.createElement('div', { className: "flex justify-between" }
+                    , React.createElement('span', { className: "text-muted-foreground" }, "Timezone:")
+                    , React.createElement('span', { className: "text-slate-600 font-medium text-right truncate max-w-[150px]" }, business?.timezone || "Asia/Kolkata")
+                  )
+                  , React.createElement('div', { className: "flex justify-between items-center" }
+                    , React.createElement('span', { className: "text-muted-foreground" }, "Business Status:")
+                    , React.createElement('span', { className: `text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                        business?.status === 'ACTIVE' 
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      }` }, business?.status || "—")
+                  )
+                )
+              )
+            )
+          )
+        /* Mobile Bottom Navigation - Android Material 3 Style */
+        , !isPending && React.createElement('div', { className: "fixed bottom-0 left-0 right-0 z-40 bg-white/95 border-t border-border/60 flex justify-around items-center py-2 pb-safe md:hidden shadow-[0_-4px_16px_rgba(0,0,0,0.04)] backdrop-blur-md" }
           , [
               { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard/business" },
               { label: "Branches", icon: MapPin, href: "/dashboard/business/branches" },
@@ -646,29 +777,38 @@ export default function BusinessAdminLayout({
               const isActive = item.href ? pathname === item.href : false;
               const Icon = item.icon;
               
+              const content = React.createElement(React.Fragment, null,
+                React.createElement('div', { 
+                  className: cn(
+                    "h-8 w-14 rounded-full flex items-center justify-center transition-all duration-300 transform",
+                    isActive 
+                      ? "bg-primary/10 text-primary scale-105" 
+                      : "text-muted-foreground group-hover:text-foreground"
+                  )
+                }, 
+                  React.createElement(Icon, { className: "h-4.5 w-4.5" })
+                ),
+                React.createElement('span', { 
+                  className: cn(
+                    "text-[10px] tracking-tight transition-all duration-200 mt-1 block text-center",
+                    isActive ? "text-primary font-bold animate-pulse-subtle" : "text-muted-foreground font-medium"
+                  )
+                }, item.label)
+              );
+
               if (item.onClick) {
                 return React.createElement('button', {
                   key: idx,
                   onClick: item.onClick,
-                  className: "flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-200 text-muted-foreground hover:text-foreground active:scale-95 min-w-[56px]"
-                }
-                  , React.createElement(Icon, { className: "h-5 w-5 mb-0.5 stroke-[2px]" })
-                  , React.createElement('span', { className: "text-[9px] tracking-tight font-medium" }, item.label)
-                );
+                  className: "flex flex-col items-center justify-center group py-1 min-w-[64px] active:scale-95 transition-transform"
+                }, content);
               }
 
               return React.createElement(Link, {
                 key: item.href,
                 to: item.href,
-                className: cn(
-                  "flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-200 relative min-w-[56px]",
-                  isActive ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground"
-                )
-              }
-                , React.createElement(Icon, { className: cn("h-5 w-5 mb-0.5", isActive ? "stroke-[2.5px]" : "stroke-[2px]") })
-                , React.createElement('span', { className: "text-[9px] tracking-tight font-medium" }, item.label)
-                , isActive && React.createElement('span', { className: "absolute -bottom-1 w-4 h-1 bg-primary rounded-full" })
-              );
+                className: "flex flex-col items-center justify-center group py-1 min-w-[64px] active:scale-95 transition-transform"
+              }, content);
             })
           )
       )

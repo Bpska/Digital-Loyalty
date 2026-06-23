@@ -135,7 +135,6 @@ export default function CustomerLayout({
 
   const navItems = [
     { label: "Home", icon: Home, href: "/dashboard" },
-    { label: "Check In", icon: Scan, href: "/checkin", highlight: true },
     { label: "History", icon: History, href: "/history" },
     { label: "Points", icon: Award, href: "/loyalty-history" },
     { label: "Profile", icon: User, href: "/profile" },
@@ -143,7 +142,7 @@ export default function CustomerLayout({
 
   return (
     React.createElement('div', { className: "min-h-screen bg-[#f8fafc] bg-dots safe-top safe-bottom text-foreground"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 55}}
-      , React.createElement('div', { className: "mx-auto min-h-screen max-w-md bg-white border-x border-border shadow-sm relative flex flex-col pb-20"          , __self: this, __source: {fileName: _jsxFileName, lineNumber: 56}}
+      , React.createElement('div', { className: "mx-auto min-h-screen max-w-md bg-white border-x border-border shadow-sm relative flex flex-col pb-28"          , __self: this, __source: {fileName: _jsxFileName, lineNumber: 56}}
 
         /* Header Bar */
         , React.createElement('header', { className: "sticky top-0 z-30 flex items-center justify-between border-b border-border bg-white/80 p-4 backdrop-blur-md"          , __self: this, __source: {fileName: _jsxFileName, lineNumber: 59}}
@@ -181,33 +180,40 @@ export default function CustomerLayout({
           , React.createElement(Outlet, null)
         )
 
-        /* Bottom PWA Navbar */
-        , React.createElement('nav', { className: "fixed bottom-0 left-0 right-0 z-40 mx-auto max-w-md border-t border-border bg-white/95 py-2 backdrop-blur-lg px-6 flex justify-between items-center shadow-md"                , __self: this, __source: {fileName: _jsxFileName, lineNumber: 81}}
+        /* Floating Scan QR Button - Right side, upper the navbar */
+        , React.createElement('div', { className: "fixed bottom-24 left-4 right-4 z-40 mx-auto max-w-sm flex justify-end pointer-events-none pr-6" }
+          , React.createElement(Link, {
+              to: "/checkin",
+              className: cn(
+                "pointer-events-auto h-12 w-12 rounded-full flex items-center justify-center transition-all duration-300 transform active:scale-95 shadow-[0_8px_32px_0_rgba(255,106,0,0.25)] border border-primary/35 backdrop-blur-md ring-4 ring-primary/20",
+                pathname === "/checkin"
+                  ? "bg-primary/85 text-white scale-105"
+                  : "bg-white/65 text-primary hover:bg-white/80 hover:scale-110"
+              )
+            }
+            , React.createElement(Scan, { className: "h-5 w-5" })
+          )
+        )
+
+        /* Bottom PWA Navbar - Floating Pill Design */
+        , React.createElement('nav', { className: "fixed bottom-4 left-4 right-4 z-40 mx-auto max-w-sm border border-border bg-white/90 py-2.5 px-4 backdrop-blur-md flex justify-between items-center shadow-[0_10px_30px_-5px_rgba(0,0,0,0.08)] rounded-full transition-all duration-300 hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.12)]" }
           , navItems.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
-
-            if (item.highlight) {
-              return (
-                React.createElement(Link, { key: item.href, to: item.href, className: "relative -top-4" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 88}}
-                  , React.createElement('div', { className: "flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-tr from-primary to-indigo-500 text-white shadow-lg shadow-indigo-500/20 active:scale-90 transition-transform"             , __self: this, __source: {fileName: _jsxFileName, lineNumber: 89}}
-                    , React.createElement(Icon, { className: "h-6 w-6" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 90}} )
-                  )
-                )
-              );
-            }
 
             return (
               React.createElement(Link, {
                 key: item.href,
                 to: item.href,
                 className: cn(
-                  "flex flex-col items-center space-y-1 text-muted-foreground hover:text-foreground transition-colors py-1 px-3 rounded-lg",
-                  isActive && "text-primary font-medium"
-                ), __self: this, __source: {fileName: _jsxFileName, lineNumber: 97}}
-
-                , React.createElement(Icon, { className: "h-5 w-5" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 105}} )
-                , React.createElement('span', { className: "text-[10px]", __self: this, __source: {fileName: _jsxFileName, lineNumber: 106}}, item.label)
+                  "flex flex-col items-center space-y-1 transition-all duration-300 py-1.5 px-3 rounded-full min-w-[62px] transform active:scale-95",
+                  isActive 
+                    ? "bg-primary text-white font-bold shadow-md shadow-primary/20 scale-105 -translate-y-0.5" 
+                    : "text-muted-foreground hover:text-foreground hover:bg-slate-50/80 hover:scale-105"
+                )
+              }
+                , React.createElement(Icon, { className: "h-4 w-4" })
+                , React.createElement('span', { className: "text-[9px] font-bold" }, item.label)
               )
             );
           })

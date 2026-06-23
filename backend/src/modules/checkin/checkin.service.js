@@ -93,6 +93,7 @@ export async function processCheckIn(input) {
         select: {
           id: true,
           name: true,
+          logoUrl: true,
           status: true,
           deletedAt: true,
           timezone: true,
@@ -263,6 +264,8 @@ export async function processCheckIn(input) {
 
     return {
       checkIn,
+      businessName: branch.business.name,
+      businessLogo: branch.business.logoUrl,
       pointsEarned: pointsToAdd,
       totalPoints: customerPoints.totalPoints,
       totalVisits: customerPoints.totalVisits,

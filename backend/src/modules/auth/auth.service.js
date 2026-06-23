@@ -535,7 +535,7 @@ async function issueTokens(tokenUser, ipAddress) {
     data: {
       userId: tokenUser.id,
       tokenHash,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
       ipAddress: _nullishCoalesce(ipAddress, () => ( null)),
     },
   });

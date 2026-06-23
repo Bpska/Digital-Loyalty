@@ -23,7 +23,8 @@ import {
   TrendingUp,
   Calendar,
   AlertCircle,
-  Loader2
+  Loader2,
+  Upload
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 export default function BusinessDashboard() {
@@ -33,6 +34,12 @@ export default function BusinessDashboard() {
 
   const logoInputRef = React.useRef(null);
   const [logoUploading, setLogoUploading] = React.useState(false);
+
+  const [bizType, setBizType] = React.useState("");
+  const [revGoogleUrl, setRevGoogleUrl] = React.useState("");
+  const [revInstagramUrl, setRevInstagramUrl] = React.useState("");
+  const [revFacebookUrl, setRevFacebookUrl] = React.useState("");
+  const [revSaving, setRevSaving] = React.useState(false);
 
   const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -149,6 +156,42 @@ export default function BusinessDashboard() {
       alert(err.message || "Failed to save social links.");
     } finally {
       setSocialSaving(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (businessId) {
+      api.get(`/reviews/settings/${businessId}`)
+        .then((res) => {
+          if (res && res.data) {
+            setBizType(res.data.businessType || "");
+            setRevGoogleUrl(res.data.googleReviewUrl || "");
+            setRevInstagramUrl(res.data.instagramUrl || "");
+            setRevFacebookUrl(res.data.facebookUrl || "");
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to fetch review settings:", err);
+        });
+    }
+  }, [businessId]);
+
+  const handleSaveReviewSettings = async (e) => {
+    e.preventDefault();
+    setRevSaving(true);
+    try {
+      await api.post(`/reviews/settings/${businessId}`, {
+        businessType: bizType || null,
+        googleReviewUrl: revGoogleUrl || null,
+        instagramUrl: revInstagramUrl || null,
+        facebookUrl: revFacebookUrl || null,
+      });
+      await refetchProfile();
+      alert("AI Review settings saved successfully!");
+    } catch (err) {
+      alert(err.message || "Failed to save AI Review settings.");
+    } finally {
+      setRevSaving(false);
     }
   };
 
@@ -284,7 +327,10 @@ export default function BusinessDashboard() {
       /* Title Header */
       , React.createElement('div', { className: "flex flex-col md:flex-row md:items-center md:justify-between gap-4", __self: this, __source: { fileName: _jsxFileName, lineNumber: 123 } }
         , React.createElement('div', { className: "flex items-center gap-4", __self: this, __source: { fileName: _jsxFileName, lineNumber: 124 } }
-          , React.createElement('div', { className: "relative group w-16 h-16 shrink-0 rounded-2xl border-2 border-border shadow-md overflow-hidden bg-slate-50 flex items-center justify-center cursor-pointer" }
+          , React.createElement('div', {
+              onClick: () => logoInputRef.current?.click(),
+              className: "relative group w-16 h-16 shrink-0 rounded-2xl border-2 border-border shadow-md overflow-hidden bg-slate-50 flex items-center justify-center cursor-pointer"
+            }
             , logoUploading ? (
                 React.createElement(Loader2, { className: "h-6 w-6 animate-spin text-primary" })
               ) : (
@@ -295,9 +341,9 @@ export default function BusinessDashboard() {
                       className: "w-full h-full object-cover group-hover:opacity-60 transition-opacity"
                     })
                   , React.createElement('div', {
-                      onClick: () => logoInputRef.current?.click(),
-                      className: "absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className: "absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
                     }
+                    , React.createElement(Upload, { className: "h-4 w-4 text-white mb-1" })
                     , React.createElement('span', { className: "text-[9px] text-white font-extrabold tracking-wider uppercase" }, "Upload")
                   )
                 )
@@ -310,7 +356,7 @@ export default function BusinessDashboard() {
             )
           )
         )
-        , React.createElement('div', { className: "flex gap-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 132 } }
+        , React.createElement('div', { className: "flex flex-wrap gap-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 132 } }
           , React.createElement(Button, { variant: "outline", size: "sm", onClick: () => refetchCheckins(), disabled: checkinsFetching, __self: this, __source: { fileName: _jsxFileName, lineNumber: 133 } }
             , React.createElement(RefreshCcw, { className: `mr-2 h-4 w-4 ${checkinsFetching ? 'animate-spin' : ''}`, __self: this, __source: { fileName: _jsxFileName, lineNumber: 134 } })
             , checkinsFetching ? "Syncing..." : "Sync Logs"
@@ -454,77 +500,136 @@ export default function BusinessDashboard() {
           )
         )
 
-        /* Right Panel: Subscription & Limits */
-        , React.createElement(Card, { className: "glass", glass: true, __self: this, __source: { fileName: _jsxFileName, lineNumber: 257 } }
-          , React.createElement(CardHeader, { className: "p-6", __self: this, __source: { fileName: _jsxFileName, lineNumber: 258 } }
-            , React.createElement(CardTitle, { className: "text-base font-bold text-foreground flex items-center gap-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 259 } }
-              , React.createElement(Zap, { className: "h-4.5 w-4.5 text-primary", __self: this, __source: { fileName: _jsxFileName, lineNumber: 260 } }), " Current Plan Usage"
-            )
-            , React.createElement(CardDescription, { className: "text-xs text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 262 } }, "Track subscription capacity limits"
+        /* Right Panel Wrapper containing Subscription & Limits AND Business Profile Settings */
+        , React.createElement('div', { className: "space-y-6" }
+          , React.createElement(Card, { className: "glass", glass: true, __self: this, __source: { fileName: _jsxFileName, lineNumber: 257 } }
+            , React.createElement(CardHeader, { className: "p-6", __self: this, __source: { fileName: _jsxFileName, lineNumber: 258 } }
+              , React.createElement(CardTitle, { className: "text-base font-bold text-foreground flex items-center gap-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 259 } }
+                , React.createElement(Zap, { className: "h-4.5 w-4.5 text-primary", __self: this, __source: { fileName: _jsxFileName, lineNumber: 260 } }), " Current Plan Usage"
+              )
+              , React.createElement(CardDescription, { className: "text-xs text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 262 } }, "Track subscription capacity limits"
 
+              )
+            )
+            , React.createElement(CardContent, { className: "p-6 pt-0 space-y-6", __self: this, __source: { fileName: _jsxFileName, lineNumber: 266 } }
+              /* Plan Badge Info */
+              , React.createElement('div', { className: "rounded-xl bg-slate-50 p-4 border border-border flex items-center justify-between", __self: this, __source: { fileName: _jsxFileName, lineNumber: 268 } }
+                , React.createElement('div', { __self: this, __source: { fileName: _jsxFileName, lineNumber: 269 } }
+                  , React.createElement('span', { className: "text-[10px] text-muted-foreground font-bold uppercase tracking-wider block", __self: this, __source: { fileName: _jsxFileName, lineNumber: 270 } }, "Active Plan")
+                  , React.createElement('span', { className: "text-base font-extrabold text-foreground uppercase tracking-wider", __self: this, __source: { fileName: _jsxFileName, lineNumber: 271 } }, _optionalChain([business, 'optionalAccess', _10 => _10.plan, 'optionalAccess', _11 => _11.name]) || "No Plan")
+                )
+                , React.createElement('span', { className: "text-xs font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20", __self: this, __source: { fileName: _jsxFileName, lineNumber: 273 } }, "₹"
+                  , parseInt(_optionalChain([business, 'optionalAccess', _12 => _12.plan, 'optionalAccess', _13 => _13.priceMonthly]) || "0").toLocaleString("en-IN"), "/mo"
+                )
+              )
+
+              /* Utilization bar 1: Branches */
+              , React.createElement('div', { className: "space-y-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 279 } }
+                , React.createElement('div', { className: "flex justify-between text-xs font-semibold", __self: this, __source: { fileName: _jsxFileName, lineNumber: 280 } }
+                  , React.createElement('span', { className: "text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 281 } }, "Branches Installed")
+                  , React.createElement('span', { className: "text-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 282 } }, _optionalChain([business, 'optionalAccess', _14 => _14._count, 'access', _15 => _15.branches]), " / ", _optionalChain([business, 'optionalAccess', _16 => _16.plan, 'optionalAccess', _17 => _17.maxBranches]) || 0)
+                )
+                , React.createElement('div', { className: "w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-border", __self: this, __source: { fileName: _jsxFileName, lineNumber: 284 } }
+                  , React.createElement('div', {
+                    className: "bg-primary h-full rounded-full transition-all duration-500",
+                    style: { width: `${limitProgress(_optionalChain([business, 'optionalAccess', _18 => _18._count, 'access', _19 => _19.branches]) || 0, _optionalChain([business, 'optionalAccess', _20 => _20.plan, 'optionalAccess', _21 => _21.maxBranches]) || 1)}%` }, __self: this, __source: { fileName: _jsxFileName, lineNumber: 285 }
+                  }
+                  )
+                )
+              )
+
+              /* Utilization bar 2: Customers */
+              , React.createElement('div', { className: "space-y-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 293 } }
+                , React.createElement('div', { className: "flex justify-between text-xs font-semibold", __self: this, __source: { fileName: _jsxFileName, lineNumber: 294 } }
+                  , React.createElement('span', { className: "text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 295 } }, "Enrolled Customers")
+                  , React.createElement('span', { className: "text-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 296 } }, _optionalChain([analytics, 'optionalAccess', _22 => _22.totalCustomers]), " / ", _optionalChain([business, 'optionalAccess', _23 => _23.plan, 'optionalAccess', _24 => _24.maxCustomers]) || 0)
+                )
+                , React.createElement('div', { className: "w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-border", __self: this, __source: { fileName: _jsxFileName, lineNumber: 298 } }
+                  , React.createElement('div', {
+                    className: "bg-primary h-full rounded-full transition-all duration-500",
+                    style: { width: `${limitProgress(_optionalChain([analytics, 'optionalAccess', _25 => _25.totalCustomers]) || 0, _optionalChain([business, 'optionalAccess', _26 => _26.plan, 'optionalAccess', _27 => _27.maxCustomers]) || 1)}%` }, __self: this, __source: { fileName: _jsxFileName, lineNumber: 299 }
+                  }
+                  )
+                )
+              )
+
+              /* Subscription Expiry Alert */
+              , React.createElement('div', { className: "rounded-lg bg-slate-50 p-3.5 border border-border flex gap-3 text-xs text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 307 } }
+                , React.createElement(AlertCircle, { className: "h-5 w-5 text-primary shrink-0 mt-0.5", __self: this, __source: { fileName: _jsxFileName, lineNumber: 308 } })
+                , React.createElement('div', { __self: this, __source: { fileName: _jsxFileName, lineNumber: 309 } }
+                  , React.createElement('span', { className: "font-semibold text-foreground block mb-0.5", __self: this, __source: { fileName: _jsxFileName, lineNumber: 310 } }, "Subscription Status")
+                  , _optionalChain([business, 'optionalAccess', _28 => _28.subscription]) ? (
+                    React.createElement('span', { __self: this, __source: { fileName: _jsxFileName, lineNumber: 312 } }, "Your subscription is currently "
+                      , React.createElement('strong', { className: "text-emerald-600 uppercase", __self: this, __source: { fileName: _jsxFileName, lineNumber: 313 } }, business.subscription.status), ". Next billing date is "
+                      , business.subscription.currentPeriodEnd ? formatDate(business.subscription.currentPeriodEnd) : "N/A", "."
+                    )
+                  ) : (
+                    React.createElement('span', { __self: this, __source: { fileName: _jsxFileName, lineNumber: 317 } }, "No active Razorpay subscription. Plan is running on trial limits.")
+                  )
+                )
+              )
+              , React.createElement(Button, {
+                onClick: () => setShowUpgradeModal(true),
+                className: "w-full bg-primary hover:bg-primary/95 text-white shadow-sm font-semibold text-xs mt-2 rounded-full"
+              }, "Upgrade / Purchase Plan")
             )
           )
-          , React.createElement(CardContent, { className: "p-6 pt-0 space-y-6", __self: this, __source: { fileName: _jsxFileName, lineNumber: 266 } }
-            /* Plan Badge Info */
-            , React.createElement('div', { className: "rounded-xl bg-slate-50 p-4 border border-border flex items-center justify-between", __self: this, __source: { fileName: _jsxFileName, lineNumber: 268 } }
-              , React.createElement('div', { __self: this, __source: { fileName: _jsxFileName, lineNumber: 269 } }
-                , React.createElement('span', { className: "text-[10px] text-muted-foreground font-bold uppercase tracking-wider block", __self: this, __source: { fileName: _jsxFileName, lineNumber: 270 } }, "Active Plan")
-                , React.createElement('span', { className: "text-base font-extrabold text-foreground uppercase tracking-wider", __self: this, __source: { fileName: _jsxFileName, lineNumber: 271 } }, _optionalChain([business, 'optionalAccess', _10 => _10.plan, 'optionalAccess', _11 => _11.name]) || "No Plan")
+          /* AI Review Generator Settings Card */
+          , React.createElement(Card, { className: "glass", glass: true }
+            , React.createElement(CardHeader, { className: "p-6" }
+              , React.createElement(CardTitle, { className: "text-base font-bold text-foreground flex items-center gap-2" }
+                , "⭐ AI Review Settings"
               )
-              , React.createElement('span', { className: "text-xs font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20", __self: this, __source: { fileName: _jsxFileName, lineNumber: 273 } }, "₹"
-                , parseInt(_optionalChain([business, 'optionalAccess', _12 => _12.plan, 'optionalAccess', _13 => _13.priceMonthly]) || "0").toLocaleString("en-IN"), "/mo"
-              )
+              , React.createElement(CardDescription, { className: "text-xs text-muted-foreground" }, "Configure options for AI review generation and customer social links")
             )
-
-            /* Utilization bar 1: Branches */
-            , React.createElement('div', { className: "space-y-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 279 } }
-              , React.createElement('div', { className: "flex justify-between text-xs font-semibold", __self: this, __source: { fileName: _jsxFileName, lineNumber: 280 } }
-                , React.createElement('span', { className: "text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 281 } }, "Branches Installed")
-                , React.createElement('span', { className: "text-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 282 } }, _optionalChain([business, 'optionalAccess', _14 => _14._count, 'access', _15 => _15.branches]), " / ", _optionalChain([business, 'optionalAccess', _16 => _16.plan, 'optionalAccess', _17 => _17.maxBranches]) || 0)
-              )
-              , React.createElement('div', { className: "w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-border", __self: this, __source: { fileName: _jsxFileName, lineNumber: 284 } }
-                , React.createElement('div', {
-                  className: "bg-primary h-full rounded-full transition-all duration-500",
-                  style: { width: `${limitProgress(_optionalChain([business, 'optionalAccess', _18 => _18._count, 'access', _19 => _19.branches]) || 0, _optionalChain([business, 'optionalAccess', _20 => _20.plan, 'optionalAccess', _21 => _21.maxBranches]) || 1)}%` }, __self: this, __source: { fileName: _jsxFileName, lineNumber: 285 }
-                }
+            , React.createElement(CardContent, { className: "p-6 pt-0 space-y-4" }
+              , React.createElement('form', { onSubmit: handleSaveReviewSettings, className: "space-y-4" }
+                , React.createElement('div', { className: "space-y-1.5" }
+                  , React.createElement(Label, { htmlFor: "review-biz-type", className: "text-xs font-semibold text-muted-foreground" }, "Business Type")
+                  , React.createElement(Input, {
+                      id: "review-biz-type",
+                      value: bizType,
+                      onChange: (e) => setBizType(e.target.value),
+                      placeholder: "e.g. Cafe, Restaurant, Salon",
+                      className: "text-xs border-border bg-white"
+                    })
+                )
+                , React.createElement('div', { className: "space-y-1.5" }
+                  , React.createElement(Label, { htmlFor: "review-google-url", className: "text-xs font-semibold text-muted-foreground" }, "Google Review Link")
+                  , React.createElement(Input, {
+                      id: "review-google-url",
+                      value: revGoogleUrl,
+                      onChange: (e) => setRevGoogleUrl(e.target.value),
+                      placeholder: "https://g.page/r/...",
+                      className: "text-xs border-border bg-white"
+                    })
+                )
+                , React.createElement('div', { className: "space-y-1.5" }
+                  , React.createElement(Label, { htmlFor: "review-instagram-url", className: "text-xs font-semibold text-muted-foreground" }, "Instagram Link")
+                  , React.createElement(Input, {
+                      id: "review-instagram-url",
+                      value: revInstagramUrl,
+                      onChange: (e) => setRevInstagramUrl(e.target.value),
+                      placeholder: "https://instagram.com/...",
+                      className: "text-xs border-border bg-white"
+                    })
+                )
+                , React.createElement('div', { className: "space-y-1.5" }
+                  , React.createElement(Label, { htmlFor: "review-facebook-url", className: "text-xs font-semibold text-muted-foreground" }, "Facebook Link")
+                  , React.createElement(Input, {
+                      id: "review-facebook-url",
+                      value: revFacebookUrl,
+                      onChange: (e) => setRevFacebookUrl(e.target.value),
+                      placeholder: "https://facebook.com/...",
+                      className: "text-xs border-border bg-white"
+                    })
+                )
+                , React.createElement(Button, { type: "submit", className: "w-full rounded-full bg-primary hover:bg-primary/95 text-white font-semibold text-xs mt-2", disabled: revSaving }
+                  , revSaving ? React.createElement(Loader2, { className: "h-3.5 w-3.5 animate-spin mr-1.5" }) : null
+                  , "Save Review Settings"
                 )
               )
             )
-
-            /* Utilization bar 2: Customers */
-            , React.createElement('div', { className: "space-y-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 293 } }
-              , React.createElement('div', { className: "flex justify-between text-xs font-semibold", __self: this, __source: { fileName: _jsxFileName, lineNumber: 294 } }
-                , React.createElement('span', { className: "text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 295 } }, "Enrolled Customers")
-                , React.createElement('span', { className: "text-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 296 } }, _optionalChain([analytics, 'optionalAccess', _22 => _22.totalCustomers]), " / ", _optionalChain([business, 'optionalAccess', _23 => _23.plan, 'optionalAccess', _24 => _24.maxCustomers]) || 0)
-              )
-              , React.createElement('div', { className: "w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-border", __self: this, __source: { fileName: _jsxFileName, lineNumber: 298 } }
-                , React.createElement('div', {
-                  className: "bg-primary h-full rounded-full transition-all duration-500",
-                  style: { width: `${limitProgress(_optionalChain([analytics, 'optionalAccess', _25 => _25.totalCustomers]) || 0, _optionalChain([business, 'optionalAccess', _26 => _26.plan, 'optionalAccess', _27 => _27.maxCustomers]) || 1)}%` }, __self: this, __source: { fileName: _jsxFileName, lineNumber: 299 }
-                }
-                )
-              )
-            )
-
-            /* Subscription Expiry Alert */
-            , React.createElement('div', { className: "rounded-lg bg-slate-50 p-3.5 border border-border flex gap-3 text-xs text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 307 } }
-              , React.createElement(AlertCircle, { className: "h-5 w-5 text-primary shrink-0 mt-0.5", __self: this, __source: { fileName: _jsxFileName, lineNumber: 308 } })
-              , React.createElement('div', { __self: this, __source: { fileName: _jsxFileName, lineNumber: 309 } }
-                , React.createElement('span', { className: "font-semibold text-foreground block mb-0.5", __self: this, __source: { fileName: _jsxFileName, lineNumber: 310 } }, "Subscription Status")
-                , _optionalChain([business, 'optionalAccess', _28 => _28.subscription]) ? (
-                  React.createElement('span', { __self: this, __source: { fileName: _jsxFileName, lineNumber: 312 } }, "Your subscription is currently "
-                    , React.createElement('strong', { className: "text-emerald-600 uppercase", __self: this, __source: { fileName: _jsxFileName, lineNumber: 313 } }, business.subscription.status), ". Next billing date is "
-                    , business.subscription.currentPeriodEnd ? formatDate(business.subscription.currentPeriodEnd) : "N/A", "."
-                  )
-                ) : (
-                  React.createElement('span', { __self: this, __source: { fileName: _jsxFileName, lineNumber: 317 } }, "No active Razorpay subscription. Plan is running on trial limits.")
-                )
-              )
-            )
-            , React.createElement(Button, {
-              onClick: () => setShowUpgradeModal(true),
-              className: "w-full bg-primary hover:bg-primary/95 text-white shadow-sm font-semibold text-xs mt-2"
-            }, "Upgrade / Purchase Plan")
           )
         )
       )
@@ -608,12 +713,28 @@ export default function BusinessDashboard() {
             )
 
             , React.createElement('div', { className: "px-6 py-5 space-y-4" }
-              , pricingLoading ? (
-                React.createElement('div', { className: "flex flex-col items-center justify-center py-8" }
-                  , React.createElement(Loader2, { className: "h-8 w-8 animate-spin text-[#FF6A00]" })
-                  , React.createElement('span', { className: "text-xs text-slate-500 mt-2" }, "Calculating your price...")
-                )
-              ) : pricing && (
+              , business?.status === 'ACTIVE' ? (
+                  React.createElement('div', { className: "space-y-4 text-center py-4" }
+                    , React.createElement('div', { className: "h-12 w-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto" }
+                      , React.createElement(Zap, { className: "h-6 w-6" })
+                    )
+                    , React.createElement('div', { className: "space-y-1.5" }
+                      , React.createElement('h3', { className: "text-base font-extrabold text-foreground" }, "Launch Year Special Plan")
+                      , React.createElement('p', { className: "text-xs text-muted-foreground" }, "You are currently on the Launch Year Special plan (₹999/mo) and your account status is ACTIVE.")
+                    )
+                    , React.createElement('div', { className: "rounded-2xl border border-[#D0E2FF] bg-[#EDF5FF] p-4 text-xs text-[#002D9C] leading-relaxed text-left" }
+                      , "To upgrade to a higher tier plan with custom outlets/capacity, please contact Customer Support at "
+                      , React.createElement('strong', { className: "text-[#001D6C]" }, "support@logisaar.in")
+                      , "."
+                    )
+                    , React.createElement(Button, { className: "w-full rounded-full bg-primary hover:bg-primary/95 text-white font-semibold text-xs mt-2", onClick: () => setShowUpgradeModal(false) }, "Close")
+                  )
+                ) : pricingLoading ? (
+                  React.createElement('div', { className: "flex flex-col items-center justify-center py-8" }
+                    , React.createElement(Loader2, { className: "h-8 w-8 animate-spin text-[#FF6A00]" })
+                    , React.createElement('span', { className: "text-xs text-slate-500 mt-2" }, "Calculating your price...")
+                  )
+                ) : pricing && (
                 React.createElement(React.Fragment, null
                   /* Bill Breakdown */
                   , React.createElement('div', { className: "rounded-2xl border border-[#FFF2E8] bg-[#FFF9F5] p-4 space-y-2.5 text-xs" }
@@ -626,11 +747,6 @@ export default function BusinessDashboard() {
                       React.createElement('div', { className: "text-[10px] text-emerald-700 font-bold bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5 text-center" }
                         , `🎉 Launch Promotion Active — First ${pricing.promoLimit} Business Owners`
                       )
-                    )
-
-                    , React.createElement('div', { className: "flex justify-between border-t border-[#FFD8B8] pt-2.5 text-sm font-black" }
-                      , React.createElement('span', { className: "text-slate-800" }, "Total Payable:")
-                      , React.createElement('span', { className: "text-[#FF6A00]" }, "₹", pricing.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 }))
                     )
                   )
 
