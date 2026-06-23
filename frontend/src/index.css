@@ -294,9 +294,22 @@
 .animate-scan-laser {
   animation: scan-laser 2s ease-in-out infinite;
 }
-
 .bg-dots {
   background-image: radial-gradient(rgba(7, 18, 42, 0.05) 1.5px, transparent 1.5px) !important;
   background-size: 24px 24px !important;
 }
+/* HTML5 QR Code Scanner Video Fixes */
+#reader, #reader-redeem {
+  position: absolute !important;
+  width: 100% !important;
+  height: 100% !important;
+  top: 0 !important;
+  left: 0 !important;
+  border: none !important;
+}
 
+#reader video, #reader-redeem video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}

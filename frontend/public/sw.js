@@ -23,8 +23,8 @@ self.addEventListener("push", (event) => {
   const title = data.title || "ScanLoyal Alert";
   const options = {
     body: data.message || "You have a new update!",
-    icon: "/image.png",
-    badge: "/image.png",
+    icon: "/new.png",
+    badge: "/new.png",
     vibrate: [200, 100, 200],
     data: {
       url: data.url || "/"

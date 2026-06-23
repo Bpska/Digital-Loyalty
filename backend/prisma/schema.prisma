@@ -119,6 +119,7 @@ model User {
   loyaltyRequests      LoyaltyRequest[]
   loyaltyTransactions  LoyaltyTransaction[]
   reviewGenerations    ReviewGeneration[]
+  pushSubscriptions    PushSubscription[]
 
   @@index([phone])
   @@index([role])
@@ -135,6 +136,8 @@ model Business {
   phone     String?
   address   String?
   timezone  String         @default("Asia/Kolkata")
+  category  String?
+  bookingUrl String?
   status    BusinessStatus @default(ACTIVE)
   deletedAt DateTime?
 
@@ -661,4 +664,17 @@ model ReviewGeneration {
   @@index([businessId])
   @@index([rating])
   @@map("review_generations")
+}
+
+/// Push subscriptions for Web Push notifications (VAPID).
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  keys      Json     // Contains "p256dh" and "auth"
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }

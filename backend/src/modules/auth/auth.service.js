@@ -250,6 +250,8 @@ export async function registerBusiness(
         phone,
         address: input.address || 'Main Address',
         timezone: 'Asia/Kolkata',
+        category: input.category || null,
+        bookingUrl: input.bookingUrl || null,
         status: BusinessStatus.PENDING,
         ownerId: user.id,
       },

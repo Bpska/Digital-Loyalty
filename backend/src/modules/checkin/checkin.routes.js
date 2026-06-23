@@ -71,17 +71,39 @@ router.post(
 router.post(
   '/redeem',
   authenticate,
-  authorize(Role.STAFF),
+  authorize(Role.STAFF, Role.BUSINESS_ADMIN),
   validate(redeemSchema),
   async (req, res, next) => {
     try {
-      const staff = await import('../../config/prisma.js').then(m =>
-        m.default.staff.findUniqueOrThrow({ where: { userId: req.user.sub } })
-      );
+      let staffId = null;
+      let businessId = null;
+
+      if (req.user.role === Role.STAFF) {
+        const staff = await import('../../config/prisma.js').then(m =>
+          m.default.staff.findUniqueOrThrow({ where: { userId: req.user.sub } })
+        );
+        staffId = staff.id;
+        businessId = staff.businessId;
+      } else if (req.user.role === Role.BUSINESS_ADMIN) {
+        businessId = req.user.businessId;
+        if (!businessId) {
+          const prisma = await import('../../config/prisma.js').then(m => m.default);
+          const business = await prisma.business.findFirst({
+            where: { ownerId: req.user.sub, deletedAt: null },
+            select: { id: true },
+          });
+          businessId = business?.id;
+        }
+      }
+
+      if (!businessId) {
+        throw new AppError('Business ID not found for this user', 400);
+      }
+
       const result = await redeemReward(
         req.body.redemptionCode,
-        staff.id,
-        staff.businessId
+        staffId,
+        businessId
       );
       sendSuccess(res, result, result.message);
     } catch (err) {

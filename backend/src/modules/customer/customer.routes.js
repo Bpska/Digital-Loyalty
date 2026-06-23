@@ -24,6 +24,8 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
             facebookUrl: true,
             whatsappUrl: true,
             googleReviewUrl: true,
+            category: true,
+            bookingUrl: true,
             loyaltyPrograms: {
               where: {
                 isActive: true,

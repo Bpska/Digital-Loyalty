@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 const _jsxFileName = "src\\pages\\(business-admin)\\dashboard\\business\\page.tsx"; function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; } "use client";
 
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, getImageUrl } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +24,10 @@ import {
   Calendar,
   AlertCircle,
   Loader2,
-  Upload
+  Upload,
+  Scan,
+  QrCode,
+  Camera
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 export default function BusinessDashboard() {
@@ -40,6 +43,109 @@ export default function BusinessDashboard() {
   const [revInstagramUrl, setRevInstagramUrl] = React.useState("");
   const [revFacebookUrl, setRevFacebookUrl] = React.useState("");
   const [revSaving, setRevSaving] = React.useState(false);
+
+  const queryClient = useQueryClient();
+  const [showRedeemModal, setShowRedeemModal] = React.useState(false);
+  const [redeemCode, setRedeemCode] = React.useState("");
+  const [redeemLoading, setRedeemLoading] = React.useState(false);
+  const [redeemResult, setRedeemResult] = React.useState(null);
+  const [redeemError, setRedeemError] = React.useState("");
+  const [scanningRedeem, setScanningRedeem] = React.useState(false);
+  const html5QrCodeRedeemRef = React.useRef(null);
+
+  const handleCloseRedeemModal = async () => {
+    if (html5QrCodeRedeemRef.current && html5QrCodeRedeemRef.current.isScanning) {
+      try {
+        await html5QrCodeRedeemRef.current.stop();
+      } catch (err) {
+        console.error("Failed to stop scanner on close:", err);
+      }
+    }
+    setShowRedeemModal(false);
+    setRedeemCode("");
+    setRedeemResult(null);
+    setRedeemError("");
+    setScanningRedeem(false);
+  };
+
+  const handleProcessRedeem = async (code) => {
+    const codeToRedeem = code || redeemCode;
+    if (!codeToRedeem) {
+      setRedeemError("Please enter or scan a valid code");
+      return;
+    }
+    setRedeemLoading(true);
+    setRedeemError("");
+    setRedeemResult(null);
+    try {
+      const res = await api.post("/checkins/redeem", { redemptionCode: codeToRedeem });
+      setRedeemResult(res.data);
+      setRedeemCode("");
+      queryClient.invalidateQueries(["businessCheckins", businessId]);
+      queryClient.invalidateQueries(["businessAnalytics", businessId]);
+      refetchCheckins();
+    } catch (err) {
+      setRedeemError(err.response?.data?.message || err.message || "Failed to redeem reward. Please check the code and try again.");
+    } finally {
+      setRedeemLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    let qrScanner = null;
+    let isMounted = true;
+
+    if (showRedeemModal && scanningRedeem) {
+      const initScanner = async () => {
+        try {
+          const { Html5Qrcode } = await import("html5-qrcode");
+          if (!isMounted) return;
+
+          const scannerId = "reader-redeem";
+          qrScanner = new Html5Qrcode(scannerId);
+          html5QrCodeRedeemRef.current = qrScanner;
+
+          await qrScanner.start(
+            { facingMode: "environment" },
+            {
+              fps: 10,
+              qrbox: { width: 250, height: 250 },
+            },
+            (decodedText) => {
+              if (isMounted) {
+                qrScanner.stop().then(() => {
+                  setScanningRedeem(false);
+                  handleProcessRedeem(decodedText);
+                }).catch(err => {
+                  console.error("Failed to stop scanner on success:", err);
+                  setScanningRedeem(false);
+                  handleProcessRedeem(decodedText);
+                });
+              }
+            },
+            (_errorMessage) => {
+              // ignore scan errors
+            }
+          );
+        } catch (err) {
+          console.error("Failed to start camera scanner:", err);
+          if (isMounted) {
+            setScanningRedeem(false);
+            setRedeemError("Camera access denied or unavailable. Please enter the redemption code manually.");
+          }
+        }
+      };
+
+      const timer = setTimeout(initScanner, 100);
+      return () => {
+        clearTimeout(timer);
+        isMounted = false;
+        if (qrScanner && qrScanner.isScanning) {
+          qrScanner.stop().catch((err) => console.error("Error stopping scanner on cleanup:", err));
+        }
+      };
+    }
+  }, [showRedeemModal, scanningRedeem]);
 
   const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -216,7 +322,7 @@ export default function BusinessDashboard() {
           currency: order.currency,
           name: "ScanLoyal SaaS",
           description: "Launch Year Special — Yearly Subscription",
-          image: "/image.png",
+          image: "/new.png",
           order_id: order.orderId,
           handler: async (response) => {
             try {
@@ -336,7 +442,7 @@ export default function BusinessDashboard() {
               ) : (
                 React.createElement(React.Fragment, null
                   , React.createElement('img', {
-                      src: getImageUrl(business?.logoUrl) || "/image.png",
+                      src: getImageUrl(business?.logoUrl) || "/new.png",
                       alt: business?.name || "Logo",
                       className: "w-full h-full object-cover group-hover:opacity-60 transition-opacity"
                     })
@@ -371,9 +477,19 @@ export default function BusinessDashboard() {
               React.createElement(MapPin, { className: "mr-2 h-4 w-4", __self: this, __source: { fileName: _jsxFileName, lineNumber: 138 } }), " Manage Outlets"
             )
           )
+          , React.createElement(Button, {
+              onClick: () => {
+                setShowRedeemModal(true);
+                setScanningRedeem(true);
+              },
+              size: "sm",
+              className: "bg-gradient-to-r from-[#FF6A00] to-[#FF8E3C] hover:from-[#FF6A00] hover:to-[#FF8E3C] text-white shadow-md shadow-[#FF6A00]/25 font-bold hover:scale-[1.02] active:scale-[0.98] transition-all"
+            },
+              React.createElement(Scan, { className: "mr-2 h-4 w-4" }), " Scan & Redeem"
+            )
           , React.createElement(Button, { variant: "outline", size: "sm", onClick: handleOpenSocialModal },
-            "🔗 Social Links"
-          )
+              "🔗 Social Links"
+            )
         )
       )
 
@@ -704,7 +820,7 @@ export default function BusinessDashboard() {
               , React.createElement('div', { className: "absolute -bottom-8 -left-4 w-24 h-24 bg-white/5 rounded-full" })
               , React.createElement('div', { className: "relative z-10" }
                 , React.createElement('div', { className: "flex items-center gap-2 mb-1" }
-                  , React.createElement('img', { src: "/image.png", alt: "ScanLoyal", className: "h-6 w-auto object-contain brightness-0 invert" })
+                  , React.createElement('img', { src: "/new.png", alt: "ScanLoyal", className: "h-6 w-auto object-contain brightness-0 invert" })
                   , React.createElement('span', { className: "text-xs font-black uppercase tracking-widest opacity-80" }, "ScanLoyal")
                 )
                 , React.createElement('h2', { className: "text-xl font-black tracking-tight mt-2" }, "Launch Year Special")
@@ -867,6 +983,108 @@ export default function BusinessDashboard() {
                     )
                   )
                 )
+              )
+            )
+          )
+        )
+      )
+      /* Scan & Redeem QR Modal */
+      , showRedeemModal && (
+        React.createElement(Dialog, { open: showRedeemModal, onOpenChange: (open) => !open && handleCloseRedeemModal() }
+          , React.createElement(DialogContent, { className: "max-w-[400px] bg-white border border-border p-6 rounded-3xl text-slate-800" }
+            , React.createElement(DialogHeader, { className: "flex flex-col items-center justify-center text-center w-full" }
+              , React.createElement(DialogTitle, { className: "text-lg font-extrabold text-foreground" }, "Scan & Redeem Reward")
+              , React.createElement(DialogDescription, { className: "text-xs mt-1 text-muted-foreground" }, "Scan the customer's reward QR code or enter the code manually.")
+            )
+            , React.createElement('div', { className: "space-y-4 py-3" }
+              
+              /* Camera / Scanner container */
+              , scanningRedeem ? (
+                  React.createElement('div', { className: "space-y-3" }
+                    , React.createElement('div', { className: "relative w-full aspect-square max-w-[280px] mx-auto rounded-2xl overflow-hidden border-2 border-[#FF6A00]/40 bg-black flex items-center justify-center" }
+                      , React.createElement('div', { id: "reader-redeem", className: "absolute inset-0 w-full h-full" })
+                      , React.createElement('div', { className: "absolute inset-x-4 top-1/2 h-[2px] bg-[#FF6A00] animate-pulse z-10" })
+                    )
+                    , React.createElement(Button, {
+                        type: "button",
+                        variant: "outline",
+                        onClick: () => setScanningRedeem(false),
+                        className: "w-full text-xs rounded-xl"
+                      }
+                      , React.createElement(Camera, { className: "h-3.5 w-3.5 mr-1.5" })
+                      , "Use Manual Code Input"
+                    )
+                  )
+                ) : (
+                  React.createElement('div', { className: "space-y-3" }
+                    , React.createElement(Button, {
+                        type: "button",
+                        variant: "outline",
+                        onClick: () => {
+                          setRedeemError("");
+                          setScanningRedeem(true);
+                        },
+                        className: "w-full text-xs py-5 rounded-2xl border-2 border-dashed border-[#FF6A00]/40 hover:bg-[#FF6A00]/5 flex items-center justify-center gap-2"
+                      }
+                      , React.createElement(Scan, { className: "h-5 w-5 text-[#FF6A00]" })
+                      , React.createElement('span', { className: "font-bold text-[#FF6A00]" }, "Start Camera Scanner")
+                    )
+                  )
+                )
+
+              /* Manual entry input and status alerts */
+              , !scanningRedeem && React.createElement('div', { className: "space-y-3" }
+                  , React.createElement('div', { className: "space-y-1.5" }
+                    , React.createElement(Label, { htmlFor: "redeem-code-input", className: "text-xs font-bold text-muted-foreground" }, "Redemption Code")
+                    , React.createElement('div', { className: "flex gap-2" }
+                      , React.createElement(Input, {
+                          id: "redeem-code-input",
+                          placeholder: "e.g. A1B2C3D4",
+                          value: redeemCode,
+                          onChange: (e) => setRedeemCode(e.target.value.toUpperCase()),
+                          className: "text-xs border-border bg-white font-mono tracking-wider font-bold"
+                        })
+                      , React.createElement(Button, {
+                          type: "button",
+                          onClick: () => handleProcessRedeem(),
+                          disabled: redeemLoading,
+                          className: "bg-[#FF6A00] hover:bg-[#FF8E3C] text-white text-xs font-bold rounded-xl"
+                        }
+                        , redeemLoading ? React.createElement(Loader2, { className: "h-3.5 w-3.5 animate-spin" }) : "Redeem"
+                      )
+                    )
+                  )
+                )
+
+              /* Success outcome screen */
+              , redeemResult && (
+                  React.createElement('div', { className: "rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-xs text-emerald-800 space-y-1" }
+                    , React.createElement('div', { className: "flex items-center gap-2 font-bold text-emerald-950" }
+                      , React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", className: "h-4 w-4 text-emerald-600", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor" }
+                        , React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2.5, d: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" })
+                      )
+                      , "Redemption Successful!"
+                    )
+                    , React.createElement('p', null, `Reward: `, React.createElement('strong', null, redeemResult.reward.title))
+                    , React.createElement('p', null, `Customer: `, React.createElement('strong', null, redeemResult.customerName))
+                  )
+                )
+
+              /* Error outcome screen */
+              , redeemError && (
+                  React.createElement('div', { className: "rounded-2xl bg-red-50 border border-red-200 p-4 text-xs text-red-800 font-medium" }
+                    , redeemError
+                  )
+                )
+            )
+            , React.createElement(DialogFooter, { className: "pt-2" }
+              , React.createElement(Button, {
+                  type: "button",
+                  variant: "outline",
+                  onClick: handleCloseRedeemModal,
+                  className: "w-full text-xs rounded-xl"
+                }
+                , "Close"
               )
             )
           )

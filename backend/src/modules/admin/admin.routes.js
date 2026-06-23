@@ -407,6 +407,30 @@ router.put('/settings', validate(settingsSchema), async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Get all users in the platform (with optional role filter)
+router.get('/users', async (req, res, next) => {
+  try {
+    const { role } = req.query;
+    const users = await prisma.user.findMany({
+      where: {
+        deletedAt: null,
+        ...(role && { role }),
+      },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        email: true,
+        role: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    sendSuccess(res, users, 'Users retrieved successfully');
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Get support messages
 router.get('/support-messages', async (req, res, next) => {
   try {

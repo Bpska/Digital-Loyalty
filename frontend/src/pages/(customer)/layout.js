@@ -11,6 +11,7 @@ import { api } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 
 import { cn } from "@/lib/utils";
+import { subscribeUserToPush } from "@/lib/pushSubscription";
 
 export default function CustomerLayout({
   children,
@@ -34,7 +35,7 @@ export default function CustomerLayout({
       try {
         new Notification(title, {
           body,
-          icon: "/image.png",
+          icon: "/new.png",
           vibrate: [200, 100, 200],
         });
       } catch (e) {
@@ -43,7 +44,7 @@ export default function CustomerLayout({
           navigator.serviceWorker.ready.then((registration) => {
             registration.showNotification(title, {
               body,
-              icon: "/image.png",
+              icon: "/new.png",
               vibrate: [200, 100, 200],
             });
           }).catch(err => console.error("SW notification error:", err));
@@ -86,12 +87,8 @@ export default function CustomerLayout({
       fetchNotifications();
       const interval = setInterval(fetchNotifications, 20000);
 
-      // Request native browser/mobile phone notification permission
-      if (typeof window !== "undefined" && "Notification" in window) {
-        if (Notification.permission === "default") {
-          Notification.requestPermission();
-        }
-      }
+      // Auto subscribe user to Web Push notifications (VAPID)
+      subscribeUserToPush();
 
       return () => clearInterval(interval);
     }
@@ -147,7 +144,7 @@ export default function CustomerLayout({
         /* Header Bar */
         , React.createElement('header', { className: "sticky top-0 z-30 flex items-center justify-between border-b border-border bg-white/80 p-4 backdrop-blur-md"          , __self: this, __source: {fileName: _jsxFileName, lineNumber: 59}}
           , React.createElement('div', { className: "flex items-center space-x-2" }
-            , React.createElement('img', { src: "/image.png", alt: "LogiSaar Logo", className: "h-6 w-auto object-contain" })
+            , React.createElement('img', { src: "/new.png", alt: "LogiSaar Logo", className: "h-6 w-auto object-contain" })
             , React.createElement('div', { className: "flex flex-col justify-center" }
               , React.createElement('span', { className: "text-xs font-extrabold tracking-tight text-foreground leading-tight" }, "LogiSaar")
               , React.createElement('span', { className: "text-[8px] font-black text-[#FF6A00] uppercase tracking-wider leading-none" }, "ScanLoyal")
@@ -196,7 +193,7 @@ export default function CustomerLayout({
         )
 
         /* Bottom PWA Navbar - Floating Pill Design */
-        , React.createElement('nav', { className: "fixed bottom-4 left-4 right-4 z-40 mx-auto max-w-sm border border-border bg-white/90 py-2.5 px-4 backdrop-blur-md flex justify-between items-center shadow-[0_10px_30px_-5px_rgba(0,0,0,0.08)] rounded-full transition-all duration-300 hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.12)]" }
+        , React.createElement('nav', { className: "fixed bottom-4 left-4 right-4 z-40 mx-auto max-w-sm border border-[#FF6A00]/25 bg-white/70 py-2.5 px-4 backdrop-blur-xl flex justify-between items-center shadow-[0_8px_32px_0_rgba(255,106,0,0.15)] rounded-full transition-all duration-300 hover:shadow-[0_12px_40px_0_rgba(255,106,0,0.25)]" }
           , navItems.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
@@ -208,8 +205,8 @@ export default function CustomerLayout({
                 className: cn(
                   "flex flex-col items-center space-y-1 transition-all duration-300 py-1.5 px-3 rounded-full min-w-[62px] transform active:scale-95",
                   isActive 
-                    ? "bg-primary text-white font-bold shadow-md shadow-primary/20 scale-105 -translate-y-0.5" 
-                    : "text-muted-foreground hover:text-foreground hover:bg-slate-50/80 hover:scale-105"
+                    ? "bg-gradient-to-r from-[#FF6A00] to-[#FF8E3C] text-white font-bold shadow-lg shadow-[#FF6A00]/25 scale-105 -translate-y-1" 
+                    : "text-[#5A4E46] hover:text-[#FF6A00] hover:bg-white/40 hover:scale-105"
                 )
               }
                 , React.createElement(Icon, { className: "h-4 w-4" })

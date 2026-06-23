@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 const _jsxFileName = "src\\pages\\(auth)\\login\\page.tsx"; function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; } "use client";
 
 import React, { useState, useEffect } from "react";
@@ -24,6 +24,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [businessName, setBusinessName] = useState("");
   const [businessAddress, setBusinessAddress] = useState("");
+  const [category, setCategory] = useState("Cafe");
+  const [bookingUrl, setBookingUrl] = useState("");
   const [successMsg, setSuccessMsg] = useState(null);
   const [showForgotDialog, setShowForgotDialog] = useState(false);
 
@@ -165,7 +167,7 @@ export default function LoginPage() {
       }
       // Prepend +91 so backend phone schema always gets E.164 format
       const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
-      const success = await registerBusiness(name, email, formattedPhone, password, businessName, businessAddress);
+      const success = await registerBusiness(name, email, formattedPhone, password, businessName, businessAddress, category, category === "Hotels" ? bookingUrl : null);
       if (success && !useAuthStore.getState().user) {
         setSuccessMsg("Your registration request was submitted! Once the Super Admin reviews and approves your account, you will be able to sign in.");
       }
@@ -180,7 +182,7 @@ export default function LoginPage() {
 
       /* Brand Header */
       , React.createElement('div', { className: "mb-8 flex flex-col items-center text-center animate-fade-in", __self: this, __source: { fileName: _jsxFileName, lineNumber: 172 } }
-        , React.createElement('img', { src: "/image.png", alt: "LogiSaar Logo", className: "h-11 w-auto object-contain mb-3" })
+        , React.createElement('img', { src: "/new.png", alt: "LogiSaar Logo", className: "h-11 w-auto object-contain mb-3" })
         , React.createElement('h1', { className: "text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl", __self: this, __source: { fileName: _jsxFileName, lineNumber: 176 } }, "ScanLoyal"
 
         )
@@ -458,17 +460,46 @@ export default function LoginPage() {
                       )
                     )
 
-                    , React.createElement('div', { className: "space-y-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 435 } }
-                      , React.createElement(Label, { htmlFor: "biz-address", __self: this, __source: { fileName: _jsxFileName, lineNumber: 436 } }, "Business Address (Optional)")
+                    , React.createElement('div', { className: "space-y-2", __self: this, __source: { fileName: _jsxFileName } }
+                      , React.createElement(Label, { htmlFor: "biz-address", __self: this, __source: { fileName: _jsxFileName } }, "Business Address (Optional)")
                       , React.createElement(Input, {
                         id: "biz-address",
                         type: "text",
                         placeholder: "MG Road, Bhubaneswar, Odisha",
                         value: businessAddress,
                         onChange: (e) => setBusinessAddress(e.target.value),
-                        disabled: loading, __self: this, __source: { fileName: _jsxFileName, lineNumber: 437 }
-                      }
-                      )
+                        disabled: loading, __self: this, __source: { fileName: _jsxFileName }
+                      })
+                    )
+                    , React.createElement('div', { className: "space-y-2", __self: this, __source: { fileName: _jsxFileName } }
+                      , React.createElement(Label, { htmlFor: "biz-category", __self: this, __source: { fileName: _jsxFileName } }, "Business Category")
+                      , React.createElement('select', {
+                          id: "biz-category",
+                          value: category,
+                          onChange: (e) => setCategory(e.target.value),
+                          className: "w-full h-10 border border-zinc-200 rounded-md bg-white px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary text-slate-800",
+                          disabled: loading, __self: this, __source: { fileName: _jsxFileName }
+                        },
+                          React.createElement('option', { value: "Cafe" }, "Café"),
+                          React.createElement('option', { value: "Restaurant" }, "Restaurant"),
+                          React.createElement('option', { value: "Salon" }, "Salon"),
+                          React.createElement('option', { value: "Retail" }, "Retail"),
+                          React.createElement('option', { value: "Bakery" }, "Bakery"),
+                          React.createElement('option', { value: "Hotels" }, "Hotels"),
+                          React.createElement('option', { value: "Other" }, "Other")
+                        )
+                    )
+                    , category === "Hotels" && React.createElement('div', { className: "space-y-2", __self: this, __source: { fileName: _jsxFileName } }
+                      , React.createElement(Label, { htmlFor: "biz-booking-url", __self: this, __source: { fileName: _jsxFileName } }, "Booking Website URL")
+                      , React.createElement(Input, {
+                          id: "biz-booking-url",
+                          type: "url",
+                          placeholder: "e.g. https://myhotelbooking.com",
+                          value: bookingUrl,
+                          onChange: (e) => setBookingUrl(e.target.value),
+                          required: true,
+                          disabled: loading, __self: this, __source: { fileName: _jsxFileName }
+                        })
                     )
                   )
                   , React.createElement('div', { className: "space-y-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 449 } }
@@ -535,6 +566,11 @@ export default function LoginPage() {
           )
         )
         , React.createElement(CardFooter, { className: "flex flex-col text-center space-y-2 pb-6", __self: this, __source: { fileName: _jsxFileName, lineNumber: 497 } }
+          , React.createElement('div', { className: "flex items-center justify-center gap-3 text-[11px] text-muted-foreground pb-2" }
+            , React.createElement(Link, { to: "/privacy-policy", className: "hover:text-[#FF6A00] hover:underline" }, "Privacy Policy")
+            , React.createElement('span', null, "•")
+            , React.createElement(Link, { to: "/terms-of-service", className: "hover:text-[#FF6A00] hover:underline" }, "Terms of Service")
+          )
           , React.createElement('div', { className: "text-xs text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 498 } }, "For development seeds try default passwords like:"
 
           )

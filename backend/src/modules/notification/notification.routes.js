@@ -3,6 +3,8 @@ import { authenticate } from '../../middlewares/auth.middleware.js';
 import { sendSuccess } from '../../utils/response.js';
 import { parsePagination, buildPaginationMeta } from '../../utils/pagination.js';
 import prisma from '../../config/prisma.js';
+import { env } from '../../config/env.js';
+import { saveSubscription } from './push.service.js';
 
 const router = Router();
 
@@ -52,6 +54,22 @@ router.get('/unread-count', authenticate, async (req, res, next) => {
     });
     sendSuccess(res, { count });
   } catch (err) { next(err); }
+});
+
+// Get VAPID public key dynamically
+router.get('/vapid-key', authenticate, (req, res) => {
+  sendSuccess(res, { publicKey: env.VAPID_PUBLIC_KEY || null });
+});
+
+// Save push subscription for user
+router.post('/subscribe', authenticate, async (req, res, next) => {
+  try {
+    const { subscription } = req.body;
+    await saveSubscription(req.user.sub, subscription);
+    sendSuccess(res, null, 'Push subscription saved successfully');
+  } catch (err) {
+    next(err);
+  }
 });
 
 export default router;

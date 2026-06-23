@@ -10,6 +10,8 @@ import SuperAdminLayout from './pages/(super-admin)/layout.js';
 // Pages
 import PublicLanding from './pages/page.js';
 import Login from './pages/(auth)/login/page.js';
+import PrivacyPolicy from './pages/privacy-policy.js';
+import TermsOfService from './pages/terms-of-service.js';
 
 // Customer Pages
 import CustomerDashboard from './pages/(customer)/dashboard/page.js';
@@ -45,6 +47,8 @@ export default function App() {
           {/* Public Routes */}
           <Route path="/" element={<PublicLanding />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
 
           {/* Customer Routes */}
           <Route element={<CustomerLayout />}>

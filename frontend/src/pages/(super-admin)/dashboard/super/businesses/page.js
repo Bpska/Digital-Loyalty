@@ -368,7 +368,7 @@ export default function BusinessesManagementPage() {
                   , React.createElement(CardContent, { className: "p-6 grid grid-cols-1 md:grid-cols-4 gap-4 items-center", __self: this, __source: { fileName: _jsxFileName, lineNumber: 183 } }
                     /* Merchant Info */
                     , React.createElement('div', { className: "space-y-1", __self: this, __source: { fileName: _jsxFileName, lineNumber: 185 } }
-                      , React.createElement('h3', { className: "text-base font-bold text-foreground flex items-center gap-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 186 } }
+                       , React.createElement('h3', { className: "text-base font-bold text-foreground flex items-center flex-wrap gap-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 186 } }
                         , business.name
                         , React.createElement('span', {
                           className: `text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${business.status === "ACTIVE"
@@ -380,11 +380,16 @@ export default function BusinessesManagementPage() {
                         }
                           , business.status
                         )
+                        , business.category && React.createElement('span', { className: "text-[9px] font-extrabold bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full uppercase" }, business.category)
                       )
                       , React.createElement('p', { className: "text-xs text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 198 } }, "Created: ", formatDate(business.createdAt))
                       , React.createElement('p', { className: "text-[10px] text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 199 } }, "ID: ", business.id)
                       , business.address && React.createElement('p', { className: "text-[10px] text-muted-foreground italic truncate max-w-[200px] mt-0.5" }, "Address: ", business.address)
                       , React.createElement('p', { className: "text-[9px] text-muted-foreground/80 mt-0.5" }, "Timezone: ", business.timezone)
+                      , business.category?.toLowerCase() === "hotels" && business.bookingUrl && React.createElement('p', { className: "text-[10px] text-indigo-700 font-bold mt-1" }
+                          , "Booking: "
+                          , React.createElement('a', { href: business.bookingUrl.startsWith("http") ? business.bookingUrl : `https://${business.bookingUrl}`, target: "_blank", rel: "noopener noreferrer", className: "underline hover:text-indigo-900" }, "Link ↗")
+                        )
                     )
 
                     /* Owner Details */

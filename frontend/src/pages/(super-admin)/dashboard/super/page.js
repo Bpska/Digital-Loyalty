@@ -6,6 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   Building2, 
   Users, 
@@ -13,7 +15,8 @@ import {
   Award, 
   CreditCard, 
   ShieldAlert,
- 
+  Bell,
+  Loader2,
   ArrowRight 
 } from "lucide-react";
 
@@ -28,10 +31,53 @@ import {
 
 
 export default function SuperDashboard() {
-  const { data: stats, isLoading } = useQuery({
+  const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["superDashboardStats"],
     queryFn: () => api.get("/admin/dashboard").then((res) => res.data),
   });
+
+  const { data: users = [], isLoading: usersLoading } = useQuery({
+    queryKey: ["adminUsersList"],
+    queryFn: () => api.get("/admin/users").then((res) => res.data || []),
+  });
+
+  const [recipientRole, setRecipientRole] = React.useState("CUSTOMER"); // "CUSTOMER" or "BUSINESS_ADMIN"
+  const [selectedUserId, setSelectedUserId] = React.useState("");
+  const [alertTitle, setAlertTitle] = React.useState("");
+  const [alertBody, setAlertBody] = React.useState("");
+  const [sendingAlert, setSendingAlert] = React.useState(false);
+  const [alertStatus, setAlertStatus] = React.useState(null);
+
+  const handleSendAlert = async (e) => {
+    e.preventDefault();
+    if (!selectedUserId || !alertTitle || !alertBody) {
+      setAlertStatus({ success: false, message: "Please select a recipient and fill in all alert fields." });
+      return;
+    }
+    setSendingAlert(true);
+    setAlertStatus(null);
+    try {
+      await api.post("/admin/notifications", {
+        targetType: "user_id",
+        targetValue: selectedUserId,
+        title: alertTitle,
+        body: alertBody,
+      });
+      setAlertStatus({ success: true, message: "Alert sent successfully to recipient!" });
+      setSelectedUserId("");
+      setAlertTitle("");
+      setAlertBody("");
+    } catch (err) {
+      setAlertStatus({
+        success: false,
+        message: err.response?.data?.message || err.message || "Failed to send platform alert.",
+      });
+    } finally {
+      setSendingAlert(false);
+    }
+  };
+
+  const isLoading = statsLoading || usersLoading;
 
   if (isLoading) {
     return (
@@ -181,6 +227,127 @@ export default function SuperDashboard() {
           )
         )
 
+      )
+
+      /* Send Platform Alerts Section */
+      , React.createElement(Card, { className: "glass border-[#FF6A00]/20 bg-gradient-to-tr from-white to-amber-50/20" }
+        , React.createElement(CardHeader, null
+          , React.createElement(CardTitle, { className: "text-base flex items-center gap-2" }
+            , React.createElement(Bell, { className: "h-4.5 w-4.5 text-[#FF6A00]" })
+            , "Send Direct Platform Notification"
+          )
+          , React.createElement(CardDescription, { className: "text-xs" }
+            , "Select a customer or business admin from the platform database. This will send a database alert and trigger an instant Web Push notification."
+          )
+        )
+        , React.createElement(CardContent, null
+          , React.createElement('form', { onSubmit: handleSendAlert, className: "space-y-4" }
+            , React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-3 gap-4" }
+              
+              /* Recipient Role Toggle pills */
+              , React.createElement('div', { className: "space-y-1.5" }
+                , React.createElement(Label, { className: "text-xs font-bold text-muted-foreground block" }, "Recipient Role")
+                , React.createElement('div', { className: "flex bg-slate-100 p-1 rounded-lg border border-zinc-200" }
+                  , React.createElement('button', {
+                      type: "button",
+                      onClick: () => {
+                        setRecipientRole("CUSTOMER");
+                        setSelectedUserId("");
+                      },
+                      className: `flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${
+                        recipientRole === "CUSTOMER"
+                          ? "bg-white text-[#FF6A00] shadow-sm"
+                          : "text-slate-600 hover:bg-white/50"
+                      }`
+                    }, `Customers (${users.filter(u => u.role === "CUSTOMER").length})`)
+                  , React.createElement('button', {
+                      type: "button",
+                      onClick: () => {
+                        setRecipientRole("BUSINESS_ADMIN");
+                        setSelectedUserId("");
+                      },
+                      className: `flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${
+                        recipientRole === "BUSINESS_ADMIN"
+                          ? "bg-white text-[#FF6A00] shadow-sm"
+                          : "text-slate-600 hover:bg-white/50"
+                      }`
+                    }, `Admins (${users.filter(u => u.role === "BUSINESS_ADMIN").length})`)
+                )
+              )
+
+              /* Recipient Selection Dropdown */
+              , React.createElement('div', { className: "space-y-1.5 md:col-span-2" }
+                , React.createElement(Label, { htmlFor: "alert-target-user", className: "text-xs font-bold text-muted-foreground" }, "Select Recipient")
+                , React.createElement('select', {
+                    id: "alert-target-user",
+                    value: selectedUserId,
+                    onChange: (e) => setSelectedUserId(e.target.value),
+                    className: "w-full h-10 border border-zinc-200 rounded-md bg-white px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6A00] text-slate-800",
+                    required: true
+                  },
+                    React.createElement('option', { value: "" }, `Select a ${recipientRole === "CUSTOMER" ? "Customer" : "Business Admin"}...`),
+                    users.filter(u => u.role === recipientRole).map(u =>
+                      React.createElement('option', { key: u.id, value: u.id },
+                        `${u.name} (${u.phone || u.email || "No Contact"})`
+                      )
+                    )
+                  )
+              )
+            )
+
+            , React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-3 gap-4" }
+              
+              /* Notification Title */
+              , React.createElement('div', { className: "space-y-1.5 md:col-span-1" }
+                , React.createElement(Label, { htmlFor: "alert-title", className: "text-xs font-bold text-muted-foreground" }, "Notification Title")
+                , React.createElement(Input, {
+                    id: "alert-title",
+                    value: alertTitle,
+                    onChange: (e) => setAlertTitle(e.target.value),
+                    placeholder: "e.g. System Alert or Reward Ready!",
+                    className: "text-xs border-border bg-white h-9",
+                    required: true
+                  })
+              )
+
+              /* Notification Body */
+              , React.createElement('div', { className: "space-y-1.5 md:col-span-2" }
+                , React.createElement(Label, { htmlFor: "alert-body", className: "text-xs font-bold text-muted-foreground" }, "Alert Message / Content")
+                , React.createElement(Input, {
+                    id: "alert-body",
+                    value: alertBody,
+                    onChange: (e) => setAlertBody(e.target.value),
+                    placeholder: "Enter the details of your notification here...",
+                    className: "text-xs border-border bg-white h-9",
+                    required: true
+                  })
+              )
+            )
+
+            /* Submit Button & Status Alerts */
+            , React.createElement('div', { className: "flex flex-col md:flex-row items-center justify-between gap-4 pt-2" }
+              , React.createElement('div', { className: "w-full md:flex-1" }
+                , alertStatus && (
+                    React.createElement('div', {
+                      className: `text-xs px-3 py-2 rounded-lg border ${
+                        alertStatus.success
+                          ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                          : "bg-red-50 text-red-800 border-red-200"
+                      }`
+                    }, alertStatus.message)
+                  )
+              )
+              , React.createElement(Button, {
+                  type: "submit",
+                  disabled: sendingAlert,
+                  className: "w-full md:w-auto bg-[#FF6A00] hover:bg-[#FF8E3C] text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-md shadow-[#FF6A00]/25 flex items-center justify-center gap-2"
+                }
+                , sendingAlert ? React.createElement(Loader2, { className: "h-3.5 w-3.5 animate-spin" }) : null
+                , sendingAlert ? "Sending..." : "Send Notification"
+              )
+            )
+          )
+        )
       )
     )
   );

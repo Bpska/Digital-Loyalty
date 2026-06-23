@@ -33,6 +33,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { api, getImageUrl } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
+import { subscribeUserToPush } from "@/lib/pushSubscription";
 
 export default function BusinessAdminLayout({
   children,
@@ -49,6 +50,8 @@ export default function BusinessAdminLayout({
   const [profileName, setProfileName] = useState("");
   const [profilePhone, setProfilePhone] = useState("");
   const [profileAddress, setProfileAddress] = useState("");
+  const [profileCategory, setProfileCategory] = useState("Cafe");
+  const [profileBookingUrl, setProfileBookingUrl] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
 
   const businessId = _optionalChain([user, 'optionalAccess', _ => _.businessId]);
@@ -58,6 +61,8 @@ export default function BusinessAdminLayout({
       setProfileName(business.name || "");
       setProfilePhone(business.phone || "");
       setProfileAddress(business.address || "");
+      setProfileCategory(business.category || "Cafe");
+      setProfileBookingUrl(business.bookingUrl || "");
     }
     setShowProfileModal(true);
   };
@@ -74,6 +79,8 @@ export default function BusinessAdminLayout({
         name: profileName,
         phone: profilePhone || null,
         address: profileAddress || null,
+        category: profileCategory || null,
+        bookingUrl: profileCategory === "Hotels" ? profileBookingUrl : null,
       });
       await refetchProfile();
       setShowProfileModal(false);
@@ -137,7 +144,7 @@ export default function BusinessAdminLayout({
           currency: order.currency,
           name: "ScanLoyal SaaS",
           description: "Launch Year Special — Yearly Subscription",
-          image: "/image.png",
+          image: "/new.png",
           order_id: order.orderId,
           handler: async (response) => {
             try {
@@ -207,7 +214,7 @@ export default function BusinessAdminLayout({
       try {
         new Notification(title, {
           body,
-          icon: "/image.png",
+          icon: "/new.png",
           vibrate: [200, 100, 200],
         });
       } catch (e) {
@@ -216,7 +223,7 @@ export default function BusinessAdminLayout({
           navigator.serviceWorker.ready.then((registration) => {
             registration.showNotification(title, {
               body,
-              icon: "/image.png",
+              icon: "/new.png",
               vibrate: [200, 100, 200],
             });
           }).catch(err => console.error("SW notification error:", err));
@@ -259,12 +266,8 @@ export default function BusinessAdminLayout({
       fetchNotifications();
       const interval = setInterval(fetchNotifications, 20000);
 
-      // Request native browser/mobile phone notification permission
-      if (typeof window !== "undefined" && "Notification" in window) {
-        if (Notification.permission === "default") {
-          Notification.requestPermission();
-        }
-      }
+      // Auto subscribe user to Web Push notifications (VAPID)
+      subscribeUserToPush();
 
       return () => clearInterval(interval);
     }
@@ -327,7 +330,7 @@ export default function BusinessAdminLayout({
               )
             )
             , React.createElement('div', { className: "flex items-center gap-2 mb-2" }
-              , React.createElement('img', { src: "/image.png", alt: "ScanLoyal", className: "h-7 w-auto object-contain brightness-0 invert" })
+              , React.createElement('img', { src: "/new.png", alt: "ScanLoyal", className: "h-7 w-auto object-contain brightness-0 invert" })
               , React.createElement('span', { className: "text-xs font-black uppercase tracking-widest opacity-80" }, "ScanLoyal")
             )
             , React.createElement('h2', { className: "text-2xl font-black tracking-tight mt-3" }, "Activate Your Business")
@@ -500,7 +503,7 @@ export default function BusinessAdminLayout({
         , React.createElement('div', { className: "p-6 border-b border-border flex items-center space-x-2"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 66}}
           , business?.logoUrl 
             ? React.createElement('img', { src: getImageUrl(business.logoUrl), alt: business.name, className: "h-7 w-7 rounded-lg object-cover border border-border shrink-0" })
-            : React.createElement('img', { src: "/image.png", alt: "LogiSaar Logo", className: "h-7 w-auto object-contain" })
+            : React.createElement('img', { src: "/new.png", alt: "LogiSaar Logo", className: "h-7 w-auto object-contain" })
           , React.createElement('span', { className: "text-base font-bold text-foreground tracking-tight"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 70}}, "Business" )
         )
         , React.createElement('nav', { className: "flex-1 p-4 space-y-1 overflow-y-auto"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 72}}
@@ -553,7 +556,7 @@ export default function BusinessAdminLayout({
           , React.createElement('div', { className: "flex items-center space-x-2"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 118}}
             , business?.logoUrl 
               ? React.createElement('img', { src: getImageUrl(business.logoUrl), alt: business.name, className: "h-7 w-7 rounded-lg object-cover border border-border shrink-0" })
-              : React.createElement('img', { src: "/image.png", alt: "LogiSaar Logo", className: "h-7 w-auto object-contain" })
+              : React.createElement('img', { src: "/new.png", alt: "LogiSaar Logo", className: "h-7 w-auto object-contain" })
             , React.createElement('span', { className: "text-base font-bold text-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 122}}, "Business" )
           )
           , React.createElement('button', { onClick: () => setMobileOpen(false), className: "text-muted-foreground", __self: this, __source: {fileName: _jsxFileName, lineNumber: 124}}
@@ -725,6 +728,35 @@ export default function BusinessAdminLayout({
                         onChange: (e) => setProfileAddress(e.target.value),
                         placeholder: "e.g. MG Road, Bhubaneswar",
                         className: "text-xs border-border bg-white"
+                      })
+                  )
+                  , React.createElement('div', { className: "space-y-1.5" }
+                    , React.createElement(Label, { htmlFor: "modal-profile-category", className: "text-xs font-semibold text-muted-foreground" }, "Business Category")
+                    , React.createElement('select', {
+                        id: "modal-profile-category",
+                        value: profileCategory,
+                        onChange: (e) => setProfileCategory(e.target.value),
+                        className: "w-full h-9 border border-border rounded-md bg-white text-xs px-2.5 outline-none focus:ring-1 focus:ring-primary text-slate-800",
+                      },
+                        React.createElement('option', { value: "Cafe" }, "Café"),
+                        React.createElement('option', { value: "Restaurant" }, "Restaurant"),
+                        React.createElement('option', { value: "Salon" }, "Salon"),
+                        React.createElement('option', { value: "Retail" }, "Retail"),
+                        React.createElement('option', { value: "Bakery" }, "Bakery"),
+                        React.createElement('option', { value: "Hotels" }, "Hotels"),
+                        React.createElement('option', { value: "Other" }, "Other")
+                      )
+                  )
+                  , profileCategory === "Hotels" && React.createElement('div', { className: "space-y-1.5" }
+                    , React.createElement(Label, { htmlFor: "modal-profile-booking-url", className: "text-xs font-semibold text-muted-foreground" }, "Booking Website URL")
+                    , React.createElement(Input, {
+                        id: "modal-profile-booking-url",
+                        type: "url",
+                        value: profileBookingUrl,
+                        onChange: (e) => setProfileBookingUrl(e.target.value),
+                        placeholder: "e.g. https://myhotelbooking.com",
+                        className: "text-xs border-border bg-white",
+                        required: true
                       })
                   )
                   

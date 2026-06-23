@@ -1,39 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#6366f1" />
-    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-    <link rel="manifest" href="/manifest.json" />
-    <title>ScanLoyal - Digital Loyalty Voucher SaaS</title>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-    <script>
-      // Register lightweight service worker for native mobile notifications
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/sw.js').then(function(registration) {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-          }).catch(function(err) {
-            console.log('ServiceWorker registration failed: ', err);
-          });
-        });
-      }
-      // Clear cache storage to ensure browser fetches the latest bundles
-      if ('caches' in window) {
-        caches.keys().then(function(names) {
-          for (let name of names) {
-            caches.delete(name);
-          }
-        });
-      }
-    </script>
-  </body>
-</html>
 
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" href="/new.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#FF6A00" />
+  <link rel="apple-touch-icon" href="/new.png" />
+  <link rel="manifest" href="/manifest.json" />
+  <title>ScanLoyal - Digital Loyalty Voucher SaaS</title>
+  <meta name="description" content="ScanLoyal is a premium digital loyalty stamp card platform. Boost customer retention with secure QR check-ins, automated rewards, and real-time retail analytics by Logisaar." />
+  <meta name="keywords" content="loyalty program, digital stamp card, customer retention, QR code check-in, retail analytics, Logisaar, SaaS loyalty, customer reward program" />
+  <meta name="author" content="Logisaar Technologies Private Limited" />
+  <meta property="og:title" content="ScanLoyal - Digital Loyalty Voucher SaaS" />
+  <meta property="og:description" content="Boost customer retention with secure QR check-ins, automated rewards, and real-time retail analytics by Logisaar." />
+  <meta property="og:image" content="/new.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
+</head>
+
+<body>
+  <noscript>
+    <h1>ScanLoyal - Digital Loyalty Voucher SaaS</h1>
+    <p>Modern digital stamp cards and GPS location verification for storefront customer retention. Subsidiary of Logisaar Technologies Private Limited.</p>
+  </noscript>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+
+  <script>
+    // Register lightweight service worker for native mobile notifications
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/sw.js').then(function (registration) {
+          console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        }).catch(function (err) {
+          console.log('ServiceWorker registration failed: ', err);
+        });
+      });
+    }
+    // Clear cache storage to ensure browser fetches the latest bundles
+    if ('caches' in window) {
+      caches.keys().then(function (names) {
+        for (let name of names) {
+          caches.delete(name);
+        }
+      });
+    }
+  </script>
+</body>
+
+</html>

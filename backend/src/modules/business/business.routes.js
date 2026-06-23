@@ -62,6 +62,8 @@ const updateBusinessSchema = z.object({
   facebookUrl: z.string().optional().nullable(),
   whatsappUrl: z.string().optional().nullable(),
   googleReviewUrl: z.string().optional().nullable(),
+  category: z.string().optional().nullable(),
+  bookingUrl: z.string().optional().nullable(),
 });
 
 // ── Routes ────────────────────────────────────────────────────

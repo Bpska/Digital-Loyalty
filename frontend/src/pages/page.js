@@ -70,7 +70,7 @@ export default function LandingPage() {
       , React.createElement('header', { className: "sticky top-0 z-50 w-full border-b border-[#EAE3DF]/50 bg-white/75 backdrop-blur-md"       , __self: this, __source: {fileName: _jsxFileName, lineNumber: 47}}
         , React.createElement('div', { className: "max-w-7xl mx-auto px-6 h-16 flex items-center justify-between"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 48}}
           , React.createElement('div', { className: "flex items-center space-x-3" }
-            , React.createElement('img', { src: "/image.png", alt: "LogiSaar Logo", className: "h-8 w-auto object-contain" })
+            , React.createElement('img', { src: "/new.png", alt: "LogiSaar Logo", className: "h-8 w-auto object-contain" })
             , React.createElement('div', { className: "flex flex-col justify-center" }
               , React.createElement('span', { className: "text-sm font-extrabold tracking-tight text-[#2B201A] leading-tight" }, "LogiSaar")
               , React.createElement('span', { className: "text-[9px] font-black text-[#FF6A00] uppercase tracking-wider leading-none" }, "ScanLoyal")
@@ -579,7 +579,7 @@ export default function LandingPage() {
                 , React.createElement('ul', { className: "space-y-3 text-xs text-[#5A4E46] text-left pt-2" }
                   , React.createElement('li', { className: "flex items-center space-x-2.5" }
                     , React.createElement(Check, { className: "h-4 w-4 text-[#FF6A00] shrink-0 font-extrabold" } )
-                    , React.createElement('span', null, "Up to ", React.createElement('strong', { className: "text-[#07122A]" }, "5 Branches"), " Outlets" )
+                    , React.createElement('span', null, React.createElement('strong', { className: "text-[#07122A]" }, "1 Branch"), " Outlet" )
                   )
                   , React.createElement('li', { className: "flex items-center space-x-2.5" }
                     , React.createElement(Check, { className: "h-4 w-4 text-[#FF6A00] shrink-0 font-extrabold" } )
@@ -645,7 +645,7 @@ export default function LandingPage() {
         , React.createElement('div', { className: "max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 683}}
           , React.createElement('div', { className: "space-y-5", __self: this, __source: {fileName: _jsxFileName, lineNumber: 684}}
             , React.createElement('div', { className: "flex items-center space-x-2.5" }
-              , React.createElement('img', { src: "/image.png", alt: "LogiSaar Logo", className: "h-8 w-auto object-contain" })
+              , React.createElement('img', { src: "/new.png", alt: "LogiSaar Logo", className: "h-8 w-auto object-contain" })
               , React.createElement('div', { className: "flex flex-col justify-center" }
                 , React.createElement('span', { className: "text-sm font-black tracking-tight text-[#2B201A] leading-tight" }, "LogiSaar")
                 , React.createElement('span', { className: "text-[9px] font-bold text-[#FF6A00] uppercase tracking-wider leading-none" }, "ScanLoyal")
@@ -677,15 +677,19 @@ export default function LandingPage() {
           , React.createElement('div', { className: "space-y-4", __self: this, __source: {fileName: _jsxFileName, lineNumber: 714}}
             , React.createElement('h5', { className: "text-[11px] font-bold text-[#2B201A] uppercase tracking-wider"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 715}}, "Legal")
             , React.createElement('ul', { className: "space-y-3 text-xs font-medium" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 716}}
-              , React.createElement('li', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 717}}, React.createElement('span', { className: "text-[#5A4E46]", __self: this, __source: {fileName: _jsxFileName, lineNumber: 717}}, "Privacy Policy" ))
-              , React.createElement('li', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 718}}, React.createElement('span', { className: "text-[#5A4E46]", __self: this, __source: {fileName: _jsxFileName, lineNumber: 718}}, "Terms of Service"  ))
+              , React.createElement('li', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 717}}, React.createElement(Link, { to: "/privacy-policy", className: "text-[#5A4E46] hover:text-[#FF6A00] transition-colors" }, "Privacy Policy" ))
+              , React.createElement('li', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 718}}, React.createElement(Link, { to: "/terms-of-service", className: "text-[#5A4E46] hover:text-[#FF6A00] transition-colors" }, "Terms of Service"  ))
               , React.createElement('li', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 719}}, React.createElement('span', { className: "text-[#5A4E46]", __self: this, __source: {fileName: _jsxFileName, lineNumber: 719}}, "Support Desk" ))
             )
           )
         )
 
         , React.createElement('div', { className: "max-w-7xl mx-auto px-6 pt-8 mt-8 border-t border-[#EAE3DF]/50 flex flex-col md:flex-row justify-between items-center text-xs font-medium"            , __self: this, __source: {fileName: _jsxFileName, lineNumber: 724}}
-          , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 725}}, "© " , new Date().getFullYear(), " ScanLoyal SaaS. All rights reserved."     )
+          , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 725}}
+              , "© " , new Date().getFullYear(), " ScanLoyal SaaS. Subsidiary of "
+              , React.createElement('a', { href: "https://logisaar.in", target: "_blank", rel: "noopener noreferrer", className: "text-[#FF6A00] hover:underline font-bold" }, "Logisaar Technologies Private Limited")
+              , ". All rights reserved."
+            )
           , React.createElement('span', { className: "text-[10px] text-[#8C6553] mt-2 md:mt-0 font-bold"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 726}}, "Made for retail store retention in India"      )
         )
       )

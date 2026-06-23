@@ -73,6 +73,8 @@ export const registerBusinessSchema = z.object({
     (val) => (val === '' ? undefined : val),
     z.string().min(2).max(200).optional()
   ),
+  category: z.string().optional().nullable(),
+  bookingUrl: z.string().optional().nullable(),
 });
 
  

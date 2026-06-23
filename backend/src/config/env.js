@@ -64,6 +64,11 @@ const envSchema = z.object({
   OLLAMA_MODEL: z.string().default('qwen2.5:3b'),
 
 
+  // ── Web Push / VAPID ──────────────────────────────────────
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().optional().default('mailto:admin@logisaar.in'),
+
   // ── Logging ──────────────────────────────────────────────
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
   LOG_DIR: z.string().default('./logs'),

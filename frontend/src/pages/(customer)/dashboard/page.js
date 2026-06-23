@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Gift, Coffee, Star, Stamp, MapPin, Award, CheckCircle2,
-  ChevronRight, QrCode, Tag, Percent, Banknote, Clock, Zap
+  ChevronRight, QrCode, Tag, Percent, Banknote, Clock, Zap, CalendarDays
 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -284,7 +284,20 @@ function BusinessCard({ card }) {
       ),
 
       // Social links
-      React.createElement(SocialLinks, { business })
+      React.createElement(SocialLinks, { business }),
+
+      // Book Stay button (if Hotels and bookingUrl is present)
+      business.category === "Hotels" && business.bookingUrl && React.createElement(
+        "div", { className: "mt-4 pt-3 border-t border-dashed border-border" },
+        React.createElement("a", {
+          href: business.bookingUrl.startsWith("http") ? business.bookingUrl : `https://${business.bookingUrl}`,
+          target: "_blank", rel: "noopener noreferrer",
+          className: "w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#FF6A00] to-[#FF8E3C] hover:from-[#FF6A00] hover:to-[#FF8E3C] text-white py-2.5 px-4 text-xs font-bold shadow-md shadow-[#FF6A00]/25 hover:scale-[1.02] active:scale-[0.98] transition-all"
+        },
+          React.createElement(CalendarDays, { className: "h-4 w-4" }),
+          "Book Stay"
+        )
+      )
     )
   );
 }
@@ -389,14 +402,14 @@ export default function CustomerDashboard() {
     // Redemption QR modal
     selectedReward && React.createElement(
       Dialog, { open: !!selectedReward, onOpenChange: (open) => !open && setSelectedReward(null) },
-      React.createElement(DialogContent, { className: "max-w-[340px] bg-white border border-border" },
-        React.createElement(DialogHeader, { className: "text-center" },
-          React.createElement(DialogTitle, { className: "text-xl font-bold text-foreground" }, selectedReward.reward.title),
-          React.createElement(DialogDescription, { className: "text-xs mt-1 text-muted-foreground" },
+      React.createElement(DialogContent, { className: "max-w-[340px] bg-white border border-border p-6 rounded-2xl flex flex-col items-center text-slate-800" },
+        React.createElement(DialogHeader, { className: "flex flex-col items-center justify-center text-center w-full" },
+          React.createElement(DialogTitle, { className: "text-xl font-bold text-foreground text-center" }, selectedReward.reward.title),
+          React.createElement(DialogDescription, { className: "text-xs mt-1 text-muted-foreground text-center" },
             selectedReward.reward.description || "Show this QR code to the cashier/staff to claim your reward"
           )
         ),
-        React.createElement("div", { className: "flex flex-col items-center justify-center p-4 space-y-4" },
+        React.createElement("div", { className: "flex flex-col items-center justify-center py-2 space-y-4 w-full" },
           React.createElement("div", { className: "rounded-xl border border-border bg-white p-3 shadow-md" },
             React.createElement("img", {
               src: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=0f172a&data=${selectedReward.redemptionCode}`,
@@ -411,7 +424,7 @@ export default function CustomerDashboard() {
             )
           )
         ),
-        React.createElement("div", { className: "rounded-lg bg-indigo-50 border border-indigo-100 p-3 text-[11px] text-center text-indigo-700 font-medium" },
+        React.createElement("div", { className: "rounded-lg bg-indigo-50 border border-indigo-100 p-3 text-[11px] text-center text-indigo-700 font-medium w-full" },
           "Cashier will scan this QR code or type in the code above to verify and complete the reward."
         )
       )
