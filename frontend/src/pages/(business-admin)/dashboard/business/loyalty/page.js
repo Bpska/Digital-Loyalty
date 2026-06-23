@@ -50,6 +50,7 @@ export default function LoyaltyPage() {
   const [type, setType] = useState("VISIT_BASED");
   const [threshold, setThreshold] = useState("");
   const [pointsPerVisit, setPointsPerVisit] = useState("10");
+  const [pointsPerSpendUnit, setPointsPerSpendUnit] = useState("1");
   const [resetMode, setResetMode] = useState("FULL_RESET");
   const [rewardId, setRewardId] = useState("");
 
@@ -131,10 +132,17 @@ export default function LoyaltyPage() {
     }
 
     let parsedPointsPerVisit = undefined;
+    let parsedPointsPerSpendUnit = undefined;
     if (type === "POINTS_BASED") {
       parsedPointsPerVisit = parseInt(pointsPerVisit);
       if (isNaN(parsedPointsPerVisit) || parsedPointsPerVisit <= 0) {
         setErrorMsg("Please enter a valid points-per-visit value (e.g. 10).");
+        return;
+      }
+    } else if (type === "SPEND_BASED") {
+      parsedPointsPerSpendUnit = parseFloat(pointsPerSpendUnit);
+      if (isNaN(parsedPointsPerSpendUnit) || parsedPointsPerSpendUnit <= 0) {
+        setErrorMsg("Please enter a valid points-per-spend-unit value (e.g. 1).");
         return;
       }
     }
@@ -144,6 +152,7 @@ export default function LoyaltyPage() {
       type,
       threshold: parsedThreshold,
       pointsPerVisit: parsedPointsPerVisit,
+      pointsPerSpendUnit: parsedPointsPerSpendUnit,
       resetMode,
       rewardId,
     });
@@ -166,10 +175,17 @@ export default function LoyaltyPage() {
     }
 
     let parsedPointsPerVisit = undefined;
+    let parsedPointsPerSpendUnit = undefined;
     if (type === "POINTS_BASED") {
       parsedPointsPerVisit = parseInt(pointsPerVisit);
       if (isNaN(parsedPointsPerVisit) || parsedPointsPerVisit <= 0) {
         setErrorMsg("Please enter a valid points-per-visit value.");
+        return;
+      }
+    } else if (type === "SPEND_BASED") {
+      parsedPointsPerSpendUnit = parseFloat(pointsPerSpendUnit);
+      if (isNaN(parsedPointsPerSpendUnit) || parsedPointsPerSpendUnit <= 0) {
+        setErrorMsg("Please enter a valid points-per-spend-unit value.");
         return;
       }
     }
@@ -181,6 +197,7 @@ export default function LoyaltyPage() {
         type,
         threshold: parsedThreshold,
         pointsPerVisit: parsedPointsPerVisit,
+        pointsPerSpendUnit: parsedPointsPerSpendUnit,
         resetMode,
         rewardId,
       }
@@ -192,6 +209,7 @@ export default function LoyaltyPage() {
     setType(program.type);
     setThreshold(program.threshold.toString());
     setPointsPerVisit(program.pointsPerVisit ? program.pointsPerVisit.toString() : "10");
+    setPointsPerSpendUnit(program.pointsPerSpendUnit ? program.pointsPerSpendUnit.toString() : "1");
     setResetMode(program.resetMode);
     setRewardId(program.rewardId);
     setShowEditModal(true);
@@ -200,6 +218,7 @@ export default function LoyaltyPage() {
   const resetForm = () => {
     setThreshold("");
     setPointsPerVisit("10");
+    setPointsPerSpendUnit("1");
     setResetMode("FULL_RESET");
     setRewardId("");
     setSelectedProgram(null);
@@ -259,7 +278,7 @@ export default function LoyaltyPage() {
                   , React.createElement(CardHeader, { className: "p-6 pb-2" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 162}}
                     , React.createElement(CardTitle, { className: "text-base font-bold text-foreground flex items-center gap-2"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 163}}
                       , isVisit ? React.createElement(Star, { className: "h-5 w-5 text-amber-500"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 164}} ) : React.createElement(Zap, { className: "h-5 w-5 text-primary"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 164}} )
-                      , isVisit ? "Visit Stamp Card" : "Points Accrual Program"
+                      , isVisit ? "Visit Stamp Card" : program.type === "SPEND_BASED" ? "Spend-Based Points Program" : "Points Accrual Program"
                       , React.createElement('span', { className: `text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ml-auto border ${
                         program.isActive ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-slate-100 text-slate-600 border-slate-200"
                       }`, __self: this, __source: {fileName: _jsxFileName, lineNumber: 166}}
@@ -273,9 +292,9 @@ export default function LoyaltyPage() {
                   , React.createElement(CardContent, { className: "p-6 space-y-4" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 176}}
                     /* Stats rows */
                     , React.createElement('div', { className: "grid grid-cols-2 gap-4 text-xs"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 178}}
-                      , React.createElement('div', { className: "bg-slate-50 p-3 rounded-lg border border-border space-y-0.5"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 179}}
-                        , React.createElement('span', { className: "text-muted-foreground block uppercase tracking-wider text-[9px]"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 180}}, "Requirement")
-                        , React.createElement('span', { className: "text-foreground font-extrabold text-sm"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 181}}
+                      , React.createElement('div', { className: "bg-slate-50 p-3 rounded-lg border border-border space-y-0.5"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 180}}
+                        , React.createElement('span', { className: "text-muted-foreground block uppercase tracking-wider text-[9px]"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 181}}, "Requirement")
+                        , React.createElement('span', { className: "text-foreground font-extrabold text-sm"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 182}}
                           , isVisit ? `${program.threshold} Visits` : `${program.threshold} Points`
                         )
                       )
@@ -286,7 +305,7 @@ export default function LoyaltyPage() {
                         )
                       )
                     )
-
+ 
                     , React.createElement('div', { className: "grid grid-cols-2 gap-4 text-[11px] text-muted-foreground"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 193}}
                       , React.createElement('div', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 194}}
                         , React.createElement('span', { className: "block", __self: this, __source: {fileName: _jsxFileName, lineNumber: 195}}, "Reset Policy:" )
@@ -295,7 +314,11 @@ export default function LoyaltyPage() {
                       , !isVisit && (
                         React.createElement('div', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 199}}
                           , React.createElement('span', { className: "block", __self: this, __source: {fileName: _jsxFileName, lineNumber: 200}}, "Accrual Rate:" )
-                          , React.createElement('strong', { className: "text-foreground", __self: this, __source: {fileName: _jsxFileName, lineNumber: 201}}, "+", program.pointsPerVisit, " pts / visit"   )
+                          , React.createElement('strong', { className: "text-foreground", __self: this, __source: {fileName: _jsxFileName, lineNumber: 201}}
+                            , program.type === "SPEND_BASED"
+                              ? `${program.pointsPerSpendUnit} pt${program.pointsPerSpendUnit !== 1 ? 's' : ''} / ₹ spent`
+                              : `+${program.pointsPerVisit} pts / visit`
+                          )
                         )
                       )
                     )
@@ -388,6 +411,7 @@ export default function LoyaltyPage() {
                     , React.createElement(SelectContent, {__self: this, __source: {fileName: _jsxFileName, lineNumber: 262}}
                       , React.createElement(SelectItem, { value: "VISIT_BASED", __self: this, __source: {fileName: _jsxFileName, lineNumber: 263}}, "Visit Stamp Card (Stamp grids)"    )
                       , React.createElement(SelectItem, { value: "POINTS_BASED", __self: this, __source: {fileName: _jsxFileName, lineNumber: 264}}, "Points Goal Card (Progress bar)"    )
+                      , React.createElement(SelectItem, { value: "SPEND_BASED", __self: this, __source: {fileName: _jsxFileName, lineNumber: 265}}, "Spend-Based Points (Progress bar)"  )
                     )
                   )
                 )
@@ -405,7 +429,7 @@ export default function LoyaltyPage() {
                     required: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 273}} 
                   )
                 )
-
+ 
                 , type === "POINTS_BASED" && (
                   React.createElement('div', { className: "space-y-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 284}}
                     , React.createElement(Label, { htmlFor: "program-ppv", __self: this, __source: {fileName: _jsxFileName, lineNumber: 285}}, "Points Awarded Per Visit"   )
@@ -415,6 +439,21 @@ export default function LoyaltyPage() {
                       placeholder: "e.g. 10 points"  , 
                       value: pointsPerVisit,
                       onChange: (e) => setPointsPerVisit(e.target.value),
+                      required: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 286}} 
+                    )
+                  )
+                )
+
+                , type === "SPEND_BASED" && (
+                  React.createElement('div', { className: "space-y-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 284}}
+                    , React.createElement(Label, { htmlFor: "program-ppsu", __self: this, __source: {fileName: _jsxFileName, lineNumber: 285}}, "Points Awarded Per ₹ Spent"   )
+                    , React.createElement(Input, { 
+                      id: "program-ppsu", 
+                      type: "number",
+                      step: "any",
+                      placeholder: "e.g. 1 or 0.1"  , 
+                      value: pointsPerSpendUnit,
+                      onChange: (e) => setPointsPerSpendUnit(e.target.value),
                       required: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 286}} 
                     )
                   )
@@ -488,6 +527,7 @@ export default function LoyaltyPage() {
                     , React.createElement(SelectContent, {__self: this, __source: {fileName: _jsxFileName, lineNumber: 262}}
                       , React.createElement(SelectItem, { value: "VISIT_BASED", __self: this, __source: {fileName: _jsxFileName, lineNumber: 263}}, "Visit Stamp Card (Stamp grids)"    )
                       , React.createElement(SelectItem, { value: "POINTS_BASED", __self: this, __source: {fileName: _jsxFileName, lineNumber: 264}}, "Points Goal Card (Progress bar)"    )
+                      , React.createElement(SelectItem, { value: "SPEND_BASED", __self: this, __source: {fileName: _jsxFileName, lineNumber: 265}}, "Spend-Based Points (Progress bar)"  )
                     )
                   )
                 )
@@ -505,7 +545,7 @@ export default function LoyaltyPage() {
                     required: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 273}} 
                   )
                 )
-
+ 
                 , type === "POINTS_BASED" && (
                   React.createElement('div', { className: "space-y-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 284}}
                     , React.createElement(Label, { htmlFor: "edit-program-ppv", __self: this, __source: {fileName: _jsxFileName, lineNumber: 285}}, "Points Awarded Per Visit"   )
@@ -515,6 +555,21 @@ export default function LoyaltyPage() {
                       placeholder: "e.g. 10 points"  , 
                       value: pointsPerVisit,
                       onChange: (e) => setPointsPerVisit(e.target.value),
+                      required: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 286}} 
+                    )
+                  )
+                )
+
+                , type === "SPEND_BASED" && (
+                  React.createElement('div', { className: "space-y-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 284}}
+                    , React.createElement(Label, { htmlFor: "edit-program-ppsu", __self: this, __source: {fileName: _jsxFileName, lineNumber: 285}}, "Points Awarded Per ₹ Spent"   )
+                    , React.createElement(Input, { 
+                      id: "edit-program-ppsu", 
+                      type: "number",
+                      step: "any",
+                      placeholder: "e.g. 1 or 0.1"  , 
+                      value: pointsPerSpendUnit,
+                      onChange: (e) => setPointsPerSpendUnit(e.target.value),
                       required: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 286}} 
                     )
                   )

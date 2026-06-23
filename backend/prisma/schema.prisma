@@ -55,6 +55,7 @@ enum CheckInStatus {
 enum LoyaltyType {
   VISIT_BASED
   POINTS_BASED
+  SPEND_BASED
 }
 
 enum LoyaltyResetMode {
@@ -332,14 +333,15 @@ model CheckIn {
 
 /// Loyalty program definition per business. One active program per type per business.
 model LoyaltyProgram {
-  id             String           @id @default(cuid())
-  type           LoyaltyType
+  id                 String           @id @default(cuid())
+  type               LoyaltyType
   /// VISIT_BASED: number of visits to earn reward. POINTS_BASED: points required for reward.
-  threshold      Int
+  threshold          Int
   /// Points awarded per visit (POINTS_BASED only)
-  pointsPerVisit Int              @default(10)
-  resetMode      LoyaltyResetMode @default(FULL_RESET)
-  isActive       Boolean          @default(true)
+  pointsPerVisit     Int              @default(10)
+  pointsPerSpendUnit Float            @default(1.0)
+  resetMode          LoyaltyResetMode @default(FULL_RESET)
+  isActive           Boolean          @default(true)
 
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -591,6 +593,7 @@ model LoyaltyRequest {
   checkInId    String?                        // Reference to triggering CheckIn
   levelId      String?                        // Set when approved
   level        LoyaltyLevel? @relation(fields: [levelId], references: [id])
+  spendAmount  Decimal?      @db.Decimal(10, 2)
   approvedById String?                        // User ID of Business Admin who approved
   approvedAt   DateTime?
 
@@ -608,14 +611,15 @@ model LoyaltyTransaction {
   id     String @id @default(cuid())
   points Int
 
-  customerId String
-  customer   User          @relation(fields: [customerId], references: [id])
-  businessId String
-  business   Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  levelId    String?
-  level      LoyaltyLevel? @relation(fields: [levelId], references: [id])
-  requestId  String?       @unique
-  request    LoyaltyRequest? @relation(fields: [requestId], references: [id])
+  customerId  String
+  customer    User            @relation(fields: [customerId], references: [id])
+  businessId  String
+  business    Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  levelId     String?
+  level       LoyaltyLevel?   @relation(fields: [levelId], references: [id])
+  requestId   String?         @unique
+  request     LoyaltyRequest? @relation(fields: [requestId], references: [id])
+  spendAmount Decimal?        @db.Decimal(10, 2)
 
   createdAt DateTime @default(now())
 

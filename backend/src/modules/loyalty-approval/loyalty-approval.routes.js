@@ -27,8 +27,26 @@ const requestSchema = z.object({
 });
 
 const approveSchema = z.object({
-  levelId: z.string().min(1),
+  levelId: z.string().optional(),
+  spendAmount: z.coerce.number().positive().optional(),
 });
+
+async function unlockCustomerReward(tx, customerId, program) {
+  const customerReward = await tx.customerReward.create({
+    data: {
+      customerId,
+      rewardId: program.rewardId,
+      status: 'UNLOCKED',
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days to redeem
+    },
+  });
+
+  return {
+    id: customerReward.id,
+    title: program.reward.title,
+    redemptionCode: customerReward.redemptionCode,
+  };
+}
 
 // ─────────────────────────────────────────────────────────────
 // Helper: verify business ownership
@@ -183,11 +201,15 @@ router.post(
       const { businessId, checkInId } = req.body;
       const customerId = req.user.sub;
 
-      // Check if business has any loyalty levels configured
+      // Check if business has any loyalty levels configured OR if there is an active SPEND_BASED program
       const levelsCount = await prisma.loyaltyLevel.count({ where: { businessId } });
-      if (levelsCount === 0) {
-        // No levels configured — silently succeed (business hasn't set up manual approval yet)
-        sendSuccess(res, { sent: false, reason: 'no_levels' }, 'No loyalty levels configured for this business');
+      const spendProgram = await prisma.loyaltyProgram.findFirst({
+        where: { businessId, type: 'SPEND_BASED', isActive: true },
+      });
+
+      if (levelsCount === 0 && !spendProgram) {
+        // No levels configured and no spend program — silently succeed
+        sendSuccess(res, { sent: false, reason: 'no_levels' }, 'No loyalty levels or spend-based program configured for this business');
         return;
       }
 
@@ -253,6 +275,7 @@ router.get(
           include: {
             customer: { select: { id: true, name: true, phone: true } },
             level: { select: { id: true, name: true, points: true } },
+            loyaltyTransaction: { select: { points: true } },
           },
         }),
         prisma.loyaltyRequest.count({ where: { businessId, status: status } }),
@@ -283,7 +306,6 @@ router.post(
   async (req, res, next) => {
     try {
       const { requestId } = req.params;
-      const { levelId } = req.body;
 
       // Find request
       const request = await prisma.loyaltyRequest.findUnique({
@@ -301,39 +323,66 @@ router.post(
         await assertBusinessOwner(req.user.sub, request.businessId);
       }
 
-      // Find level — must belong to same business
-      const level = await prisma.loyaltyLevel.findUnique({ where: { id: levelId } });
-      if (!level) throw new AppError('Loyalty level not found', 404);
-      if (level.businessId !== request.businessId) {
-        throw new AppError('Loyalty level does not belong to this business', 403);
+      // Check if business has an active SPEND_BASED program
+      const spendProgram = await prisma.loyaltyProgram.findFirst({
+        where: { businessId: request.businessId, type: 'SPEND_BASED', isActive: true },
+        include: { reward: true },
+      });
+
+      let points = 0;
+      let level = null;
+      const spendAmount = req.body.spendAmount;
+
+      if (spendProgram) {
+        if (spendAmount === undefined || spendAmount === null) {
+          throw new AppError('Purchase amount is required for spend-based loyalty programs.', 400);
+        }
+        const amt = parseFloat(spendAmount);
+        if (isNaN(amt) || amt <= 0) {
+          throw new AppError('Invalid purchase amount.', 400);
+        }
+        points = Math.floor(amt * spendProgram.pointsPerSpendUnit);
+      } else {
+        // Fallback to levels
+        const { levelId } = req.body;
+        if (!levelId) {
+          throw new AppError('Loyalty level is required.', 400);
+        }
+        level = await prisma.loyaltyLevel.findUnique({ where: { id: levelId } });
+        if (!level) throw new AppError('Loyalty level not found', 404);
+        if (level.businessId !== request.businessId) {
+          throw new AppError('Loyalty level does not belong to this business', 403);
+        }
+        points = level.points;
       }
 
-      // Transaction: approve request + add points + create transaction + notify customer
+      // Transaction: approve request + add points + create transaction + notify customer + check unlock
       const result = await prisma.$transaction(async (tx) => {
         // 1. Update request
         const updatedRequest = await tx.loyaltyRequest.update({
           where: { id: requestId },
           data: {
             status: 'APPROVED',
-            levelId,
+            levelId: level ? level.id : null,
+            spendAmount: spendAmount ? parseFloat(spendAmount) : null,
             approvedById: req.user.sub,
             approvedAt: new Date(),
           },
         });
 
         // 2. Upsert CustomerPoints — increment totalPoints
-        await tx.customerPoints.upsert({
+        const cp = await tx.customerPoints.upsert({
           where: {
             customerId_businessId: {
               customerId: request.customerId,
               businessId: request.businessId,
             },
           },
-          update: { totalPoints: { increment: level.points } },
+          update: { totalPoints: { increment: points } },
           create: {
             customerId: request.customerId,
             businessId: request.businessId,
-            totalPoints: level.points,
+            totalPoints: points,
             totalVisits: 0,
             visitStreak: 0,
           },
@@ -344,40 +393,69 @@ router.post(
           data: {
             customerId: request.customerId,
             businessId: request.businessId,
-            levelId,
-            points: level.points,
+            levelId: level ? level.id : null,
+            points: points,
             requestId,
+            spendAmount: spendAmount ? parseFloat(spendAmount) : null,
           },
         });
 
-        // 4. Notify the customer
+        // 4. If spend-based, check reward threshold
+        let newlyUnlockedReward = null;
+        const currentPoints = cp.totalPoints + points;
+
+        if (spendProgram && currentPoints >= spendProgram.threshold) {
+          newlyUnlockedReward = await unlockCustomerReward(tx, request.customerId, spendProgram);
+
+          // Deduct points
+          const deductMode =
+            spendProgram.resetMode === LoyaltyResetMode.FULL_RESET
+              ? 0
+              : currentPoints - spendProgram.threshold;
+
+          await tx.customerPoints.update({
+            where: { customerId_businessId: { customerId: request.customerId, businessId: request.businessId } },
+            data: { totalPoints: deductMode },
+          });
+        }
+
+        // 5. Notify the customer
+        const notifBody = newlyUnlockedReward
+          ? `🎉 You've earned: ${newlyUnlockedReward.title}! Show your redemption code at the counter.`
+          : spendProgram
+            ? `Congratulations! You earned ${points} loyalty points (spent ₹${spendAmount}) at ${request.business.name}.`
+            : `Congratulations! You earned ${points} loyalty points (${level.name} level) at ${request.business.name}.`;
+
         await tx.notification.create({
           data: {
             userId: request.customerId,
             businessId: request.businessId,
-            title: '🎉 Loyalty Points Earned!',
-            body: `Congratulations! You earned ${level.points} loyalty point${level.points !== 1 ? 's' : ''} (${level.name} level) at ${request.business.name}.`,
-            type: 'GENERAL',
+            title: newlyUnlockedReward ? 'Reward Unlocked! 🎉' : '🎉 Loyalty Points Earned!',
+            body: notifBody,
+            type: newlyUnlockedReward ? 'REWARD_UNLOCKED' : 'GENERAL',
             metadata: {
-              levelId,
-              levelName: level.name,
-              points: level.points,
+              levelId: level ? level.id : null,
+              levelName: level ? level.name : null,
+              points,
               requestId,
               businessName: request.business.name,
+              spendAmount: spendAmount ? parseFloat(spendAmount) : null,
+              rewardId: newlyUnlockedReward ? newlyUnlockedReward.id : null,
             },
           },
         });
 
-        return { updatedRequest, transaction, level };
+        return { updatedRequest, transaction, level, newlyUnlockedReward };
       });
 
       sendSuccess(res, {
         requestId,
         customerId: request.customerId,
         customerName: request.customer.name,
-        levelName: result.level.name,
-        pointsAwarded: result.level.points,
-      }, `Approved! ${result.level.points} points awarded to ${request.customer.name}`);
+        levelName: result.level ? result.level.name : 'Spend-based',
+        pointsAwarded: points,
+        newlyUnlockedReward: result.newlyUnlockedReward,
+      }, `Approved! ${points} points awarded to ${request.customer.name}`);
     } catch (err) { next(err); }
   }
 );
@@ -473,7 +551,7 @@ router.get(
       const timezone = business?.timezone || 'Asia/Kolkata';
       const { start: todayStart } = getTodayBoundsInTimezone(timezone);
 
-      const [pendingCount, approvedTodayCount, pointsTodayResult, levels] = await Promise.all([
+      const [pendingCount, approvedTodayCount, pointsTodayResult, levels, activeProgram] = await Promise.all([
         prisma.loyaltyRequest.count({ where: { businessId, status: 'PENDING' } }),
         prisma.loyaltyRequest.count({
           where: { businessId, status: 'APPROVED', approvedAt: { gte: todayStart } },
@@ -483,6 +561,10 @@ router.get(
           _sum: { points: true },
         }),
         prisma.loyaltyLevel.findMany({ where: { businessId }, orderBy: { sortOrder: 'asc' } }),
+        prisma.loyaltyProgram.findFirst({
+          where: { businessId, isActive: true },
+          include: { reward: true },
+        }),
       ]);
 
       // Most used level today
@@ -505,6 +587,7 @@ router.get(
         pointsIssuedToday: pointsTodayResult._sum.points ?? 0,
         mostUsedLevel,
         levels,
+        activeProgram,
       }, 'Analytics retrieved');
     } catch (err) { next(err); }
   }

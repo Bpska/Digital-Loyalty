@@ -173,8 +173,8 @@ export async function processCheckIn(input) {
     const visitProgram = activePrograms.find(p => p.type === LoyaltyType.VISIT_BASED);
     
     // Award points only if there is an active points program. If no program is active, add 0 points.
-    const pointsToAdd = hasActiveProgram 
-      ? ((pointsProgram?.pointsPerVisit) ?? env.DEFAULT_POINTS_PER_VISIT)
+    const pointsToAdd = pointsProgram 
+      ? ((pointsProgram.pointsPerVisit) ?? env.DEFAULT_POINTS_PER_VISIT)
       : 0;
 
     const customerPoints = await tx.customerPoints.upsert({
@@ -184,14 +184,14 @@ export async function processCheckIn(input) {
       update: {
         totalPoints: { increment: pointsToAdd },
         totalVisits: { increment: 1 },
-        visitStreak: hasActiveProgram ? { increment: 1 } : undefined,
+        visitStreak: visitProgram ? { increment: 1 } : undefined,
       },
       create: {
         customerId,
         businessId: branch.businessId,
         totalPoints: pointsToAdd,
         totalVisits: 1,
-        visitStreak: hasActiveProgram ? 1 : 0,
+        visitStreak: visitProgram ? 1 : 0,
       },
     });
 

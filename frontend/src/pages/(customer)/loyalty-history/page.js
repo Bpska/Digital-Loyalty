@@ -146,8 +146,8 @@ export default function CustomerLoyaltyHistoryPage() {
                             )
                           ),
 
-                          /* Level badge */
-                          level && (
+                          /* Level badge or Spend badge */
+                          level ? (
                             React.createElement("div", { className: "flex items-center gap-1.5" },
                               React.createElement("span", {
                                 className: `inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-bold ${colors.badge}`,
@@ -156,7 +156,15 @@ export default function CustomerLoyaltyHistoryPage() {
                                 level.name
                               )
                             )
-                          ),
+                          ) : tx.spendAmount ? (
+                            React.createElement("div", { className: "flex items-center gap-1.5" },
+                              React.createElement("span", {
+                                className: `inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-bold bg-emerald-50 text-emerald-700 border-emerald-200`,
+                              },
+                                `Spent ₹${tx.spendAmount}`
+                              )
+                            )
+                          ) : null,
 
                           /* Time */
                           React.createElement("p", { className: "text-[10px] text-muted-foreground" },

@@ -5,6 +5,7 @@ import { useAuthStore } from "@/store/authStore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { Input } from "@/components/ui/input";
 import {
   Loader2, CheckCircle2, XCircle, Award, Clock, User,
   Phone, Star, TrendingUp, Settings2, RefreshCw, ChevronDown
@@ -54,10 +55,12 @@ export default function BusinessApprovalsPage() {
 
   const requests = requestsData?.data || [];
   const levels = analytics?.levels || [];
+  const activeProgram = analytics?.activeProgram;
+  const isSpendBased = activeProgram?.type === "SPEND_BASED";
 
   const approveMutation = useMutation({
-    mutationFn: ({ requestId, levelId }) =>
-      api.post(`/loyalty-approval/approve/${requestId}`, { levelId }),
+    mutationFn: ({ requestId, levelId, spendAmount }) =>
+      api.post(`/loyalty-approval/approve/${requestId}`, { levelId, spendAmount }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["loyaltyRequests", businessId] });
       queryClient.invalidateQueries({ queryKey: ["loyaltyApprovalAnalytics", businessId] });
@@ -74,6 +77,8 @@ export default function BusinessApprovalsPage() {
     onError: (err) => alert(err.message || "Failed to reject request"),
   });
 
+  const [spendAmounts, setSpendAmounts] = useState({});
+
   async function handleApprove(request) {
     const levelId = selectedLevels[request.id];
     if (!levelId) {
@@ -83,6 +88,20 @@ export default function BusinessApprovalsPage() {
     setApprovingId(request.id);
     try {
       await approveMutation.mutateAsync({ requestId: request.id, levelId });
+    } finally {
+      setApprovingId(null);
+    }
+  }
+
+  async function handleApproveSpend(request) {
+    const spendAmount = spendAmounts[request.id];
+    if (!spendAmount || isNaN(parseFloat(spendAmount)) || parseFloat(spendAmount) <= 0) {
+      alert("Please enter a valid purchase amount before approving.");
+      return;
+    }
+    setApprovingId(request.id);
+    try {
+      await approveMutation.mutateAsync({ requestId: request.id, spendAmount: parseFloat(spendAmount) });
     } finally {
       setApprovingId(null);
     }
@@ -102,7 +121,7 @@ export default function BusinessApprovalsPage() {
     setSelectedLevels(prev => ({ ...prev, [requestId]: levelId }));
   }
 
-  if (levels.length === 0 && !isLoading) {
+  if (levels.length === 0 && !isLoading && !isSpendBased) {
     return (
       React.createElement("div", { className: "max-w-xl" },
         React.createElement("h1", { className: "text-2xl font-bold text-foreground mb-2" }, "Loyalty Approvals"),
@@ -279,12 +298,21 @@ export default function BusinessApprovalsPage() {
                     React.createElement("p", { className: "text-muted-foreground" }, "Total Visits"),
                     React.createElement("p", { className: "font-bold text-foreground" }, request.customerTotalVisits ?? 0)
                   ),
-                  request.status === "APPROVED" && request.level && (
+                  request.status === "APPROVED" && (request.level || request.spendAmount !== null) && (
                     React.createElement(React.Fragment, null,
                       React.createElement("div", { className: "h-4 w-px bg-border" }),
                       React.createElement("div", null,
-                        React.createElement("p", { className: "text-muted-foreground" }, "Level Awarded"),
-                        React.createElement("p", { className: "font-bold text-emerald-700" }, `${request.level.name} (+${request.level.points} pts)`)
+                        request.level ? (
+                          React.createElement(React.Fragment, null,
+                            React.createElement("p", { className: "text-muted-foreground" }, "Level Awarded"),
+                            React.createElement("p", { className: "font-bold text-emerald-700" }, `${request.level.name} (+${request.loyaltyTransaction?.points ?? request.level.points} pts)`)
+                          )
+                        ) : (
+                          React.createElement(React.Fragment, null,
+                            React.createElement("p", { className: "text-muted-foreground" }, "Spend Amount"),
+                            React.createElement("p", { className: "font-bold text-emerald-700" }, `₹${request.spendAmount} (+${request.loyaltyTransaction?.points ?? 0} pts)`)
+                          )
+                        )
                       )
                     )
                   )
@@ -292,59 +320,98 @@ export default function BusinessApprovalsPage() {
 
                 /* Level Selection + Actions (only for PENDING) */
                 request.status === "PENDING" && (
-                  React.createElement("div", { className: "space-y-3" },
-                    React.createElement("p", { className: "text-xs font-semibold text-muted-foreground uppercase tracking-wider" }, "Select Loyalty Level:"),
-
-                    /* Level Buttons */
-                    React.createElement("div", { className: "flex flex-wrap gap-2" },
-                      levels.map((level) => {
-                        const colors = getLevelColor(level.name);
-                        const isSelected = selectedLevelId === level.id;
-                        return React.createElement("button", {
-                          key: level.id,
-                          className: `flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition-all ${
-                            isSelected
-                              ? `${colors.bg} ${colors.text} ${colors.border} shadow-sm ring-2 ring-offset-1 ring-current`
-                              : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-muted/60"
-                          }`,
-                          onClick: () => selectLevel(request.id, level.id),
-                        },
-                          React.createElement(Star, { className: "h-3 w-3" }),
-                          `${level.name} (+${level.points} pt${level.points !== 1 ? "s" : ""})`
-                        );
-                      })
-                    ),
-
-                    /* Selected level preview */
-                    selectedLevel && (
-                      React.createElement("div", { className: "flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2" },
-                        React.createElement(CheckCircle2, { className: "h-3.5 w-3.5 shrink-0" }),
-                        `Approving will add ${selectedLevel.points} point${selectedLevel.points !== 1 ? "s" : ""} to ${request.customer?.name?.split(" ")[0] || "customer"}'s balance.`
-                      )
-                    ),
-
-                    /* Action Buttons */
-                    React.createElement("div", { className: "flex items-center gap-3 pt-1" },
-                      React.createElement(Button, {
-                        className: "flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold",
-                        onClick: () => handleApprove(request),
-                        disabled: !selectedLevelId || isApproving || isRejecting,
-                      },
-                        isApproving
-                          ? React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin" })
-                          : React.createElement(CheckCircle2, { className: "mr-2 h-4 w-4" }),
-                        isApproving ? "Approving..." : "Approve"
+                  isSpendBased ? (
+                    React.createElement("div", { className: "space-y-3" },
+                      React.createElement("p", { className: "text-xs font-semibold text-muted-foreground uppercase tracking-wider" }, "Enter Purchase Amount:"),
+                      React.createElement("div", { className: "flex items-center gap-3" },
+                        React.createElement(Input, {
+                          type: "number",
+                          min: "1",
+                          step: "any",
+                          placeholder: "e.g. 500",
+                          value: spendAmounts[request.id] || "",
+                          onChange: (e) => setSpendAmounts(prev => ({ ...prev, [request.id]: e.target.value })),
+                          className: "max-w-[200px] h-9 text-xs border-border bg-white text-slate-800"
+                        }),
+                        spendAmounts[request.id] && (
+                          React.createElement("span", { className: "text-xs font-bold text-primary animate-fade-in" },
+                            `+${Math.floor(Number(spendAmounts[request.id]) * (activeProgram.pointsPerSpendUnit || 1))} points`
+                          )
+                        )
                       ),
-                      React.createElement(Button, {
-                        variant: "outline",
-                        className: "border-red-300 text-red-600 hover:bg-red-50",
-                        onClick: () => handleReject(request.id),
-                        disabled: isApproving || isRejecting,
-                      },
-                        isRejecting
-                          ? React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin" })
-                          : React.createElement(XCircle, { className: "mr-2 h-4 w-4" }),
-                        "Reject"
+                      React.createElement("div", { className: "flex items-center gap-3 pt-1" },
+                        React.createElement(Button, {
+                          className: "flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-9 text-xs rounded-xl",
+                          onClick: () => handleApproveSpend(request),
+                          disabled: !spendAmounts[request.id] || isApproving || isRejecting,
+                        },
+                          isApproving ? "Approving..." : "Approve & Award Points"
+                        ),
+                        React.createElement(Button, {
+                          variant: "outline",
+                          className: "border-red-300 text-red-600 hover:bg-red-50 h-9 text-xs rounded-xl",
+                          onClick: () => handleReject(request.id),
+                          disabled: isApproving || isRejecting,
+                        },
+                          "Reject"
+                        )
+                      )
+                    )
+                  ) : (
+                    React.createElement("div", { className: "space-y-3" },
+                      React.createElement("p", { className: "text-xs font-semibold text-muted-foreground uppercase tracking-wider" }, "Select Loyalty Level:"),
+
+                      /* Level Buttons */
+                      React.createElement("div", { className: "flex flex-wrap gap-2" },
+                        levels.map((level) => {
+                          const colors = getLevelColor(level.name);
+                          const isSelected = selectedLevelId === level.id;
+                          return React.createElement("button", {
+                            key: level.id,
+                            className: `flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition-all ${
+                              isSelected
+                                ? `${colors.bg} ${colors.text} ${colors.border} shadow-sm ring-2 ring-offset-1 ring-current`
+                                : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-muted/60"
+                            }`,
+                            onClick: () => selectLevel(request.id, level.id),
+                          },
+                            React.createElement(Star, { className: "h-3 w-3" }),
+                            `${level.name} (+${level.points} pt${level.points !== 1 ? "s" : ""})`
+                          );
+                        })
+                      ),
+
+                      /* Selected level preview */
+                      selectedLevel && (
+                        React.createElement("div", { className: "flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2" },
+                          React.createElement(CheckCircle2, { className: "h-3.5 w-3.5 shrink-0" }),
+                          `Approving will add ${selectedLevel.points} point${selectedLevel.points !== 1 ? "s" : ""} to ${request.customer?.name?.split(" ")[0] || "customer"}'s balance.`
+                        )
+                      ),
+
+                      /* Action Buttons */
+                      React.createElement("div", { className: "flex items-center gap-3 pt-1" },
+                        React.createElement(Button, {
+                          className: "flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-9 text-xs rounded-xl",
+                          onClick: () => handleApprove(request),
+                          disabled: !selectedLevelId || isApproving || isRejecting,
+                        },
+                          isApproving
+                            ? React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin" })
+                            : React.createElement(CheckCircle2, { className: "mr-2 h-4 w-4" }),
+                          isApproving ? "Approving..." : "Approve"
+                        ),
+                        React.createElement(Button, {
+                          variant: "outline",
+                          className: "border-red-300 text-red-600 hover:bg-red-50 h-9 text-xs rounded-xl",
+                          onClick: () => handleReject(request.id),
+                          disabled: isApproving || isRejecting,
+                        },
+                          isRejecting
+                            ? React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin" })
+                            : React.createElement(XCircle, { className: "mr-2 h-4 w-4" }),
+                          "Reject"
+                        )
                       )
                     )
                   )

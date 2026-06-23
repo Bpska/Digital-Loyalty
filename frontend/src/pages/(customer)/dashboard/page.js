@@ -136,7 +136,7 @@ function ProgramBlock({ program, card, isFirst }) {
           ? React.createElement(Star, { className: "h-3.5 w-3.5 text-amber-500" })
           : React.createElement(Zap, { className: "h-3.5 w-3.5 text-primary" }),
         React.createElement("span", { className: "text-[11px] font-bold text-foreground uppercase tracking-wide" },
-          isVisitBased ? "Stamp Card" : "Points Program"
+          isVisitBased ? "Stamp Card" : program.type === "SPEND_BASED" ? "Spend Program" : "Points Program"
         )
       ),
       React.createElement("span", { className: "text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border font-medium flex items-center gap-1" },
@@ -193,7 +193,9 @@ function ProgramBlock({ program, card, isFirst }) {
           " / ", threshold
         ),
         React.createElement("span", { className: "text-[10px] text-muted-foreground" },
-          "+", program.pointsPerVisit, " pts / visit"
+          program.type === "SPEND_BASED"
+            ? `${program.pointsPerSpendUnit} pt${program.pointsPerSpendUnit !== 1 ? 's' : ''} / ₹ spent`
+            : `+${program.pointsPerVisit} pts / visit`
         )
       ),
       React.createElement("div", { className: "w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-border" },
@@ -246,7 +248,7 @@ function BusinessCard({ card }) {
           ),
           activePrograms.map(p =>
             React.createElement("span", { key: p.id, className: "text-[9px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full border border-border" },
-              p.type === "VISIT_BASED" ? "Stamp Card" : "Points"
+              p.type === "VISIT_BASED" ? "Stamp Card" : p.type === "SPEND_BASED" ? "Spend" : "Points"
             )
           ),
           activeCoupons.length > 0 && React.createElement("span", { className: "text-[9px] font-bold bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full uppercase" },
