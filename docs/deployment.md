@@ -59,19 +59,28 @@ cd /var/www/dlv-saas
 ```
 
 ### Configure environment
-Copy `.env.example` to `.env` and fill in all variables:
+Copy `.env.example` to both the root directory (for Docker Compose variables) and the `backend` directory (for application configuration):
 ```bash
+# Root env (for docker-compose passwords, VITE_API_URL, etc.)
 cp .env.example .env
 nano .env
+
+# Backend env (for Express backend app configurations)
+cp .env.example backend/.env
+nano backend/.env
 ```
 
 Make sure to change the following values in production:
-- `DATABASE_URL` — set custom secure password.
-- `JWT_ACCESS_SECRET` & `JWT_REFRESH_SECRET` — generate 32+ character random strings.
-- `QR_HMAC_SECRET` — secure rotatable signing token.
-- `FRONTEND_URL` & `BACKEND_URL` — configure to your domains (`https://frunko.in` and `https://api.frunko.in`).
-- `OTP_PROVIDER` — switch to `msg91` or `twilio` and input keys.
-- `RAZORPAY_KEY_ID` & `RAZORPAY_KEY_SECRET` — add production keys.
+- **Root `.env`**:
+  - `POSTGRES_PASSWORD` — set a custom secure password (this is used by the database container and the backend connection string).
+- **Backend `backend/.env`**:
+  - `DATABASE_URL` — update the password in the connection string to match your custom secure password.
+  - `JWT_ACCESS_SECRET` & `JWT_REFRESH_SECRET` — generate 32+ character random strings.
+  - `QR_HMAC_SECRET` — secure rotatable signing token.
+  - `FRONTEND_URL` & `BACKEND_URL` — configure to your domains (`https://frunko.in` and `https://api.frunko.in`).
+  - `OTP_PROVIDER` — switch to `msg91` or `twilio` and input keys.
+  - `RAZORPAY_KEY_ID` & `RAZORPAY_KEY_SECRET` — add production keys.
+  - `GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET` — configure Google Auth details.
 
 ---
 
@@ -93,6 +102,26 @@ docker compose exec backend npx prisma migrate deploy
 # Run seed scripts
 docker compose exec backend npm run prisma:seed
 ```
+
+### Generate VAPID Keys for Web Push Notifications
+Web Push Notifications require VAPID key pairs. Run the VAPID generator script inside the backend container to generate secure credentials:
+```bash
+# Run VAPID key generator script
+docker compose exec backend node scripts/generate-vapid.js
+```
+The script will output your VAPID keys to the terminal. To ensure they persist on container restarts and host rebuilds:
+1. **Copy** the generated `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` values from the terminal output.
+2. **Open** `backend/.env` on the host machine (`nano backend/.env`).
+3. **Paste** the generated variables at the bottom of the file:
+   ```env
+   VAPID_PUBLIC_KEY="your_generated_public_key"
+   VAPID_PRIVATE_KEY="your_generated_private_key"
+   VAPID_SUBJECT="mailto:your-admin-email@domain.com"
+   ```
+4. **Restart** the backend container to apply the changes:
+   ```bash
+   docker compose restart backend
+   ```
 
 ---
 
@@ -127,6 +156,9 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
     }
 
@@ -148,6 +180,9 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
     }
 }

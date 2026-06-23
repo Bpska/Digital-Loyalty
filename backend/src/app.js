@@ -33,7 +33,8 @@ export function createApp() {
   const app = express();
 
   // Trust proxy for correct client IP resolution (x-forwarded-for)
-  app.set('trust proxy', true);
+  // Set to 1 to trust the immediate reverse proxy (Nginx) and prevent spoofing vulnerabilities
+  app.set('trust proxy', 1);
 
   // ── Security headers ────────────────────────────────────────
   app.use(
