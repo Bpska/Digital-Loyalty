@@ -562,3 +562,37 @@ async function issueTokens(tokenUser, ipAddress) {
     user: { ...user, businessId: tokenUser.businessId, branchId: tokenUser.branchId },
   };
 }
+
+export async function getMeProfile(userId) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      staffProfile: {
+        select: { businessId: true, branchId: true },
+      },
+    },
+  });
+
+  if (!user || !user.isActive) {
+    throw new AppError('User not found or inactive', 404);
+  }
+
+  let businessId = user.staffProfile?.businessId || null;
+  if (user.role === Role.BUSINESS_ADMIN) {
+    const business = await prisma.business.findFirst({
+      where: { ownerId: user.id, deletedAt: null },
+      select: { id: true },
+    });
+    businessId = business?.id || null;
+  }
+
+  return {
+    id: user.id,
+    name: user.name,
+    phone: user.phone,
+    email: user.email,
+    role: user.role,
+    businessId,
+    branchId: user.staffProfile?.branchId || null,
+  };
+}

@@ -252,7 +252,8 @@ export async function logoutHandler(
  */
 export async function getMe(req, res, next) {
   try {
-    sendSuccess(res, req.user, 'Current user');
+    const profile = await authService.getMeProfile(req.user.sub);
+    sendSuccess(res, profile, 'Current user');
   } catch (err) {
     next(err);
   }
