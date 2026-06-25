@@ -96,7 +96,7 @@ export function authorize(...roles) {
  * matches the :businessId route param.
  * SUPER_ADMIN bypasses this check.
  */
-export function requireSameBusiness(
+export async function requireSameBusiness(
   req,
   res,
   next
@@ -110,11 +110,35 @@ export function requireSameBusiness(
     return;
   }
   const { businessId } = req.params;
-  if (req.user.businessId !== businessId) {
-    Responses.forbidden(res, 'Access denied: not your business');
+  if (req.user.businessId === businessId) {
+    next();
     return;
   }
-  next();
+
+  // Database fallback check
+  try {
+    const prisma = (await import('../config/prisma.js')).default;
+    const business = await prisma.business.findFirst({
+      where: { id: businessId, ownerId: req.user.sub, deletedAt: null },
+    });
+    if (business) {
+      next();
+      return;
+    }
+
+    const staff = await prisma.staff.findFirst({
+      where: { userId: req.user.sub, businessId },
+    });
+    if (staff) {
+      next();
+      return;
+    }
+  } catch (err) {
+    next(err);
+    return;
+  }
+
+  Responses.forbidden(res, 'Access denied: not your business');
 }
 
 // ── Token generation ──────────────────────────────────────────

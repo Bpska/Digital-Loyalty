@@ -368,11 +368,29 @@ export async function loginWithGoogle(
     throw new AppError('Your account has been deactivated. Please contact support.', 403);
   }
 
+  let businessId = null;
+  let branchId = null;
+
+  if (user.role === Role.BUSINESS_ADMIN) {
+    const biz = await prisma.business.findFirst({
+      where: { ownerId: user.id, deletedAt: null },
+      select: { id: true },
+    });
+    businessId = biz?.id || null;
+  } else if (user.role === Role.STAFF) {
+    const staff = await prisma.staff.findFirst({
+      where: { userId: user.id },
+      select: { businessId: true, branchId: true },
+    });
+    businessId = staff?.businessId || null;
+    branchId = staff?.branchId || null;
+  }
+
   const tokenUser = {
     id: user.id,
     role: user.role,
-    businessId: null,
-    branchId: null,
+    businessId,
+    branchId,
   };
 
   return issueTokens(tokenUser, ipAddress);
