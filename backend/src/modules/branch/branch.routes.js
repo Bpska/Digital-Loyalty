@@ -27,7 +27,7 @@ const branchSchema = z.object({
 });
 
 // ── List branches for a business ──────────────────────────────
-router.get('/business/:businessId', authenticate, async (req, res, next) => {
+router.get('/business/:businessId', authenticate, requireSameBusiness, async (req, res, next) => {
   try {
     const branches = await prisma.branch.findMany({
       where: { businessId: req.params.businessId },

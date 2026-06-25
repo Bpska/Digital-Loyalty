@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate, authorize } from '../../middlewares/auth.middleware.js';
+import { authenticate, authorize, requireSameBusiness } from '../../middlewares/auth.middleware.js';
 import { Role } from '@prisma/client';
 import { sendSuccess } from '../../utils/response.js';
 import prisma from '../../config/prisma.js';
@@ -8,7 +8,7 @@ import prisma from '../../config/prisma.js';
 const router = Router();
 
 // Get analytics for a business
-router.get('/business/:businessId', authenticate, authorize(Role.BUSINESS_ADMIN, Role.SUPER_ADMIN), async (req, res, next) => {
+router.get('/business/:businessId', authenticate, authorize(Role.BUSINESS_ADMIN, Role.SUPER_ADMIN), requireSameBusiness, async (req, res, next) => {
   try {
     const { businessId } = req.params;
     const now = new Date();

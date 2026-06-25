@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import { authenticate, authorize } from '../../middlewares/auth.middleware.js';
+import { authenticate, authorize, requireSameBusiness } from '../../middlewares/auth.middleware.js';
 import { Role, LoyaltyType, LoyaltyResetMode } from '@prisma/client';
 import { validate } from '../../middlewares/validate.middleware.js';
 import { sendSuccess, sendCreated } from '../../utils/response.js';
+import { AppError } from '../../middlewares/error.middleware.js';
 
 import { auditLog } from '../../middlewares/audit.middleware.js';
 import prisma from '../../config/prisma.js';
@@ -21,7 +22,7 @@ const loyaltyProgramSchema = z.object({
 });
 
 // List loyalty programs for a business
-router.get('/business/:businessId', authenticate, async (req, res, next) => {
+router.get('/business/:businessId', authenticate, requireSameBusiness, async (req, res, next) => {
   try {
     const programs = await prisma.loyaltyProgram.findMany({
       where: { businessId: req.params.businessId },
@@ -34,9 +35,22 @@ router.get('/business/:businessId', authenticate, async (req, res, next) => {
 // Create loyalty program
 router.post('/', authenticate, authorize(Role.BUSINESS_ADMIN, Role.SUPER_ADMIN), validate(loyaltyProgramSchema), auditLog('LOYALTY_PROGRAM_CREATED', 'LoyaltyProgram'), async (req, res, next) => {
   try {
+    const { businessId } = req.body;
+    if (!businessId || businessId === 'null' || businessId === 'undefined') {
+      throw new AppError('Invalid business ID', 400);
+    }
+    if (req.user.role !== Role.SUPER_ADMIN && req.user.businessId !== businessId) {
+      const biz = await prisma.business.findFirst({
+        where: { id: businessId, ownerId: req.user.sub, deletedAt: null }
+      });
+      if (!biz) {
+        throw new AppError('Access denied: not your business', 403);
+      }
+    }
+
     // Deactivate previous program of same type
     await prisma.loyaltyProgram.updateMany({
-      where: { businessId: req.body.businessId, type: req.body.type, isActive: true },
+      where: { businessId, type: req.body.type, isActive: true },
       data: { isActive: false },
     });
     const program = await prisma.loyaltyProgram.create({ data: req.body, include: { reward: true } });

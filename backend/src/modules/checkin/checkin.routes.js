@@ -160,6 +160,9 @@ router.get(
   async (req, res, next) => {
     try {
       const { businessId } = req.params;
+      if (!businessId || businessId === 'null' || businessId === 'undefined') {
+        throw new AppError('Invalid business ID', 400);
+      }
       const prisma = (await import('../../config/prisma.js')).default;
       const { parsePagination, buildPaginationMeta } = await import('../../utils/pagination.js');
       const { page, limit, skip } = parsePagination(req.query);

@@ -53,6 +53,9 @@ async function unlockCustomerReward(tx, customerId, program) {
 // ─────────────────────────────────────────────────────────────
 
 async function assertBusinessOwner(userId, businessId) {
+  if (!businessId || businessId === 'null' || businessId === 'undefined') {
+    throw new AppError('Invalid business ID', 400);
+  }
   const business = await prisma.business.findFirst({
     where: { id: businessId, ownerId: userId, deletedAt: null },
   });
@@ -820,6 +823,9 @@ router.post(
   async (req, res, next) => {
     try {
       const { businessId } = req.params;
+      if (!businessId || businessId === 'null' || businessId === 'undefined') {
+        throw new AppError('Invalid business ID', 400);
+      }
       const customerId = req.user.sub;
 
       const settings = await prisma.loyaltyProgramSettings.findUnique({

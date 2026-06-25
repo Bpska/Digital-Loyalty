@@ -1,7 +1,8 @@
  function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } }import { Router, raw } from 'express';
-import { authenticate, authorize } from '../../middlewares/auth.middleware.js';
+import { authenticate, authorize, requireSameBusiness } from '../../middlewares/auth.middleware.js';
 import { Role } from '@prisma/client';
 import { sendSuccess, sendCreated, sendError } from '../../utils/response.js';
+import { AppError } from '../../middlewares/error.middleware.js';
 
 
 import prisma from '../../config/prisma.js';
@@ -14,7 +15,7 @@ import { validate } from '../../middlewares/validate.middleware.js';
 const router = Router();
 
 // ── Get subscription for a business ──────────────────────────
-router.get('/business/:businessId', authenticate, async (req, res, next) => {
+router.get('/business/:businessId', authenticate, requireSameBusiness, async (req, res, next) => {
   try {
     const subscription = await prisma.subscription.findUnique({
       where: { businessId: req.params.businessId },
@@ -69,8 +70,16 @@ router.get('/pricing', authenticate, async (req, res, next) => {
 router.post('/create-order', authenticate, async (req, res, next) => {
   try {
     const { businessId } = req.body;
-    if (!businessId) {
+    if (!businessId || businessId === 'null' || businessId === 'undefined') {
       throw new AppError('Business ID is required', 400);
+    }
+    if (req.user.role !== Role.SUPER_ADMIN && req.user.businessId !== businessId) {
+      const biz = await prisma.business.findFirst({
+        where: { id: businessId, ownerId: req.user.sub, deletedAt: null }
+      });
+      if (!biz) {
+        throw new AppError('Access denied: not your business', 403);
+      }
     }
 
     const activeCount = await prisma.business.count({
@@ -134,6 +143,17 @@ const verifyPaymentSchema = z.object({
 router.post('/verify-payment', authenticate, validate(verifyPaymentSchema), async (req, res, next) => {
   try {
     const { businessId, razorpayPaymentId, razorpayOrderId, razorpaySignature } = req.body;
+    if (!businessId || businessId === 'null' || businessId === 'undefined') {
+      throw new AppError('Business ID is required', 400);
+    }
+    if (req.user.role !== Role.SUPER_ADMIN && req.user.businessId !== businessId) {
+      const biz = await prisma.business.findFirst({
+        where: { id: businessId, ownerId: req.user.sub, deletedAt: null }
+      });
+      if (!biz) {
+        throw new AppError('Access denied: not your business', 403);
+      }
+    }
 
     const isMock = razorpayOrderId.startsWith('mock-order-');
 

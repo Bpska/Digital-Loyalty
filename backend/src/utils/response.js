@@ -58,6 +58,9 @@ export function sendError(
  * Shorthand helpers for common HTTP status codes.
  */
 export const Responses = {
+  badRequest: (res, message = 'Bad request') =>
+    sendError(res, message, 400),
+
   unauthorized: (res, message = 'Unauthorized') =>
     sendError(res, message, 401),
 

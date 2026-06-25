@@ -92,10 +92,10 @@ export default function BusinessAdminLayout({
     }
   };
 
-  const { data: business, refetch: refetchProfile } = useQuery({
+  const { data: business, refetch: refetchProfile, isLoading: isProfileLoading } = useQuery({
     queryKey: ["businessProfile", businessId],
     queryFn: () => api.get(`/businesses/${businessId}`).then((res) => res.data),
-    enabled: !!businessId,
+    enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
   });
 
   const isPending = _optionalChain([business, 'optionalAccess', _ => _.status]) === "PENDING";
@@ -305,7 +305,7 @@ export default function BusinessAdminLayout({
     }
   }, [user, loading, navigate]);
 
-  if (loading || !authorized) {
+  if (loading || !authorized || (businessId && businessId !== "null" && businessId !== "undefined" && isProfileLoading)) {
     return (
       React.createElement('div', { className: "flex min-h-screen items-center justify-center bg-background"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 47}}
         , React.createElement(Loader2, { className: "h-8 w-8 animate-spin text-primary"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 48}} )

@@ -110,6 +110,10 @@ export async function requireSameBusiness(
     return;
   }
   const { businessId } = req.params;
+  if (!businessId || businessId === 'null' || businessId === 'undefined') {
+    Responses.badRequest(res, 'Invalid business ID');
+    return;
+  }
   if (req.user.businessId === businessId) {
     next();
     return;
