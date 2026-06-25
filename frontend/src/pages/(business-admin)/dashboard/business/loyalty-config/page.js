@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Loader2, Star, ChevronUp, ChevronDown, Award, Info } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Star, ChevronUp, ChevronDown, Award, Info, Settings } from "lucide-react";
 
 const PRESET_LEVELS = [
   { name: "Bronze", description: "Entry-level visit", points: 1, color: "#CD7F32" },
@@ -37,11 +37,40 @@ export default function BusinessLoyaltyConfigPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
+  // Settings form state
+  const [settingsForm, setSettingsForm] = useState({
+    programName: "",
+    pointsPerRupee: "0.1",
+    pointsPerStamp: "50",
+    requiredStamps: "7",
+    rewardName: "",
+    validityDays: "30",
+  });
+
   const { data: levels = [], isLoading } = useQuery({
     queryKey: ["loyaltyLevels", businessId],
     queryFn: () => api.get(`/loyalty-approval/levels/${businessId}`).then(r => r.data),
     enabled: !!businessId,
   });
+
+  const { data: settings, isLoading: isLoadingSettings } = useQuery({
+    queryKey: ["loyaltySettings", businessId],
+    queryFn: () => api.get(`/loyalty-approval/settings/${businessId}`).then(r => r.data),
+    enabled: !!businessId,
+  });
+
+  useEffect(() => {
+    if (settings) {
+      setSettingsForm({
+        programName: settings.programName || "Coffee Rewards",
+        pointsPerRupee: String(settings.pointsPerRupee ?? 0.1),
+        pointsPerStamp: String(settings.pointsPerStamp ?? 50),
+        requiredStamps: String(settings.requiredStamps ?? 7),
+        rewardName: settings.rewardName || "Free Coffee",
+        validityDays: String(settings.validityDays ?? 30),
+      });
+    }
+  }, [settings]);
 
   const createMutation = useMutation({
     mutationFn: (data) => api.post("/loyalty-approval/levels", data),
@@ -73,6 +102,15 @@ export default function BusinessLoyaltyConfigPage() {
   const reorderMutation = useMutation({
     mutationFn: ({ id, sortOrder }) => api.patch(`/loyalty-approval/levels/${id}`, { sortOrder }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["loyaltyLevels", businessId] }),
+  });
+
+  const saveSettingsMutation = useMutation({
+    mutationFn: (data) => api.post(`/loyalty-approval/settings/${businessId}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["loyaltySettings", businessId] });
+      alert("Settings saved successfully!");
+    },
+    onError: (err) => alert(err.message || "Failed to save settings"),
   });
 
   function openCreate() {
@@ -122,6 +160,30 @@ export default function BusinessLoyaltyConfigPage() {
     }
   }
 
+  function handleSaveSettings(e) {
+    e.preventDefault();
+    const ppr = parseFloat(settingsForm.pointsPerRupee);
+    const pps = parseInt(settingsForm.pointsPerStamp, 10);
+    const rs = parseInt(settingsForm.requiredStamps, 10);
+    const vd = parseInt(settingsForm.validityDays, 10);
+
+    if (!settingsForm.programName.trim()) { alert("Program name is required"); return; }
+    if (isNaN(ppr) || ppr <= 0) { alert("Points per ₹ must be a positive number"); return; }
+    if (isNaN(pps) || pps <= 0) { alert("Points per stamp must be a positive integer"); return; }
+    if (isNaN(rs) || rs <= 0) { alert("Required stamps must be a positive integer"); return; }
+    if (!settingsForm.rewardName.trim()) { alert("Reward name is required"); return; }
+    if (isNaN(vd) || vd <= 0) { alert("Validity must be a positive integer"); return; }
+
+    saveSettingsMutation.mutate({
+      programName: settingsForm.programName.trim(),
+      pointsPerRupee: ppr,
+      pointsPerStamp: pps,
+      requiredStamps: rs,
+      rewardName: settingsForm.rewardName.trim(),
+      validityDays: vd,
+    });
+  }
+
   async function applyPreset(preset, idx) {
     createMutation.mutate({
       businessId,
@@ -153,7 +215,7 @@ export default function BusinessLoyaltyConfigPage() {
         React.createElement("div", null,
           React.createElement("h1", { className: "text-2xl font-bold text-foreground" }, "Loyalty Configuration"),
           React.createElement("p", { className: "text-sm text-muted-foreground mt-0.5" },
-            "Define custom loyalty tiers that your team will use to manually reward customers."
+            "Configure your hybrid points-to-stamps settings or define custom levels."
           )
         ),
         React.createElement(Button, {
@@ -171,9 +233,101 @@ export default function BusinessLoyaltyConfigPage() {
         React.createElement("div", null,
           React.createElement("p", { className: "font-semibold" }, "How this works"),
           React.createElement("p", { className: "text-xs mt-0.5 text-blue-700" },
-            "When a customer scans your QR code, their visit is recorded and a loyalty request is sent to you. You then go to Loyalty Approvals, choose a level (e.g. Gold = 5 pts), and approve. Points are instantly added to the customer's balance."
+            "When a customer scans your QR code, a loyalty request is created. You can approve it using the hybrid program where points and stamps are automatically calculated based on purchase values, or award custom points based on levels."
           )
         )
+      ),
+
+      /* Loyalty Program Settings Card */
+      React.createElement(Card, { className: "border border-border/70 shadow-sm" },
+        React.createElement(CardHeader, null,
+          React.createElement(CardTitle, { className: "flex items-center gap-2 text-foreground font-bold" },
+            React.createElement(Settings, { className: "h-5 w-5 text-primary" }), "Loyalty Program Settings"
+          ),
+          React.createElement(CardDescription, null,
+            "Configure the Point conversion, Stamp conversion, and Rewards for your customers."
+          )
+        ),
+        React.createElement(CardContent, null,
+          React.createElement("form", { onSubmit: handleSaveSettings, className: "space-y-4" },
+            React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4" },
+              React.createElement("div", { className: "space-y-1.5" },
+                React.createElement(Label, { htmlFor: "prog-name" }, "Program Name"),
+                React.createElement(Input, {
+                  id: "prog-name",
+                  placeholder: "e.g. Coffee Rewards",
+                  value: settingsForm.programName,
+                  onChange: (e) => setSettingsForm(f => ({ ...f, programName: e.target.value })),
+                })
+              ),
+              React.createElement("div", { className: "space-y-1.5" },
+                React.createElement(Label, { htmlFor: "reward-name" }, "Reward Name"),
+                React.createElement(Input, {
+                  id: "reward-name",
+                  placeholder: "e.g. Free Coffee",
+                  value: settingsForm.rewardName,
+                  onChange: (e) => setSettingsForm(f => ({ ...f, rewardName: e.target.value })),
+                })
+              ),
+              React.createElement("div", { className: "space-y-1.5" },
+                React.createElement(Label, { htmlFor: "pts-per-rupee" }, "Points Per ₹"),
+                React.createElement(Input, {
+                  id: "pts-per-rupee",
+                  type: "number",
+                  step: "any",
+                  placeholder: "e.g. 0.1 for ₹10 = 1 Point",
+                  value: settingsForm.pointsPerRupee,
+                  onChange: (e) => setSettingsForm(f => ({ ...f, pointsPerRupee: e.target.value })),
+                })
+              ),
+              React.createElement("div", { className: "space-y-1.5" },
+                React.createElement(Label, { htmlFor: "pts-per-stamp" }, "Points Per Stamp"),
+                React.createElement(Input, {
+                  id: "pts-per-stamp",
+                  type: "number",
+                  placeholder: "e.g. 50",
+                  value: settingsForm.pointsPerStamp,
+                  onChange: (e) => setSettingsForm(f => ({ ...f, pointsPerStamp: e.target.value })),
+                })
+              ),
+              React.createElement("div", { className: "space-y-1.5" },
+                React.createElement(Label, { htmlFor: "req-stamps" }, "Required Stamps for Reward"),
+                React.createElement(Input, {
+                  id: "req-stamps",
+                  type: "number",
+                  placeholder: "e.g. 7",
+                  value: settingsForm.requiredStamps,
+                  onChange: (e) => setSettingsForm(f => ({ ...f, requiredStamps: e.target.value })),
+                })
+              ),
+              React.createElement("div", { className: "space-y-1.5" },
+                React.createElement(Label, { htmlFor: "validity-days" }, "Reward Validity (Days)"),
+                React.createElement(Input, {
+                  id: "validity-days",
+                  type: "number",
+                  placeholder: "e.g. 30",
+                  value: settingsForm.validityDays,
+                  onChange: (e) => setSettingsForm(f => ({ ...f, validityDays: e.target.value })),
+                })
+              )
+            ),
+            React.createElement("div", { className: "flex justify-end pt-2" },
+              React.createElement(Button, {
+                type: "submit",
+                disabled: saveSettingsMutation.isPending,
+                className: "bg-primary text-primary-foreground font-bold"
+              },
+                saveSettingsMutation.isPending ? React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin" }) : null,
+                "Save Program Settings"
+              )
+            )
+          )
+        )
+      ),
+
+      /* Custom Levels Header */
+      React.createElement("div", { className: "border-t border-border pt-6" },
+        React.createElement("h2", { className: "text-lg font-bold text-foreground" }, "Custom Loyalty Tiers")
       ),
 
       /* Quick-Start Presets (shown only when empty) */

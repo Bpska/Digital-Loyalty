@@ -593,4 +593,316 @@ router.get(
   }
 );
 
+// ─────────────────────────────────────────────────────────────
+// HYBRID LOYALTY PROGRAM SETTINGS
+// ─────────────────────────────────────────────────────────────
+
+const settingsSchema = z.object({
+  programName: z.string().min(1),
+  pointsPerRupee: z.coerce.number().positive(),
+  pointsPerStamp: z.coerce.number().int().positive(),
+  requiredStamps: z.coerce.number().int().positive(),
+  rewardName: z.string().min(1),
+  validityDays: z.coerce.number().int().positive(),
+});
+
+// GET /loyalty-approval/settings/:businessId — retrieve program settings
+router.get(
+  '/settings/:businessId',
+  authenticate,
+  async (req, res, next) => {
+    try {
+      const { businessId } = req.params;
+
+      if (req.user.role === Role.BUSINESS_ADMIN) {
+        await assertBusinessOwner(req.user.sub, businessId);
+      }
+
+      let settings = await prisma.loyaltyProgramSettings.findUnique({
+        where: { businessId },
+      });
+
+      if (!settings) {
+        settings = {
+          programName: 'Coffee Rewards',
+          pointsPerRupee: 0.1,
+          pointsPerStamp: 50,
+          requiredStamps: 7,
+          rewardName: 'Free Coffee',
+          validityDays: 30,
+          businessId,
+        };
+      }
+
+      sendSuccess(res, settings, 'Loyalty program settings retrieved');
+    } catch (err) { next(err); }
+  }
+);
+
+// POST /loyalty-approval/settings/:businessId — save program settings
+router.post(
+  '/settings/:businessId',
+  authenticate,
+  authorize(Role.BUSINESS_ADMIN, Role.SUPER_ADMIN),
+  validate(settingsSchema),
+  async (req, res, next) => {
+    try {
+      const { businessId } = req.params;
+
+      if (req.user.role === Role.BUSINESS_ADMIN) {
+        await assertBusinessOwner(req.user.sub, businessId);
+      }
+
+      const settings = await prisma.loyaltyProgramSettings.upsert({
+        where: { businessId },
+        update: req.body,
+        create: { ...req.body, businessId },
+      });
+
+      sendSuccess(res, settings, 'Loyalty program settings saved');
+    } catch (err) { next(err); }
+  }
+);
+
+// ─────────────────────────────────────────────────────────────
+// WALLET-BASED APPROVAL AND REDEMPTION
+// ─────────────────────────────────────────────────────────────
+
+const approveWalletSchema = z.object({
+  purchaseValue: z.coerce.number().positive(),
+});
+
+// POST /loyalty-approval/approve-wallet/:requestId — approve with a purchase value
+router.post(
+  '/approve-wallet/:requestId',
+  authenticate,
+  authorize(Role.BUSINESS_ADMIN, Role.SUPER_ADMIN),
+  validate(approveWalletSchema),
+  async (req, res, next) => {
+    try {
+      const { requestId } = req.params;
+      const { purchaseValue } = req.body;
+
+      const request = await prisma.loyaltyRequest.findUnique({
+        where: { id: requestId },
+        include: {
+          customer: { select: { id: true, name: true } },
+          business: { select: { id: true, name: true, ownerId: true } },
+        },
+      });
+
+      if (!request) throw new AppError('Loyalty request not found', 404);
+      if (request.status !== 'PENDING') throw new AppError(`Request is already ${request.status}`, 400);
+
+      if (req.user.role === Role.BUSINESS_ADMIN) {
+        await assertBusinessOwner(req.user.sub, request.businessId);
+      }
+
+      // Load business settings
+      let settings = await prisma.loyaltyProgramSettings.findUnique({
+        where: { businessId: request.businessId },
+      });
+
+      if (!settings) {
+        // Create defaults if not configured
+        settings = await prisma.loyaltyProgramSettings.create({
+          data: {
+            businessId: request.businessId,
+            programName: 'Coffee Rewards',
+            pointsPerRupee: 0.1,
+            pointsPerStamp: 50,
+            requiredStamps: 7,
+            rewardName: 'Free Coffee',
+            validityDays: 30,
+          },
+        });
+      }
+
+      const pointsEarned = Math.floor(purchaseValue * settings.pointsPerRupee);
+
+      const result = await prisma.$transaction(async (tx) => {
+        // 1. Get or create wallet
+        let wallet = await tx.userWallet.findUnique({
+          where: { userId_businessId: { userId: request.customerId, businessId: request.businessId } },
+        });
+
+        if (!wallet) {
+          wallet = await tx.userWallet.create({
+            data: {
+              userId: request.customerId,
+              businessId: request.businessId,
+              currentPoints: 0,
+              currentStamps: 0,
+            },
+          });
+        }
+
+        // 2. Calculate point accumulation and stamp conversion
+        const totalPointsAcc = wallet.currentPoints + pointsEarned;
+        const stampsEarned = Math.floor(totalPointsAcc / settings.pointsPerStamp);
+        const remainingPoints = totalPointsAcc % settings.pointsPerStamp;
+
+        const updatedWallet = await tx.userWallet.update({
+          where: { id: wallet.id },
+          data: {
+            currentPoints: remainingPoints,
+            currentStamps: wallet.currentStamps + stampsEarned,
+          },
+        });
+
+        // 3. Create wallet transaction
+        const walletTx = await tx.walletTransaction.create({
+          data: {
+            userId: request.customerId,
+            businessId: request.businessId,
+            purchaseValue,
+            pointsEarned,
+            stampEarned: stampsEarned,
+          },
+        });
+
+        // 4. Update request status to APPROVED
+        const updatedRequest = await tx.loyaltyRequest.update({
+          where: { id: requestId },
+          data: {
+            status: 'APPROVED',
+            spendAmount: purchaseValue,
+            approvedById: req.user.sub,
+            approvedAt: new Date(),
+          },
+        });
+
+        // 5. Send notification to the customer
+        let notifTitle = 'Points Earned! 💳';
+        let notifBody = `You earned ${pointsEarned} points at ${request.business.name}.`;
+        if (stampsEarned > 0) {
+          notifTitle = 'Stamp Added! 🎫';
+          notifBody = `You earned ${pointsEarned} points and ${stampsEarned} stamp${stampsEarned > 1 ? 's' : ''} at ${request.business.name}!`;
+        }
+
+        await tx.notification.create({
+          data: {
+            userId: request.customerId,
+            businessId: request.businessId,
+            title: notifTitle,
+            body: notifBody,
+            type: 'GENERAL',
+            metadata: {
+              pointsEarned,
+              stampsEarned,
+              currentPoints: remainingPoints,
+              currentStamps: updatedWallet.currentStamps,
+              purchaseValue,
+            },
+          },
+        });
+
+        return { updatedWallet, walletTx, updatedRequest };
+      });
+
+      sendSuccess(res, {
+        requestId,
+        customerId: request.customerId,
+        customerName: request.customer.name,
+        pointsEarned,
+        currentPoints: result.updatedWallet.currentPoints,
+        currentStamps: result.updatedWallet.currentStamps,
+      }, `Approved! ${pointsEarned} points awarded to ${request.customer.name}`);
+    } catch (err) { next(err); }
+  }
+);
+
+// POST /loyalty-approval/redeem-wallet-reward/:businessId — redeem stamps for a reward voucher
+router.post(
+  '/redeem-wallet-reward/:businessId',
+  authenticate,
+  authorize(Role.CUSTOMER),
+  async (req, res, next) => {
+    try {
+      const { businessId } = req.params;
+      const customerId = req.user.sub;
+
+      const settings = await prisma.loyaltyProgramSettings.findUnique({
+        where: { businessId },
+      });
+
+      if (!settings) {
+        throw new AppError('Loyalty program settings not found for this business', 404);
+      }
+
+      const wallet = await prisma.userWallet.findUnique({
+        where: { userId_businessId: { userId: customerId, businessId } },
+      });
+
+      if (!wallet || wallet.currentStamps < settings.requiredStamps) {
+        throw new AppError('Insufficient stamps to redeem reward', 400);
+      }
+
+      // Find or create a Reward template for this business based on settings.rewardName
+      let reward = await prisma.reward.findFirst({
+        where: { businessId, title: settings.rewardName, isActive: true },
+      });
+
+      if (!reward) {
+        reward = await prisma.reward.create({
+          data: {
+            businessId,
+            title: settings.rewardName,
+            description: 'Redeemed from stamps',
+            pointsRequired: 0,
+            isActive: true,
+          },
+        });
+      }
+
+      const result = await prisma.$transaction(async (tx) => {
+        // 1. Deduct stamps
+        const updatedWallet = await tx.userWallet.update({
+          where: { id: wallet.id },
+          data: {
+            currentStamps: wallet.currentStamps - settings.requiredStamps,
+          },
+        });
+
+        // 2. Create customer reward voucher
+        const redemptionCode = 'rw-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+        const expiresAt = new Date(Date.now() + settings.validityDays * 24 * 60 * 60 * 1000);
+
+        const customerReward = await tx.customerReward.create({
+          data: {
+            customerId,
+            rewardId: reward.id,
+            status: 'UNLOCKED',
+            redemptionCode,
+            expiresAt,
+          },
+        });
+
+        // 3. Create a notification
+        await tx.notification.create({
+          data: {
+            userId: customerId,
+            businessId,
+            title: 'Reward Voucher Unlocked! 🎁',
+            body: `You have successfully redeemed ${settings.requiredStamps} stamps for a "${settings.rewardName}".`,
+            type: 'REWARD_UNLOCKED',
+            metadata: {
+              rewardId: reward.id,
+              customerRewardId: customerReward.id,
+              redemptionCode,
+            },
+          },
+        });
+
+        return { updatedWallet, customerReward };
+      });
+
+      sendSuccess(res, {
+        customerReward: result.customerReward,
+        currentStamps: result.updatedWallet.currentStamps,
+      }, `Successfully redeemed ${settings.requiredStamps} stamps for ${settings.rewardName}!`);
+    } catch (err) { next(err); }
+  }
+);
+
 export default router;

@@ -26,6 +26,38 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
             googleReviewUrl: true,
             category: true,
             bookingUrl: true,
+            loyaltyProgramSettings: {
+              select: {
+                id: true,
+                programName: true,
+                pointsPerRupee: true,
+                pointsPerStamp: true,
+                requiredStamps: true,
+                rewardName: true,
+                validityDays: true,
+              },
+            },
+            userWallets: {
+              where: { userId: req.user.sub },
+              select: {
+                id: true,
+                currentPoints: true,
+                currentStamps: true,
+              },
+            },
+            loyaltyWallets: {
+              where: {
+                userId: req.user.sub,
+                status: { in: ['ACTIVE', 'REWARD_AVAILABLE'] },
+              },
+              select: {
+                id: true,
+                currentStamps: true,
+                status: true,
+                startedAt: true,
+                expiresAt: true,
+              },
+            },
             loyaltyPrograms: {
               where: {
                 isActive: true,
@@ -64,16 +96,30 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
       orderBy: { updatedAt: 'desc' },
     });
 
-    // Filter out coupons that have hit their usage cap
-    const loyaltyCardsWithFilteredCoupons = loyaltyCards.map(card => ({
-      ...card,
-      business: {
-        ...card.business,
-        coupons: card.business.coupons.filter(
-          c => c.usageLimit === null || c.totalUsed < c.usageLimit
-        ),
-      },
-    }));
+    // Filter out coupons that have hit their usage cap and attach wallet/settings
+    const loyaltyCardsWithFilteredCoupons = loyaltyCards.map(card => {
+      const wallet = card.business.userWallets?.[0] || null;
+      const settings = card.business.loyaltyProgramSettings || null;
+      const loyaltyWallet = card.business.loyaltyWallets?.[0] || null;
+      
+      const businessCopy = { ...card.business };
+      delete businessCopy.userWallets;
+      delete businessCopy.loyaltyProgramSettings;
+      delete businessCopy.loyaltyWallets;
+      
+      return {
+        ...card,
+        wallet,
+        settings,
+        loyaltyWallet,
+        business: {
+          ...businessCopy,
+          coupons: card.business.coupons.filter(
+            c => c.usageLimit === null || c.totalUsed < c.usageLimit
+          ),
+        },
+      };
+    });
 
     const unlockedRewards = await prisma.customerReward.findMany({
       where: {

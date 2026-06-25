@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, getImageUrl } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -217,8 +217,205 @@ function ProgramBlock({ program, card, isFirst }) {
   );
 }
 
+// ─── Hybrid Program Block ────────────────────────────────────────────────────
+function HybridProgramBlock({ settings, wallet, businessId }) {
+  const queryClient = useQueryClient();
+  const redeemMutation = useMutation({
+    mutationFn: () => api.post(`/loyalty-approval/redeem-wallet-reward/${businessId}`),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["customerDashboard"] });
+      alert(res.data?.message || `Successfully redeemed stamps for ${settings.rewardName}!`);
+    },
+    onError: (err) => alert(err.message || "Failed to redeem reward"),
+  });
+
+  const requiredStamps = settings.requiredStamps || 7;
+  const currentStamps = wallet.currentStamps || 0;
+  const pointsPerStamp = settings.pointsPerStamp || 50;
+  const currentPoints = wallet.currentPoints || 0;
+  const pointsRemaining = pointsPerStamp - currentPoints;
+  const progressPercent = Math.min(100, Math.round((currentPoints / pointsPerStamp) * 100));
+  const isRedeemable = currentStamps >= requiredStamps;
+
+  return React.createElement(
+    "div", { className: "space-y-4 pt-2" },
+
+    // Header / Program Name
+    React.createElement("div", { className: "flex items-center justify-between" },
+      React.createElement("div", { className: "flex items-center gap-1.5" },
+        React.createElement(Coffee, { className: "h-4 w-4 text-[#800020]" }),
+        React.createElement("span", { className: "text-sm font-extrabold text-[#800020]" }, settings.programName)
+      ),
+      React.createElement("span", { className: "text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border font-medium flex items-center gap-1" },
+        React.createElement(Gift, { className: "h-2.5 w-2.5" }),
+        settings.rewardName
+      )
+    ),
+
+    // Stamps display
+    React.createElement("div", { className: "space-y-2 bg-slate-50/50 p-3 rounded-xl border border-slate-100" },
+      React.createElement("div", { className: "flex justify-between items-center text-xs" },
+        React.createElement("span", { className: "text-slate-600 font-medium" },
+          "Stamps: ",
+          React.createElement("strong", { className: "text-primary text-sm font-bold" }, currentStamps),
+          " / ", requiredStamps
+        ),
+        isRedeemable && React.createElement("span", { className: "text-xs text-emerald-600 font-bold animate-pulse" }, "Reward Available! 🎉")
+      ),
+      React.createElement("div", { className: "flex flex-wrap gap-2 pt-1" },
+        Array.from({ length: requiredStamps }).map((_, i) => {
+          const stamped = i < currentStamps;
+          return React.createElement("div", {
+            key: i,
+            className: `h-10 w-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
+              stamped
+                ? "bg-gradient-to-tr from-[#FF6A00]/90 to-[#800020]/90 border-[#FF6A00] text-white shadow-md shadow-[#FF6A00]/20 scale-105"
+                : "bg-white border-dashed border-[#CBD5E1] text-[#CBD5E1]"
+            }`
+          },
+          React.createElement(Stamp, {
+            className: stamped ? "h-5 w-5 fill-white text-white stroke-none" : "h-5 w-5 opacity-35"
+          }));
+        })
+      )
+    ),
+
+    // Points progress to next stamp
+    React.createElement("div", { className: "space-y-1.5" },
+      React.createElement("div", { className: "flex justify-between items-center text-xs" },
+        React.createElement("span", { className: "text-muted-foreground" },
+          "Points: ",
+          React.createElement("strong", { className: "text-slate-800" }, currentPoints),
+          " / ", pointsPerStamp
+        ),
+        React.createElement("span", { className: "text-[10px] text-muted-foreground font-semibold" },
+          pointsRemaining, " Points Remaining to Next Stamp"
+        )
+      ),
+      React.createElement("div", { className: "w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border border-border" },
+        React.createElement("div", {
+          className: "bg-gradient-to-r from-primary to-indigo-400 h-full rounded-full transition-all duration-700 ease-out",
+          style: { width: `${progressPercent}%` }
+        })
+      )
+    ),
+
+    // Redeem reward button
+    React.createElement("div", { className: "pt-1" },
+      React.createElement(Button, {
+        onClick: () => redeemMutation.mutate(),
+        disabled: !isRedeemable || redeemMutation.isPending,
+        className: `w-full font-bold text-xs py-2.5 rounded-xl transition-all ${
+          isRedeemable
+            ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md hover:scale-[1.01] active:scale-[0.99]"
+            : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
+        }`
+      },
+        redeemMutation.isPending ? "Redeeming..." : isRedeemable ? "Redeem Reward" : `Earn ${requiredStamps - currentStamps} more stamp${requiredStamps - currentStamps > 1 ? "s" : ""} to redeem`
+      )
+    )
+  );
+}
+
+// ─── Visit-Based Stamp Card Block ───────────────────────────────────────────
+function VisitStampCardBlock({ settings, wallet, businessId, unlockedRewards, setSelectedReward }) {
+  const requiredStamps = settings.requiredStamps || 7;
+  const currentStamps = wallet.currentStamps || 0;
+  const isRedeemable = wallet.status === "REWARD_AVAILABLE" || currentStamps >= requiredStamps;
+
+  const startDateStr = wallet.startedAt ? new Date(wallet.startedAt).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  }) : '';
+
+  const expiryDateStr = wallet.expiresAt ? new Date(wallet.expiresAt).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  }) : '';
+
+  // Find corresponding unlocked reward for this business
+  const correspondingReward = unlockedRewards?.find(
+    r => r.reward.businessId === businessId && r.status === "UNLOCKED"
+  );
+
+  const handleRedeemClick = () => {
+    if (correspondingReward) {
+      setSelectedReward(correspondingReward);
+    } else {
+      alert("Please check the Vouchers section above or refresh the page to redeem.");
+    }
+  };
+
+  return React.createElement(
+    "div", { className: "space-y-4 pt-2 border-t border-dashed border-border" },
+
+    // Header / Program Name
+    React.createElement("div", { className: "flex items-center justify-between" },
+      React.createElement("div", { className: "flex items-center gap-1.5" },
+        React.createElement(Star, { className: "h-4 w-4 text-emerald-600" }),
+        React.createElement("span", { className: "text-sm font-extrabold text-emerald-800" }, `${settings.programName} (Stamps)`)
+      ),
+      React.createElement("span", { className: "text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border font-medium flex items-center gap-1" },
+        React.createElement(Gift, { className: "h-2.5 w-2.5" }),
+        settings.rewardName
+      )
+    ),
+
+    // Start / Expiry dates
+    React.createElement("div", { className: "flex justify-between items-center text-[10px] text-muted-foreground bg-slate-50 px-2.5 py-1 rounded-md" },
+      React.createElement("span", null, `Started: ${startDateStr}`),
+      React.createElement("span", { className: "font-medium text-amber-700" }, `Expires: ${expiryDateStr}`)
+    ),
+
+    // Stamps display
+    React.createElement("div", { className: "space-y-2 bg-slate-50/50 p-3 rounded-xl border border-slate-100" },
+      React.createElement("div", { className: "flex justify-between items-center text-xs" },
+        React.createElement("span", { className: "text-slate-600 font-medium" },
+          "Stamps collected: ",
+          React.createElement("strong", { className: "text-primary text-sm font-bold" }, currentStamps),
+          " / ", requiredStamps
+        ),
+        isRedeemable && React.createElement("span", { className: "text-xs text-emerald-600 font-bold animate-pulse" }, "Reward Unlocked! 🎉")
+      ),
+      React.createElement("div", { className: "flex flex-wrap gap-2 pt-1" },
+        Array.from({ length: requiredStamps }).map((_, i) => {
+          const stamped = i < currentStamps;
+          return React.createElement("div", {
+            key: i,
+            className: `h-10 w-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
+              stamped
+                ? "bg-gradient-to-tr from-[#10B981]/90 to-[#047857]/90 border-[#10B981] text-white shadow-md shadow-[#10B981]/20 scale-105"
+                : "bg-white border-dashed border-[#CBD5E1] text-[#CBD5E1]"
+            }`
+          },
+          React.createElement(Stamp, {
+            className: stamped ? "h-5 w-5 fill-white text-white stroke-none" : "h-5 w-5 opacity-35"
+          }));
+        })
+      )
+    ),
+
+    // Redeem reward button
+    React.createElement("div", { className: "pt-1" },
+      React.createElement(Button, {
+        onClick: handleRedeemClick,
+        disabled: !isRedeemable,
+        className: `w-full font-bold text-xs py-2.5 rounded-xl transition-all ${
+          isRedeemable
+            ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md hover:scale-[1.01] active:scale-[0.99]"
+            : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
+        }`
+      },
+        isRedeemable ? "Redeem Reward" : `Collect ${requiredStamps - currentStamps} more stamp${requiredStamps - currentStamps > 1 ? "s" : ""} to unlock reward`
+      )
+    )
+  );
+}
+
 // ─── Business card ────────────────────────────────────────────────────────────
-function BusinessCard({ card }) {
+function BusinessCard({ card, unlockedRewards, setSelectedReward }) {
   const business = card.business;
 
   // Only programs where BOTH the program AND its linked reward are active
@@ -228,7 +425,7 @@ function BusinessCard({ card }) {
   const activeCoupons = business.coupons || [];
 
   // Hide card completely if nothing active
-  if (activePrograms.length === 0 && activeCoupons.length === 0) return null;
+  if (activePrograms.length === 0 && activeCoupons.length === 0 && !card.settings && !card.loyaltyWallet) return null;
 
   return React.createElement(
     Card, { className: "border-border bg-white overflow-hidden shadow-sm rounded-xl" },
@@ -270,8 +467,24 @@ function BusinessCard({ card }) {
         React.createElement(ProgramBlock, { key: prog.id, program: prog, card, isFirst: idx === 0 })
       ),
 
+      // Hybrid Points-to-Stamps Loyalty Program Settings
+      card.settings && React.createElement(HybridProgramBlock, {
+        settings: card.settings,
+        wallet: card.wallet || { currentPoints: 0, currentStamps: 0 },
+        businessId: business.id,
+      }),
+
+      // Visit-Based Loyalty Wallet Stamp Card
+      card.loyaltyWallet && React.createElement(VisitStampCardBlock, {
+        settings: card.settings,
+        wallet: card.loyaltyWallet,
+        businessId: business.id,
+        unlockedRewards,
+        setSelectedReward,
+      }),
+
       // Divider between programs and coupons
-      activePrograms.length > 0 && activeCoupons.length > 0 &&
+      (activePrograms.length > 0 || card.settings || card.loyaltyWallet) && activeCoupons.length > 0 &&
         React.createElement("div", { className: "border-t border-border" }),
 
       // Active coupons
@@ -323,11 +536,13 @@ export default function CustomerDashboard() {
 
   const { loyaltyCards = [], unlockedRewards = [] } = data || {};
 
-  // Only cards with active program OR active coupon
+  // Only cards with active program OR active coupon OR hybrid settings OR active loyalty wallet
   const visibleCards = loyaltyCards.filter(card => {
     const hasProgram = (card.business.loyaltyPrograms || []).length > 0;
     const hasCoupon  = (card.business.coupons || []).length > 0;
-    return hasProgram || hasCoupon;
+    const hasHybrid  = !!card.settings;
+    const hasLoyaltyWallet = !!card.loyaltyWallet;
+    return hasProgram || hasCoupon || hasHybrid || hasLoyaltyWallet;
   });
 
   return React.createElement("div", { className: "space-y-6" },
@@ -396,7 +611,12 @@ export default function CustomerDashboard() {
           )
         : React.createElement("div", { className: "space-y-4" },
             visibleCards.map(card =>
-              React.createElement(BusinessCard, { key: card.id, card })
+              React.createElement(BusinessCard, {
+                key: card.id,
+                card,
+                unlockedRewards,
+                setSelectedReward
+              })
             )
           )
     ),

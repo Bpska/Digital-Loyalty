@@ -83,7 +83,7 @@ function getTodayBoundsInTimezone(timezone = 'Asia/Kolkata') {
 }
 
 export async function processCheckIn(input) {
-  const { customerId, qrToken, deviceId, ipAddress } = input;
+  const { customerId, qrToken, deviceId, ipAddress, latitude, longitude } = input;
 
   // ── Step 1: Resolve branch from QR token ─────────────────
   const branch = await prisma.branch.findUnique({
@@ -117,6 +117,66 @@ export async function processCheckIn(input) {
     throw new AppError('This business is not currently active.', 403);
   }
 
+  // ── Step 2: GPS Coordinate Validation ────────────────────
+  const { isWithinRadius, isSuspiciousCoordinates, haversineDistance } = await import('../../utils/haversine.js');
+
+  const customerLat = latitude ? parseFloat(latitude) : null;
+  const customerLon = longitude ? parseFloat(longitude) : null;
+
+  if (customerLat === null || customerLon === null || isNaN(customerLat) || isNaN(customerLon)) {
+    await createSuspiciousCheckIn({
+      customerId,
+      businessId: branch.businessId,
+      branchId: branch.id,
+      latitude: customerLat,
+      longitude: customerLon,
+      distanceMeters: null,
+      ipAddress,
+      deviceId,
+      reason: 'No GPS coordinates provided',
+    });
+    throw new AppError('Please visit the business location to collect loyalty stamps.', 400);
+  }
+
+  if (isSuspiciousCoordinates(customerLat, customerLon)) {
+    await createSuspiciousCheckIn({
+      customerId,
+      businessId: branch.businessId,
+      branchId: branch.id,
+      latitude: customerLat,
+      longitude: customerLon,
+      distanceMeters: null,
+      ipAddress,
+      deviceId,
+      reason: 'Suspicious coordinates (spoofing check failed)',
+    });
+    throw new AppError('Please visit the business location to collect loyalty stamps.', 400);
+  }
+
+  const distanceMeters = haversineDistance(
+    customerLat,
+    customerLon,
+    branch.latitude,
+    branch.longitude
+  );
+
+  const isWithin = distanceMeters <= (branch.radiusMeters || 100);
+
+  if (!isWithin) {
+    await createSuspiciousCheckIn({
+      customerId,
+      businessId: branch.businessId,
+      branchId: branch.id,
+      latitude: customerLat,
+      longitude: customerLon,
+      distanceMeters,
+      ipAddress,
+      deviceId,
+      reason: `Out of bounds (distance: ${Math.round(distanceMeters)}m, limit: ${branch.radiusMeters || 100}m)`,
+    });
+    throw new AppError('Please visit the business location to collect loyalty stamps.', 400);
+  }
+
   // ── Step 3: Daily check-in limit check (Per Business, Per Customer, Per Day) ──
   const timezone = branch.business.timezone || 'Asia/Kolkata';
   const { start: todayStart, end: todayEnd } = getTodayBoundsInTimezone(timezone);
@@ -135,12 +195,31 @@ export async function processCheckIn(input) {
 
   if (recentCheckIn) {
     throw new AppError(
-      "You have already collected today's loyalty point.",
+      "You have already collected today's loyalty stamp.",
       400
     );
   }
 
-  // ── Step 4: Transactional check-in + loyalty processing ──
+  // Retrieve settings
+  let settings = await prisma.loyaltyProgramSettings.findUnique({
+    where: { businessId: branch.businessId },
+  });
+
+  if (!settings) {
+    settings = await prisma.loyaltyProgramSettings.create({
+      data: {
+        businessId: branch.businessId,
+        programName: 'Coffee Rewards',
+        pointsPerRupee: 0.1,
+        pointsPerStamp: 50,
+        requiredStamps: 7,
+        rewardName: 'Free Coffee',
+        validityDays: 30,
+      },
+    });
+  }
+
+  // ── Step 4: Transactional check-in + loyalty wallet processing ──
   const result = await prisma.$transaction(async tx => {
     // 4a. Create check-in record
     const checkIn = await tx.checkIn.create({
@@ -148,115 +227,132 @@ export async function processCheckIn(input) {
         customerId,
         businessId: branch.businessId,
         branchId: branch.id,
-        latitude: null,
-        longitude: null,
-        distanceMeters: null,
+        latitude: customerLat,
+        longitude: customerLon,
+        distanceMeters,
         status: CheckInStatus.VALID,
         ipAddress,
         deviceId,
         accuracy: null,
-        distance: null,
+        distance: distanceMeters,
         checked_at: new Date(),
       },
     });
 
-    // 4b. Get or create CustomerPoints record
-    const activePrograms = await tx.loyaltyProgram.findMany({
-      where: { businessId: branch.businessId, isActive: true },
-      include: { reward: true },
+    // 4b. Find or process Loyalty Wallet
+    let wallet = await tx.customerLoyaltyWallet.findFirst({
+      where: { userId: customerId, businessId: branch.businessId, status: 'ACTIVE' },
     });
 
-    const hasActiveProgram = activePrograms.length > 0;
-
-    // Determine points to award from active POINTS_BASED program
-    const pointsProgram = activePrograms.find(p => p.type === LoyaltyType.POINTS_BASED);
-    const visitProgram = activePrograms.find(p => p.type === LoyaltyType.VISIT_BASED);
-    
-    // Award points only if there is an active points program. If no program is active, add 0 points.
-    const pointsToAdd = pointsProgram 
-      ? ((pointsProgram.pointsPerVisit) ?? env.DEFAULT_POINTS_PER_VISIT)
-      : 0;
-
-    const customerPoints = await tx.customerPoints.upsert({
-      where: {
-        customerId_businessId: { customerId, businessId: branch.businessId },
-      },
-      update: {
-        totalPoints: { increment: pointsToAdd },
-        totalVisits: { increment: 1 },
-        visitStreak: visitProgram ? { increment: 1 } : undefined,
-      },
-      create: {
-        customerId,
-        businessId: branch.businessId,
-        totalPoints: pointsToAdd,
-        totalVisits: 1,
-        visitStreak: visitProgram ? 1 : 0,
-      },
-    });
-
-    // 4c. Run loyalty engine — check if reward threshold met
+    let walletAction = 'updated';
     let newlyUnlockedReward = null;
+    const now = new Date();
 
-    // VISIT_BASED check
-    if (visitProgram && customerPoints.visitStreak >= visitProgram.threshold) {
-      newlyUnlockedReward = await unlockReward(tx, customerId, visitProgram, customerPoints.visitStreak);
-
-      // Reset streak
-      if (visitProgram.resetMode === LoyaltyResetMode.FULL_RESET) {
-        await tx.customerPoints.update({
-          where: { customerId_businessId: { customerId, businessId: branch.businessId } },
-          data: { visitStreak: 0 },
-        });
-      } else {
-        // CARRY_REMAINDER
-        const remainder = customerPoints.visitStreak - visitProgram.threshold;
-        await tx.customerPoints.update({
-          where: { customerId_businessId: { customerId, businessId: branch.businessId } },
-          data: { visitStreak: remainder },
-        });
-      }
-    }
-
-    // POINTS_BASED check (only if VISIT_BASED didn't already unlock)
-    if (!newlyUnlockedReward && pointsProgram) {
-      const freshPoints = await tx.customerPoints.findUnique({
-        where: { customerId_businessId: { customerId, businessId: branch.businessId } },
+    if (wallet && now > wallet.expiresAt) {
+      // Archive expired wallet
+      await tx.customerLoyaltyWallet.update({
+        where: { id: wallet.id },
+        data: { status: 'EXPIRED' },
       });
-      if (freshPoints && freshPoints.totalPoints >= pointsProgram.threshold) {
-        newlyUnlockedReward = await unlockReward(tx, customerId, pointsProgram, freshPoints.totalPoints);
+      wallet = null; // Proceed to create a new one below
+    }
 
-        // Deduct points (unlock time deduction — see design decision in plan)
-        const deductMode =
-          pointsProgram.resetMode === LoyaltyResetMode.FULL_RESET
-            ? 0
-            : freshPoints.totalPoints - pointsProgram.threshold;
+    if (!wallet) {
+      // Create new loyalty wallet
+      const startedAt = new Date();
+      const expiresAt = new Date(startedAt.getTime() + settings.validityDays * 24 * 60 * 60 * 1000);
 
-        await tx.customerPoints.update({
-          where: { customerId_businessId: { customerId, businessId: branch.businessId } },
-          data: { totalPoints: deductMode },
+      wallet = await tx.customerLoyaltyWallet.create({
+        data: {
+          userId: customerId,
+          businessId: branch.businessId,
+          currentStamps: 1,
+          status: 'ACTIVE',
+          startedAt,
+          expiresAt,
+        },
+      });
+      walletAction = 'created';
+    } else {
+      // Increment stamps
+      const nextStamps = wallet.currentStamps + 1;
+      const isGoalMet = nextStamps >= settings.requiredStamps;
+
+      if (isGoalMet) {
+        // Unlock Reward!
+        wallet = await tx.customerLoyaltyWallet.update({
+          where: { id: wallet.id },
+          data: {
+            currentStamps: nextStamps,
+            status: 'REWARD_AVAILABLE',
+            rewardUnlockedAt: new Date(),
+          },
+        });
+
+        // Create reward record
+        let reward = await tx.reward.findFirst({
+          where: { businessId: branch.businessId, title: settings.rewardName, isActive: true },
+        });
+        if (!reward) {
+          reward = await tx.reward.create({
+            data: {
+              businessId: branch.businessId,
+              title: settings.rewardName,
+              description: 'Earned by completing stamps',
+              pointsRequired: 0,
+              isActive: true,
+            },
+          });
+        }
+
+        const customerReward = await tx.customerReward.create({
+          data: {
+            customerId,
+            rewardId: reward.id,
+            status: CustomerRewardStatus.UNLOCKED,
+            expiresAt: new Date(Date.now() + settings.validityDays * 24 * 60 * 60 * 1000),
+          },
+        });
+
+        newlyUnlockedReward = {
+          id: customerReward.id,
+          title: reward.title,
+          redemptionCode: customerReward.redemptionCode,
+        };
+      } else {
+        // Just increment stamps
+        wallet = await tx.customerLoyaltyWallet.update({
+          where: { id: wallet.id },
+          data: { currentStamps: nextStamps },
         });
       }
     }
 
-    // 4d. Send in-app notification
-    const notifMessage = newlyUnlockedReward
-      ? `🎉 You've earned: ${newlyUnlockedReward.title}! Show your redemption code at the counter.`
-      : `✅ Check-in recorded! You earned ${pointsToAdd} points.`;
+    // 4c. Send Notification & set messages
+    let notifTitle = 'Stamp added successfully.';
+    let notifBody = `Stamp added to your wallet. Progress: ${wallet.currentStamps} / ${settings.requiredStamps}.`;
+    let notifType = NotificationType.GENERAL;
+
+    if (walletAction === 'created') {
+      notifTitle = 'Loyalty program started.';
+      notifBody = `Welcome to ${settings.programName}! You collected 1 / ${settings.requiredStamps} stamps.`;
+    } else if (newlyUnlockedReward) {
+      notifTitle = 'You unlocked a reward.';
+      notifBody = `Congratulations! You unlocked ${settings.rewardName}!`;
+      notifType = NotificationType.REWARD_UNLOCKED;
+    }
 
     await tx.notification.create({
       data: {
         userId: customerId,
         businessId: branch.businessId,
-        title: newlyUnlockedReward ? 'Reward Unlocked! 🎉' : 'Check-in Successful',
-        body: notifMessage,
-        type: newlyUnlockedReward
-          ? NotificationType.REWARD_UNLOCKED
-          : NotificationType.GENERAL,
+        title: notifTitle,
+        body: notifBody,
+        type: notifType,
         metadata: {
-          branchId: branch.id,
-          branchName: branch.name,
-          pointsEarned: pointsToAdd,
+          walletId: wallet.id,
+          currentStamps: wallet.currentStamps,
+          requiredStamps: settings.requiredStamps,
           rewardId: newlyUnlockedReward?.id ?? null,
         },
       },
@@ -266,18 +362,19 @@ export async function processCheckIn(input) {
       checkIn,
       businessName: branch.business.name,
       businessLogo: branch.business.logoUrl,
-      pointsEarned: pointsToAdd,
-      totalPoints: customerPoints.totalPoints,
-      totalVisits: customerPoints.totalVisits,
-      visitStreak: customerPoints.visitStreak,
+      wallet,
+      settings,
       newlyUnlockedReward,
+      notifTitle,
+      notifBody,
     };
   });
 
   logger.info('Check-in processed', {
     customerId,
     branchId: branch.id,
-    pointsEarned: result.pointsEarned,
+    walletId: result.wallet.id,
+    stamps: result.wallet.currentStamps,
     rewardUnlocked: !!result.newlyUnlockedReward,
   });
 
@@ -290,46 +387,12 @@ export async function processCheckIn(input) {
     metadata: {
       branchId: branch.id,
       businessId: branch.businessId,
-      pointsEarned: result.pointsEarned,
+      currentStamps: result.wallet.currentStamps,
     },
     ipAddress,
   }).catch(() => {});
 
   return result;
-}
-
-// ─────────────────────────────────────────────────────────────
-// LOYALTY ENGINE (called within transaction)
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Unlock a reward for a customer within an ongoing Prisma transaction.
- * Creates a CustomerReward with a unique redemption code.
- */
-async function unlockReward(
-  tx,
-  customerId,
-  program
-
-
-
-,
-  _currentCount
-) {
-  const customerReward = await tx.customerReward.create({
-    data: {
-      customerId,
-      rewardId: program.rewardId,
-      status: CustomerRewardStatus.UNLOCKED,
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days to redeem
-    },
-  });
-
-  return {
-    id: customerReward.id,
-    title: program.reward.title,
-    redemptionCode: customerReward.redemptionCode,
-  };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -378,22 +441,46 @@ export async function redeemReward(
     throw new AppError('Reward has expired', 400);
   }
 
-  // Mark redeemed
-  await prisma.customerReward.update({
-    where: { id: customerReward.id },
-    data: {
-      status: CustomerRewardStatus.REDEEMED,
-      redeemedAt: new Date(),
-      redeemedByStaffId: staffId,
-    },
+  // Mark redeemed in a transaction
+  await prisma.$transaction(async (tx) => {
+    await tx.customerReward.update({
+      where: { id: customerReward.id },
+      data: {
+        status: CustomerRewardStatus.REDEEMED,
+        redeemedAt: new Date(),
+        redeemedByStaffId: staffId,
+      },
+    });
+
+    // Update active CustomerLoyaltyWallet for this customer and business to REDEEMED
+    await tx.customerLoyaltyWallet.updateMany({
+      where: {
+        userId: customerReward.customerId,
+        businessId: customerReward.reward.businessId,
+        status: 'REWARD_AVAILABLE',
+      },
+      data: {
+        status: 'REDEEMED',
+      },
+    });
   });
+
+  // Resolve staff user ID for audit log
+  let auditUserId = null;
+  if (staffId) {
+    const staffMember = await prisma.staff.findUnique({
+      where: { id: staffId },
+      select: { userId: true },
+    });
+    auditUserId = staffMember?.userId || null;
+  }
 
   // Audit log
   await writeAuditLog({
     action: 'REWARD_REDEEMED',
     entityType: 'CustomerReward',
     entityId: customerReward.id,
-    userId: staffId,
+    userId: auditUserId,
     metadata: {
       customerId: customerReward.customerId,
       rewardId: customerReward.rewardId,

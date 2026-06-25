@@ -171,10 +171,33 @@ export default function CheckinPage() {
         localStorage.setItem("deviceId", deviceId);
       }
 
-      // Submit check-in — no GPS required
+      // Retrieve GPS coordinates if available
+      const coords = await new Promise((resolve) => {
+        if (typeof window === "undefined" || !navigator.geolocation) {
+          resolve({ latitude: null, longitude: null });
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            resolve({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            });
+          },
+          (err) => {
+            console.error("Error getting geolocation:", err);
+            resolve({ latitude: null, longitude: null });
+          },
+          { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+        );
+      });
+
+      // Submit check-in — including GPS coordinates
       const response = await api.post("/checkins", {
         qrToken: parsedToken,
         deviceId,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
       });
 
       if (response.success && response.data) {
@@ -346,7 +369,7 @@ export default function CheckinPage() {
             React.createElement(Loader2, { className: "h-12 w-12 animate-spin text-primary" }),
             React.createElement('div', { className: "space-y-1" },
               React.createElement(CardTitle, { className: "text-base text-foreground" }, "Processing Check-in..."),
-              React.createElement(CardDescription, { className: "text-xs text-muted-foreground" }, "Awarding your loyalty points...")
+              React.createElement(CardDescription, { className: "text-xs text-muted-foreground" }, "Verifying your GPS location and awarding stamps...")
             )
           )
         )

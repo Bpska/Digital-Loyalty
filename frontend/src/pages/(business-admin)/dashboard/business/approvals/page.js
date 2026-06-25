@@ -36,12 +36,24 @@ export default function BusinessApprovalsPage() {
   const [selectedLevels, setSelectedLevels] = useState({});
   const [rejectingId, setRejectingId] = useState(null);
 
+  // Points-to-stamps state
+  const [selectedAmounts, setSelectedAmounts] = useState({});
+  const [customAmounts, setCustomAmounts] = useState({});
+  const [showCustomInput, setShowCustomInput] = useState({});
+
   // Fetch analytics
   const { data: analytics } = useQuery({
     queryKey: ["loyaltyApprovalAnalytics", businessId],
     queryFn: () => api.get(`/loyalty-approval/analytics/${businessId}`).then(r => r.data),
     enabled: !!businessId,
     refetchInterval: 30000,
+  });
+
+  // Fetch settings
+  const { data: settings } = useQuery({
+    queryKey: ["loyaltySettings", businessId],
+    queryFn: () => api.get(`/loyalty-approval/settings/${businessId}`).then(r => r.data),
+    enabled: !!businessId,
   });
 
   // Fetch requests
@@ -68,6 +80,17 @@ export default function BusinessApprovalsPage() {
     onError: (err) => alert(err.message || "Failed to approve request"),
   });
 
+  const approveWalletMutation = useMutation({
+    mutationFn: ({ requestId, purchaseValue }) =>
+      api.post(`/loyalty-approval/approve-wallet/${requestId}`, { purchaseValue }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["loyaltyRequests", businessId] });
+      queryClient.invalidateQueries({ queryKey: ["loyaltyApprovalAnalytics", businessId] });
+      queryClient.invalidateQueries({ queryKey: ["customerDashboard"] });
+    },
+    onError: (err) => alert(err.message || "Failed to approve request"),
+  });
+
   const rejectMutation = useMutation({
     mutationFn: (requestId) => api.post(`/loyalty-approval/reject/${requestId}`),
     onSuccess: () => {
@@ -78,6 +101,41 @@ export default function BusinessApprovalsPage() {
   });
 
   const [spendAmounts, setSpendAmounts] = useState({});
+
+  async function handleApproveWallet(requestId) {
+    const customAmt = customAmounts[requestId];
+    const selectedAmt = selectedAmounts[requestId];
+    const isCustom = showCustomInput[requestId];
+    
+    let purchaseValue = null;
+    if (isCustom) {
+      purchaseValue = parseFloat(customAmt);
+    } else {
+      purchaseValue = selectedAmt;
+    }
+
+    if (!purchaseValue || isNaN(purchaseValue) || purchaseValue <= 0) {
+      alert("Please select or enter a valid purchase amount.");
+      return;
+    }
+
+    setApprovingId(requestId);
+    try {
+      await approveWalletMutation.mutateAsync({ requestId, purchaseValue });
+    } finally {
+      setApprovingId(null);
+    }
+  }
+
+  function selectAmount(requestId, amount) {
+    setSelectedAmounts(prev => ({ ...prev, [requestId]: amount }));
+    setShowCustomInput(prev => ({ ...prev, [requestId]: false }));
+  }
+
+  function selectCustom(requestId) {
+    setSelectedAmounts(prev => ({ ...prev, [requestId]: null }));
+    setShowCustomInput(prev => ({ ...prev, [requestId]: true }));
+  }
 
   async function handleApprove(request) {
     const levelId = selectedLevels[request.id];
@@ -320,7 +378,80 @@ export default function BusinessApprovalsPage() {
 
                 /* Level Selection + Actions (only for PENDING) */
                 request.status === "PENDING" && (
-                  isSpendBased ? (
+                  settings ? (
+                    React.createElement("div", { className: "space-y-3" },
+                      React.createElement("p", { className: "text-xs font-semibold text-muted-foreground uppercase tracking-wider" }, "Select Purchase Value:"),
+                      
+                      /* Amount Buttons */
+                      React.createElement("div", { className: "flex flex-wrap gap-2" },
+                        [50, 100, 200, 300, 500].map(amt => {
+                          const isSelected = selectedAmounts[request.id] === amt && !showCustomInput[request.id];
+                          return React.createElement(Button, {
+                            key: amt,
+                            type: "button",
+                            variant: isSelected ? "default" : "outline",
+                            className: `h-8 text-xs font-bold rounded-xl ${isSelected ? "bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted"}`,
+                            onClick: () => selectAmount(request.id, amt),
+                          }, `₹${amt}`);
+                        }),
+                        React.createElement(Button, {
+                          type: "button",
+                          variant: showCustomInput[request.id] ? "default" : "outline",
+                          className: `h-8 text-xs font-bold rounded-xl ${showCustomInput[request.id] ? "bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted"}`,
+                          onClick: () => selectCustom(request.id),
+                        }, "Custom Amount")
+                      ),
+
+                      /* Custom Input */
+                      showCustomInput[request.id] && React.createElement("div", { className: "pt-1" },
+                        React.createElement(Input, {
+                          type: "number",
+                          min: "1",
+                          placeholder: "Enter custom amount in ₹",
+                          value: customAmounts[request.id] || "",
+                          onChange: (e) => setCustomAmounts(prev => ({ ...prev, [request.id]: e.target.value })),
+                          className: "max-w-[200px] h-9 text-xs border-border bg-white text-slate-800"
+                        })
+                      ),
+
+                      /* Auto Calculation Points Preview */
+                      ((showCustomInput[request.id] ? parseFloat(customAmounts[request.id]) : selectedAmounts[request.id]) > 0) && (
+                        (() => {
+                          const amt = showCustomInput[request.id] ? parseFloat(customAmounts[request.id]) : selectedAmounts[request.id];
+                          const points = Math.floor(amt * (settings.pointsPerRupee || 0.1));
+                          return React.createElement("div", { className: "flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 font-medium" },
+                            React.createElement(CheckCircle2, { className: "h-3.5 w-3.5 shrink-0" }),
+                            `System calculates automatically: ${points} Points. No manual point calculation.`
+                          );
+                        })()
+                      ),
+
+                      /* Action Buttons */
+                      React.createElement("div", { className: "flex items-center gap-3 pt-1" },
+                        React.createElement(Button, {
+                          className: "flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-9 text-xs rounded-xl",
+                          onClick: () => handleApproveWallet(request.id),
+                          disabled: !(showCustomInput[request.id] ? parseFloat(customAmounts[request.id]) : selectedAmounts[request.id]) || isApproving || isRejecting,
+                        },
+                          isApproving
+                            ? React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin" })
+                            : React.createElement(CheckCircle2, { className: "mr-2 h-4 w-4" }),
+                          isApproving ? "Approving..." : "Approve"
+                        ),
+                        React.createElement(Button, {
+                          variant: "outline",
+                          className: "border-red-300 text-red-600 hover:bg-red-50 h-9 text-xs rounded-xl",
+                          onClick: () => handleReject(request.id),
+                          disabled: isApproving || isRejecting,
+                        },
+                          isRejecting
+                            ? React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin" })
+                            : React.createElement(XCircle, { className: "mr-2 h-4 w-4" }),
+                          "Reject"
+                        )
+                      )
+                    )
+                  ) : isSpendBased ? (
                     React.createElement("div", { className: "space-y-3" },
                       React.createElement("p", { className: "text-xs font-semibold text-muted-foreground uppercase tracking-wider" }, "Enter Purchase Amount:"),
                       React.createElement("div", { className: "flex items-center gap-3" },

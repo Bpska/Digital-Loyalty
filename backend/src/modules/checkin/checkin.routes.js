@@ -25,6 +25,8 @@ router.get('/public/count', async (req, res, next) => {
 const checkInSchema = z.object({
   qrToken: z.string().min(1, 'QR token is required'),
   deviceId: z.string().uuid().optional(),
+  latitude: z.union([z.number(), z.string()]).optional().nullable(),
+  longitude: z.union([z.number(), z.string()]).optional().nullable(),
 });
 
 const redeemSchema = z.object({
