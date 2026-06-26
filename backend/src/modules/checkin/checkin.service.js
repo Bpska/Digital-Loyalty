@@ -117,11 +117,16 @@ export async function processCheckIn(input) {
     throw new AppError('This business is not currently active.', 403);
   }
 
-  // ── Step 2: GPS Coordinate Validation ────────────────────
+  // ── Step 2: GPS Coordinate Validation — DISABLED ────────────────────
+  /* LOCATION VERIFICATION COMMENTED OUT:
   const { isWithinRadius, isSuspiciousCoordinates, haversineDistance } = await import('../../utils/haversine.js');
 
   const customerLat = latitude ? parseFloat(latitude) : null;
   const customerLon = longitude ? parseFloat(longitude) : null;
+
+  const distanceMeters = (customerLat !== null && customerLon !== null)
+    ? haversineDistance(customerLat, customerLon, branch.latitude, branch.longitude)
+    : null;
 
   if (customerLat === null || customerLon === null || isNaN(customerLat) || isNaN(customerLon)) {
     await createSuspiciousCheckIn({
@@ -153,13 +158,6 @@ export async function processCheckIn(input) {
     throw new AppError('Please visit the business location to collect loyalty stamps.', 400);
   }
 
-  const distanceMeters = haversineDistance(
-    customerLat,
-    customerLon,
-    branch.latitude,
-    branch.longitude
-  );
-
   const isWithin = distanceMeters <= (branch.radiusMeters || 100);
 
   if (!isWithin) {
@@ -176,6 +174,12 @@ export async function processCheckIn(input) {
     });
     throw new AppError('Please visit the business location to collect loyalty stamps.', 400);
   }
+  END LOCATION VERIFICATION COMMENTED OUT */
+
+  // Location is disabled — use null values for all coordinate fields
+  const customerLat = null;
+  const customerLon = null;
+  const distanceMeters = null;
 
   // ── Step 3: Daily check-in limit check (Per Business, Per Customer, Per Day) ──
   const timezone = branch.business.timezone || 'Asia/Kolkata';
@@ -239,7 +243,27 @@ export async function processCheckIn(input) {
       },
     });
 
-    // 4b. Find or process Loyalty Wallet
+    // 4b. Upsert CustomerPoints to link customer to the business and track visits
+    await tx.customerPoints.upsert({
+      where: {
+        customerId_businessId: {
+          customerId,
+          businessId: branch.businessId,
+        },
+      },
+      update: {
+        totalVisits: { increment: 1 },
+      },
+      create: {
+        customerId,
+        businessId: branch.businessId,
+        totalPoints: 0,
+        totalVisits: 1,
+        visitStreak: 0,
+      },
+    });
+
+    // 4c. Find or process Loyalty Wallet
     let wallet = await tx.customerLoyaltyWallet.findFirst({
       where: { userId: customerId, businessId: branch.businessId, status: 'ACTIVE' },
     });
@@ -328,7 +352,7 @@ export async function processCheckIn(input) {
       }
     }
 
-    // 4c. Send Notification & set messages
+    // 4d. Send Notification & set messages
     let notifTitle = 'Stamp added successfully.';
     let notifBody = `Stamp added to your wallet. Progress: ${wallet.currentStamps} / ${settings.requiredStamps}.`;
     let notifType = NotificationType.GENERAL;

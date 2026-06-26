@@ -52,7 +52,7 @@ export default function CouponsPage() {
   const { data: coupons = [], isLoading } = useQuery({
     queryKey: ["businessCoupons", businessId],
     queryFn: () => api.get(`/coupons/business/${businessId}`).then((res) => res.data),
-    enabled: !!businessId,
+    enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
   });
 
   // 2. Create coupon mutation

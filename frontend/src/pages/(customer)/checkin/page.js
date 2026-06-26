@@ -171,7 +171,8 @@ export default function CheckinPage() {
         localStorage.setItem("deviceId", deviceId);
       }
 
-      // Retrieve GPS coordinates if available
+      // Location verification disabled — sending null coordinates
+      /* LOCATION VERIFICATION COMMENTED OUT:
       const coords = await new Promise((resolve) => {
         if (typeof window === "undefined" || !navigator.geolocation) {
           resolve({ latitude: null, longitude: null });
@@ -191,13 +192,14 @@ export default function CheckinPage() {
           { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
         );
       });
+      */
 
-      // Submit check-in — including GPS coordinates
+      // Submit check-in — location not required
       const response = await api.post("/checkins", {
         qrToken: parsedToken,
         deviceId,
-        latitude: coords.latitude,
-        longitude: coords.longitude,
+        latitude: null,
+        longitude: null,
       });
 
       if (response.success && response.data) {

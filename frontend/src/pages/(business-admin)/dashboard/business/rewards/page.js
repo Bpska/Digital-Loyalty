@@ -46,7 +46,7 @@ export default function RewardsPage() {
   const { data: rewards = [], isLoading } = useQuery({
     queryKey: ["businessRewards", businessId],
     queryFn: () => api.get(`/rewards/business/${businessId}`).then((res) => res.data),
-    enabled: !!businessId,
+    enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
   });
 
   // 2. Create reward mutation

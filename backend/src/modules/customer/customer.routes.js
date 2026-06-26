@@ -43,6 +43,8 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
                 id: true,
                 currentPoints: true,
                 currentStamps: true,
+                startedAt: true,
+                expiresAt: true,
               },
             },
             loyaltyWallets: {
@@ -97,8 +99,27 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
     });
 
     // Filter out coupons that have hit their usage cap and attach wallet/settings
-    const loyaltyCardsWithFilteredCoupons = loyaltyCards.map(card => {
-      const wallet = card.business.userWallets?.[0] || null;
+    // Check and reset expired hybrid wallets on the fly
+    const loyaltyCardsWithFilteredCoupons = await Promise.all(loyaltyCards.map(async card => {
+      let wallet = card.business.userWallets?.[0] || null;
+      if (wallet && wallet.expiresAt && now > wallet.expiresAt) {
+        await prisma.userWallet.update({
+          where: { id: wallet.id },
+          data: {
+            currentPoints: 0,
+            currentStamps: 0,
+            startedAt: null,
+            expiresAt: null,
+          },
+        });
+        wallet = {
+          id: wallet.id,
+          currentPoints: 0,
+          currentStamps: 0,
+          startedAt: null,
+          expiresAt: null,
+        };
+      }
       const settings = card.business.loyaltyProgramSettings || null;
       const loyaltyWallet = card.business.loyaltyWallets?.[0] || null;
       
@@ -119,7 +140,7 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
           ),
         },
       };
-    });
+    }));
 
     const unlockedRewards = await prisma.customerReward.findMany({
       where: {

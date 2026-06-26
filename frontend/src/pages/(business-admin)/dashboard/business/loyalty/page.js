@@ -58,14 +58,14 @@ export default function LoyaltyPage() {
   const { data: programs = [], isLoading: programsLoading } = useQuery({
     queryKey: ["businessLoyalty", businessId],
     queryFn: () => api.get(`/loyalty/business/${businessId}`).then((res) => res.data),
-    enabled: !!businessId,
+    enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
   });
 
   // 2. Fetch rewards for selector
   const { data: rewards = [], isLoading: rewardsLoading } = useQuery({
     queryKey: ["businessRewards", businessId],
     queryFn: () => api.get(`/rewards/business/${businessId}`).then((res) => res.data),
-    enabled: !!businessId,
+    enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
   });
 
   const activeRewards = rewards.filter((r) => r.isActive);

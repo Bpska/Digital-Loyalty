@@ -281,6 +281,16 @@ router.get('/fraud/checkins', async (req, res, next) => {
   }
 });
 
+// DELETE /admin/fraud/checkins/:id — permanently remove a suspicious check-in log
+router.delete('/fraud/checkins/:id', async (req, res, next) => {
+  try {
+    await prisma.checkIn.delete({ where: { id: req.params.id } });
+    sendSuccess(res, null, 'Suspicious check-in log deleted');
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ── Audit Logs ────────────────────────────────────────────────
 router.get('/audit-logs', async (req, res, next) => {
   try {

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate, authorize } from '../../middlewares/auth.middleware.js';
-import { Role } from '@prisma/client';
+import { Role, LoyaltyResetMode } from '@prisma/client';
 import { validate } from '../../middlewares/validate.middleware.js';
 import { sendSuccess, sendCreated } from '../../utils/response.js';
 import { AppError } from '../../middlewares/error.middleware.js';
@@ -32,12 +32,17 @@ const approveSchema = z.object({
 });
 
 async function unlockCustomerReward(tx, customerId, program) {
+  const settings = await tx.loyaltyProgramSettings.findUnique({
+    where: { businessId: program.businessId },
+  });
+  const validityDays = settings ? settings.validityDays : 30;
+
   const customerReward = await tx.customerReward.create({
     data: {
       customerId,
       rewardId: program.rewardId,
       status: 'UNLOCKED',
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days to redeem
+      expiresAt: new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000),
     },
   });
 
@@ -204,16 +209,28 @@ router.post(
       const { businessId, checkInId } = req.body;
       const customerId = req.user.sub;
 
-      // Check if business has any loyalty levels configured OR if there is an active SPEND_BASED program
-      const levelsCount = await prisma.loyaltyLevel.count({ where: { businessId } });
-      const spendProgram = await prisma.loyaltyProgram.findFirst({
-        where: { businessId, type: 'SPEND_BASED', isActive: true },
-      });
+      // Check current loyalty configuration for this business
+      const [levelsCount, spendProgram, existingSettings] = await Promise.all([
+        prisma.loyaltyLevel.count({ where: { businessId } }),
+        prisma.loyaltyProgram.findFirst({ where: { businessId, type: 'SPEND_BASED', isActive: true } }),
+        prisma.loyaltyProgramSettings.findUnique({ where: { businessId } }),
+      ]);
 
-      if (levelsCount === 0 && !spendProgram) {
-        // No levels configured and no spend program — silently succeed
-        sendSuccess(res, { sent: false, reason: 'no_levels' }, 'No loyalty levels or spend-based program configured for this business');
-        return;
+      const hasAnyLoyaltyConfig = levelsCount > 0 || !!spendProgram || !!existingSettings;
+
+      if (!hasAnyLoyaltyConfig) {
+        // Auto-create default hybrid settings so the admin can approve via hybrid mode
+        await prisma.loyaltyProgramSettings.create({
+          data: {
+            businessId,
+            programName: 'Loyalty Rewards',
+            pointsPerRupee: 0.1,
+            pointsPerStamp: 50,
+            requiredStamps: 7,
+            rewardName: 'Special Reward',
+            validityDays: 30,
+          },
+        }).catch(() => {}); // Ignore unique-constraint error on race condition
       }
 
       // Fetch business timezone for timezone-safe daily checks
@@ -404,8 +421,9 @@ router.post(
         });
 
         // 4. If spend-based, check reward threshold
+        // NOTE: cp.totalPoints already reflects the post-increment value after upsert
         let newlyUnlockedReward = null;
-        const currentPoints = cp.totalPoints + points;
+        const currentPoints = cp.totalPoints;
 
         if (spendProgram && currentPoints >= spendProgram.threshold) {
           newlyUnlockedReward = await unlockCustomerReward(tx, request.customerId, spendProgram);
@@ -724,10 +742,46 @@ router.post(
       const pointsEarned = Math.floor(purchaseValue * settings.pointsPerRupee);
 
       const result = await prisma.$transaction(async (tx) => {
+        // Ensure CustomerPoints exists and increment points so dashboard shows correct balance
+        await tx.customerPoints.upsert({
+          where: {
+            customerId_businessId: {
+              customerId: request.customerId,
+              businessId: request.businessId,
+            },
+          },
+          update: { totalPoints: { increment: pointsEarned } },
+          create: {
+            customerId: request.customerId,
+            businessId: request.businessId,
+            totalPoints: pointsEarned,
+            totalVisits: 0,
+            visitStreak: 0,
+          },
+        });
+
         // 1. Get or create wallet
         let wallet = await tx.userWallet.findUnique({
           where: { userId_businessId: { userId: request.customerId, businessId: request.businessId } },
         });
+
+        const now = new Date();
+        let startedAt = wallet?.startedAt;
+        let expiresAt = wallet?.expiresAt;
+        let currentPoints = wallet?.currentPoints || 0;
+        let currentStamps = wallet?.currentStamps || 0;
+
+        if (wallet && wallet.expiresAt && now > wallet.expiresAt) {
+          // Wallet expired: reset points/stamps and start new cycle
+          currentPoints = 0;
+          currentStamps = 0;
+          startedAt = now;
+          expiresAt = new Date(now.getTime() + settings.validityDays * 24 * 60 * 60 * 1000);
+        } else if (!wallet) {
+          // First scan/approval: set starting day and expiration
+          startedAt = now;
+          expiresAt = new Date(now.getTime() + settings.validityDays * 24 * 60 * 60 * 1000);
+        }
 
         if (!wallet) {
           wallet = await tx.userWallet.create({
@@ -736,12 +790,24 @@ router.post(
               businessId: request.businessId,
               currentPoints: 0,
               currentStamps: 0,
+              startedAt,
+              expiresAt,
+            },
+          });
+        } else if (wallet && wallet.expiresAt && now > wallet.expiresAt) {
+          wallet = await tx.userWallet.update({
+            where: { id: wallet.id },
+            data: {
+              currentPoints: 0,
+              currentStamps: 0,
+              startedAt,
+              expiresAt,
             },
           });
         }
 
         // 2. Calculate point accumulation and stamp conversion
-        const totalPointsAcc = wallet.currentPoints + pointsEarned;
+        const totalPointsAcc = currentPoints + pointsEarned;
         const stampsEarned = Math.floor(totalPointsAcc / settings.pointsPerStamp);
         const remainingPoints = totalPointsAcc % settings.pointsPerStamp;
 
@@ -749,7 +815,9 @@ router.post(
           where: { id: wallet.id },
           data: {
             currentPoints: remainingPoints,
-            currentStamps: wallet.currentStamps + stampsEarned,
+            currentStamps: currentStamps + stampsEarned,
+            startedAt,
+            expiresAt,
           },
         });
 
@@ -761,6 +829,17 @@ router.post(
             purchaseValue,
             pointsEarned,
             stampEarned: stampsEarned,
+          },
+        });
+
+        // 3b. Create LoyaltyTransaction so points appear in history and analytics
+        await tx.loyaltyTransaction.create({
+          data: {
+            customerId: request.customerId,
+            businessId: request.businessId,
+            points: pointsEarned,
+            requestId,
+            spendAmount: purchaseValue,
           },
         });
 
@@ -839,6 +918,19 @@ router.post(
       const wallet = await prisma.userWallet.findUnique({
         where: { userId_businessId: { userId: customerId, businessId } },
       });
+
+      if (wallet && wallet.expiresAt && new Date() > wallet.expiresAt) {
+        await prisma.userWallet.update({
+          where: { id: wallet.id },
+          data: {
+            currentPoints: 0,
+            currentStamps: 0,
+            startedAt: null,
+            expiresAt: null,
+          },
+        });
+        throw new AppError('Your stamps have expired (validity period has passed). Please scan QR to start collecting again.', 400);
+      }
 
       if (!wallet || wallet.currentStamps < settings.requiredStamps) {
         throw new AppError('Insufficient stamps to redeem reward', 400);

@@ -41,7 +41,7 @@ export default function AnalyticsPage() {
   const { data: analytics, isLoading } = useQuery({
     queryKey: ["businessAnalyticsDetails", businessId],
     queryFn: () => api.get(`/analytics/business/${businessId}`).then((res) => res.data),
-    enabled: !!businessId,
+    enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
   });
 
   if (isLoading) {

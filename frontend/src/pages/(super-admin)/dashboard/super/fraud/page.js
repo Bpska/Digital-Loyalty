@@ -1,158 +1,214 @@
-const _jsxFileName = "src\\pages\\(super-admin)\\dashboard\\super\\fraud\\page.tsx";"use client";
-
-import React from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { Card, CardContent, } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShieldAlert, RefreshCw, AlertTriangle, MapPin } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import { ShieldAlert, RefreshCw, AlertTriangle, MapPin, Loader2, Trash2, WifiOff } from "lucide-react";
 
+function formatDateTime(dateStr) {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleString("en-IN", {
+    day: "numeric", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit", hour12: true,
+  });
+}
 
+function formatDistance(meters) {
+  if (meters == null || isNaN(meters)) return "N/A";
+  if (meters >= 1000) return `${(meters / 1000).toFixed(2)} km`;
+  return `${Math.round(meters)} m`;
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+function formatCoords(lat, lon) {
+  if (lat == null || lon == null) return "Not provided";
+  return `${Number(lat).toFixed(4)}, ${Number(lon).toFixed(4)}`;
+}
 
 export default function FraudMonitorPage() {
   const queryClient = useQueryClient();
+  const [deletingId, setDeletingId] = useState(null);
+
   const deleteMutation = useMutation({
-    mutationFn: (id) => api.delete(`/checkins/${id}`),
+    mutationFn: (id) => api.delete(`/admin/fraud/checkins/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["superFraudList"] });
+      setDeletingId(null);
     },
     onError: (err) => {
       alert(err.message || "Failed to delete log.");
-    }
+      setDeletingId(null);
+    },
   });
 
-  const { data: fraudListData, isLoading, refetch } = useQuery({
+  const { data: fraudListData, isLoading, isError, refetch } = useQuery({
     queryKey: ["superFraudList"],
     queryFn: () => api.get("/admin/fraud/checkins").then((res) => res.data),
+    refetchInterval: 60000,
   });
 
-  const fraudList = fraudListData || [];
+  const fraudList = Array.isArray(fraudListData) ? fraudListData : [];
+
+  function handleDelete(id) {
+    if (!window.confirm("Permanently delete this suspicious check-in log?")) return;
+    setDeletingId(id);
+    deleteMutation.mutate(id);
+  }
 
   if (isLoading) {
-    return (
-      React.createElement('div', { className: "space-y-4 animate-pulse" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 44}}
-        , React.createElement('div', { className: "h-10 w-48 rounded bg-muted"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 45}} )
-        , React.createElement('div', { className: "h-32 w-full rounded-xl bg-muted"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 46}} )
-        , React.createElement('div', { className: "h-32 w-full rounded-xl bg-muted"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 47}} )
-      )
+    return React.createElement("div", { className: "space-y-4 animate-pulse" },
+      React.createElement("div", { className: "h-10 w-48 rounded bg-muted" }),
+      React.createElement("div", { className: "h-32 w-full rounded-xl bg-muted" }),
+      React.createElement("div", { className: "h-32 w-full rounded-xl bg-muted" }),
     );
   }
 
-  return (
-    React.createElement('div', { className: "space-y-6 animate-fade-in" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 53}}
-      /* Header */
-      , React.createElement('div', { className: "flex items-center justify-between"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 55}}
-        , React.createElement('div', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 56}}
-          , React.createElement('h1', { className: "text-3xl font-extrabold text-foreground tracking-tight"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 57}}, "Fraud Monitor" )
-          , React.createElement('p', { className: "text-xs text-muted-foreground mt-1"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 58}}, "Audit logs of suspicious coordinates, spoofed locations or impossible customer travel metrics"
+  return React.createElement("div", { className: "space-y-6" },
 
-          )
+    /* ── Header ── */
+    React.createElement("div", { className: "flex items-center justify-between" },
+      React.createElement("div", null,
+        React.createElement("h1", { className: "text-2xl font-extrabold text-foreground tracking-tight" }, "Fraud Monitor"),
+        React.createElement("p", { className: "text-xs text-muted-foreground mt-1" },
+          "Suspicious check-in logs — flagged for spoofed location, out-of-range scans, or other anomalies."
         )
-        , React.createElement(Button, { variant: "outline", size: "sm", onClick: () => refetch(), __self: this, __source: {fileName: _jsxFileName, lineNumber: 62}}
-          , React.createElement(RefreshCw, { className: "mr-2 h-4 w-4"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 63}} ), " Sync Monitor"
+      ),
+      React.createElement(Button, { variant: "outline", size: "sm", onClick: () => refetch() },
+        React.createElement(RefreshCw, { className: "mr-2 h-4 w-4" }), "Sync Monitor"
+      )
+    ),
+
+    /* ── Stats Strip ── */
+    React.createElement("div", { className: "flex items-center gap-3" },
+      React.createElement(Card, { className: "border-red-200 bg-red-50/40" },
+        React.createElement(CardContent, { className: "px-5 py-3 flex items-center gap-3" },
+          React.createElement(AlertTriangle, { className: "h-5 w-5 text-red-600" }),
+          React.createElement("div", null,
+            React.createElement("p", { className: "text-xl font-black text-red-700" }, fraudList.length),
+            React.createElement("p", { className: "text-[10px] text-red-600 font-medium uppercase tracking-wider" }, "Flagged Logs")
+          )
         )
       )
+    ),
 
-      /* Main logs display */
-      , React.createElement('div', { className: "grid grid-cols-1 gap-6"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 68}}
-        , fraudList.length === 0 ? (
-          React.createElement(Card, { className: "border-dashed border-border bg-slate-50/50 py-16 text-center"    , glass: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 70}}
-            , React.createElement(CardContent, { className: "flex flex-col items-center justify-center space-y-3"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 71}}
-              , React.createElement(ShieldAlert, { className: "h-10 w-10 text-emerald-600 shrink-0"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 72}} )
-              , React.createElement('p', { className: "text-sm text-muted-foreground font-medium"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 73}}, "All systems green. No fraud logs flagged."      )
-              , React.createElement('p', { className: "text-xs text-muted-foreground/80 max-w-sm"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 74}}, "If customers attempt location spoofing or fail GPS distance checks, details are logged here."
+    /* ── Error State ── */
+    isError && React.createElement("div", { className: "rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 text-center" },
+      "Failed to load fraud logs. Please try refreshing."
+    ),
 
-              )
-            )
+    /* ── Empty State ── */
+    !isError && fraudList.length === 0 && (
+      React.createElement(Card, { className: "border-dashed border-border bg-slate-50/50 py-16 text-center" },
+        React.createElement(CardContent, { className: "flex flex-col items-center justify-center space-y-3" },
+          React.createElement(ShieldAlert, { className: "h-10 w-10 text-emerald-600 shrink-0" }),
+          React.createElement("p", { className: "text-sm font-semibold text-foreground" }, "All Systems Green"),
+          React.createElement("p", { className: "text-xs text-muted-foreground max-w-sm" },
+            "No suspicious check-in logs. If customers attempt location spoofing or fail GPS distance checks, details will appear here."
           )
-        ) : (
-          React.createElement('div', { className: "space-y-4", __self: this, __source: {fileName: _jsxFileName, lineNumber: 80}}
-            , fraudList.map((log) => {
-              const distanceKm = (log.distanceMeters / 1000).toFixed(2);
-              
-              return (
-                React.createElement(Card, { key: log.id, className: "border-red-100 bg-red-50/30" , glass: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 85}}
-                  , React.createElement(CardContent, { className: "p-6 grid grid-cols-1 md:grid-cols-5 gap-4 items-center"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 86}}
-                    /* User and date info */
-                    , React.createElement('div', { className: "space-y-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 88}}
-                      , React.createElement('div', { className: "flex items-center space-x-2"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 89}}
-                        , React.createElement(AlertTriangle, { className: "h-5 w-5 text-red-600 shrink-0"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 90}} )
-                        , React.createElement('h4', { className: "text-sm font-bold text-foreground truncate"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 91}}, log.customer.name)
-                      )
-                      , React.createElement('span', { className: "text-[10px] font-mono text-muted-foreground block"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 93}}, log.customer.phone)
-                      , React.createElement('span', { className: "text-[9px] text-muted-foreground block"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 94}}, formatDate(log.createdAt))
-                    )
+        )
+      )
+    ),
 
-                    /* Store Target */
-                    , React.createElement('div', { className: "space-y-0.5 text-xs text-muted-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 98}}
-                      , React.createElement('span', { className: "text-[9px] text-muted-foreground uppercase tracking-widest block font-bold"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 99}}, "Target store" )
-                      , React.createElement('p', { className: "font-semibold text-foreground truncate"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 100}}, log.business.name)
-                      , React.createElement('p', { className: "text-muted-foreground flex items-center"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 101}}
-                        , React.createElement(MapPin, { className: "h-3.5 w-3.5 mr-1"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 102}} ), " " , log.branch.name, " (r: "  , log.branch.radiusMeters, "m)"
+    /* ── Fraud Logs List ── */
+    !isError && fraudList.length > 0 && (
+      React.createElement("div", { className: "space-y-4" },
+        fraudList.map((log) =>
+          React.createElement(Card, {
+            key: log.id,
+            className: "border-red-200 bg-red-50/20 overflow-hidden",
+          },
+            React.createElement(CardContent, { className: "p-0" },
+              /* Red left stripe */
+              React.createElement("div", { className: "flex" },
+                React.createElement("div", { className: "w-1 bg-red-500 shrink-0" }),
+                React.createElement("div", { className: "flex-1 p-4 space-y-3" },
+
+                  /* Top row — customer + timestamp + status badge */
+                  React.createElement("div", { className: "flex items-start justify-between gap-3" },
+                    React.createElement("div", { className: "flex items-center gap-2 min-w-0" },
+                      React.createElement("div", { className: "h-9 w-9 rounded-full bg-red-100 flex items-center justify-center shrink-0" },
+                        React.createElement(AlertTriangle, { className: "h-4 w-4 text-red-600" })
+                      ),
+                      React.createElement("div", { className: "min-w-0" },
+                        React.createElement("p", { className: "font-bold text-sm text-foreground truncate" },
+                          log.customer?.name || "Unknown Customer"
+                        ),
+                        React.createElement("p", { className: "text-xs text-muted-foreground font-mono" },
+                          log.customer?.phone || "—"
+                        )
+                      )
+                    ),
+                    React.createElement("div", { className: "text-right shrink-0 space-y-1" },
+                      React.createElement("span", { className: "text-[10px] font-bold bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 rounded-full uppercase" },
+                        "Suspicious"
+                      ),
+                      React.createElement("p", { className: "text-[10px] text-muted-foreground block" },
+                        formatDateTime(log.createdAt)
                       )
                     )
+                  ),
 
-                    /* GPS calculations */
-                    , React.createElement('div', { className: "space-y-0.5 text-xs text-muted-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 107}}
-                      , React.createElement('span', { className: "text-[9px] text-muted-foreground uppercase tracking-widest block font-bold"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 108}}, "GPS metrics" )
-                      , React.createElement('p', { className: "text-red-600 font-semibold" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 109}}, "Distance: "
-                         , log.distanceMeters > 1000 ? `${distanceKm} km` : `${Math.round(log.distanceMeters)}m`
+                  /* Info grid */
+                  React.createElement("div", { className: "grid grid-cols-2 md:grid-cols-4 gap-3 text-xs" },
+
+                    /* Target Business */
+                    React.createElement("div", { className: "space-y-0.5" },
+                      React.createElement("p", { className: "text-[9px] text-muted-foreground uppercase tracking-widest font-bold" }, "Target Store"),
+                      React.createElement("p", { className: "font-semibold text-foreground truncate" }, log.business?.name || "—"),
+                      React.createElement("p", { className: "text-muted-foreground flex items-center gap-1 truncate" },
+                        React.createElement(MapPin, { className: "h-3 w-3 shrink-0" }),
+                        log.branch?.name || "—",
+                        log.branch?.radiusMeters ? ` (r: ${log.branch.radiusMeters}m)` : ""
                       )
-                      , React.createElement('p', { className: "text-[10px] text-muted-foreground" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 112}}, "Scanned coords: "
-                          , React.createElement('code', { className: "font-mono text-[9px]" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 113}}, log.latitude.toFixed(4), ", " , log.longitude.toFixed(4))
+                    ),
+
+                    /* GPS Metrics */
+                    React.createElement("div", { className: "space-y-0.5" },
+                      React.createElement("p", { className: "text-[9px] text-muted-foreground uppercase tracking-widest font-bold" }, "GPS Metrics"),
+                      React.createElement("p", { className: "text-red-600 font-semibold" },
+                        "Distance: ", formatDistance(log.distanceMeters)
+                      ),
+                      React.createElement("p", { className: "text-muted-foreground" },
+                        "Coords: ",
+                        React.createElement("code", { className: "font-mono text-[9px]" },
+                          formatCoords(log.latitude, log.longitude)
+                        )
                       )
-                    )
+                    ),
 
-                    /* Network details */
-                    , React.createElement('div', { className: "space-y-0.5 text-xs text-muted-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 118}}
-                      , React.createElement('span', { className: "text-[9px] text-muted-foreground uppercase tracking-widest block font-bold"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 119}}, "Network details" )
-                      , React.createElement('p', { className: "truncate", __self: this, __source: {fileName: _jsxFileName, lineNumber: 120}}, React.createElement('span', { className: "text-muted-foreground", __self: this, __source: {fileName: _jsxFileName, lineNumber: 120}}, "IP:"), " " , React.createElement('span', { className: "font-mono text-[10px]" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 120}}, log.ipAddress || "unknown"))
-                      , React.createElement('p', { className: "truncate", __self: this, __source: {fileName: _jsxFileName, lineNumber: 121}}, React.createElement('span', { className: "text-muted-foreground", __self: this, __source: {fileName: _jsxFileName, lineNumber: 121}}, "Device ID:" ), " " , React.createElement('span', { className: "font-mono text-[9px] text-muted-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 121}}, log.deviceId ? log.deviceId.slice(0, 8) + "..." : "none"))
-                    )
+                    /* Network */
+                    React.createElement("div", { className: "space-y-0.5" },
+                      React.createElement("p", { className: "text-[9px] text-muted-foreground uppercase tracking-widest font-bold" }, "Network"),
+                      React.createElement("p", { className: "truncate" },
+                        React.createElement("span", { className: "text-muted-foreground" }, "IP: "),
+                        React.createElement("span", { className: "font-mono" }, log.ipAddress || "unknown")
+                      ),
+                      React.createElement("p", { className: "truncate" },
+                        React.createElement("span", { className: "text-muted-foreground" }, "Device: "),
+                        React.createElement("span", { className: "font-mono" },
+                          log.deviceId ? log.deviceId.slice(0, 10) + "…" : "none"
+                        )
+                      )
+                    ),
 
-                    /* Delete action */
-                    , React.createElement('div', { className: "flex justify-end", __self: this, __source: {fileName: _jsxFileName, lineNumber: 122}}
-                      , React.createElement(Button, {
-                          variant: "destructive",
-                          size: "sm",
-                          disabled: deleteMutation.isPending,
-                          onClick: () => {
-                            if (window.confirm("Are you sure you want to permanently delete this suspicious check-in log?")) {
-                              deleteMutation.mutate(log.id);
-                            }
-                          },
-                          __self: this,
-                          __source: {fileName: _jsxFileName, lineNumber: 123}
-                        }
-                        , deleteMutation.isPending ? "Deleting..." : "Delete"
+                    /* Actions */
+                    React.createElement("div", { className: "flex items-center justify-end" },
+                      React.createElement(Button, {
+                        variant: "destructive",
+                        size: "sm",
+                        className: "gap-1.5",
+                        disabled: deletingId === log.id,
+                        onClick: () => handleDelete(log.id),
+                      },
+                        deletingId === log.id
+                          ? React.createElement(Loader2, { className: "h-3.5 w-3.5 animate-spin" })
+                          : React.createElement(Trash2, { className: "h-3.5 w-3.5" }),
+                        deletingId === log.id ? "Deleting…" : "Delete"
                       )
                     )
                   )
                 )
-              );
-            })
+              )
+            )
           )
         )
       )

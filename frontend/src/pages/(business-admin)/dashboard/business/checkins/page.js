@@ -45,7 +45,7 @@ export default function AdminCheckinsPage() {
       api
         .get(`/checkins/business/${businessId}?page=${page}&limit=${limit}`)
         .then((res) => res),
-    enabled: !!businessId,
+    enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
     keepPreviousData: true,
   });
 

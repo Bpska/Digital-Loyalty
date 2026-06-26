@@ -214,7 +214,7 @@ export default function BusinessDashboard() {
   const { data: business, isLoading: bizLoading, refetch: refetchProfile } = useQuery({
     queryKey: ["businessProfile", businessId],
     queryFn: () => api.get(`/businesses/${businessId}`).then((res) => res.data),
-    enabled: !!businessId,
+    enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
   });
 
   const handleOpenSocialModal = () => {
@@ -266,7 +266,7 @@ export default function BusinessDashboard() {
   };
 
   React.useEffect(() => {
-    if (businessId) {
+    if (businessId && businessId !== "null" && businessId !== "undefined") {
       api.get(`/reviews/settings/${businessId}`)
         .then((res) => {
           if (res && res.data) {
@@ -392,14 +392,14 @@ export default function BusinessDashboard() {
   const { data: analytics, isLoading: analyticsLoading } = useQuery({
     queryKey: ["businessAnalytics", businessId],
     queryFn: () => api.get(`/analytics/business/${businessId}`).then((res) => res.data),
-    enabled: !!businessId,
+    enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
   });
 
   // 3. Fetch recent check-ins
   const { data: checkinsData, isLoading: checkinsLoading, isFetching: checkinsFetching, refetch: refetchCheckins } = useQuery({
     queryKey: ["businessCheckins", businessId],
     queryFn: () => api.get(`/checkins/business/${businessId}?limit=5`).then((res) => res.data),
-    enabled: !!businessId,
+    enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
   });
 
   const checkins = checkinsData || [];

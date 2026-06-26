@@ -56,7 +56,7 @@ export default function BranchesPage() {
   const { data: branches = [], isLoading } = useQuery({
     queryKey: ["businessBranches", businessId],
     queryFn: () => api.get(`/branches/business/${businessId}`).then((res) => res.data),
-    enabled: !!businessId,
+    enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
   });
 
   // 2. Create branch mutation

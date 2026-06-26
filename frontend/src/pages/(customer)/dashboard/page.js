@@ -237,6 +237,18 @@ function HybridProgramBlock({ settings, wallet, businessId }) {
   const progressPercent = Math.min(100, Math.round((currentPoints / pointsPerStamp) * 100));
   const isRedeemable = currentStamps >= requiredStamps;
 
+  const startDateStr = wallet.startedAt ? new Date(wallet.startedAt).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  }) : '';
+
+  const expiryDateStr = wallet.expiresAt ? new Date(wallet.expiresAt).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  }) : '';
+
   return React.createElement(
     "div", { className: "space-y-4 pt-2" },
 
@@ -250,6 +262,13 @@ function HybridProgramBlock({ settings, wallet, businessId }) {
         React.createElement(Gift, { className: "h-2.5 w-2.5" }),
         settings.rewardName
       )
+    ),
+
+    // Start / Expiry dates
+    wallet.startedAt && wallet.expiresAt && React.createElement(
+      "div", { className: "flex justify-between items-center text-[10px] text-muted-foreground bg-slate-50 px-2.5 py-1 rounded-md" },
+      React.createElement("span", null, `Started: ${startDateStr}`),
+      React.createElement("span", { className: "font-medium text-amber-700" }, `Expires: ${expiryDateStr}`)
     ),
 
     // Stamps display
@@ -536,13 +555,14 @@ export default function CustomerDashboard() {
 
   const { loyaltyCards = [], unlockedRewards = [] } = data || {};
 
-  // Only cards with active program OR active coupon OR hybrid settings OR active loyalty wallet
+  // Only cards with active program OR active coupon OR hybrid settings OR active loyalty wallet OR earned points
   const visibleCards = loyaltyCards.filter(card => {
     const hasProgram = (card.business.loyaltyPrograms || []).length > 0;
     const hasCoupon  = (card.business.coupons || []).length > 0;
     const hasHybrid  = !!card.settings;
     const hasLoyaltyWallet = !!card.loyaltyWallet;
-    return hasProgram || hasCoupon || hasHybrid || hasLoyaltyWallet;
+    const hasTotalPoints = (card.totalPoints || 0) > 0;
+    return hasProgram || hasCoupon || hasHybrid || hasLoyaltyWallet || hasTotalPoints;
   });
 
   return React.createElement("div", { className: "space-y-6" },

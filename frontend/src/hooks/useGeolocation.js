@@ -9,6 +9,12 @@ export function useGeolocation() {
     readings: [],
   });
 
+  // LOCATION VERIFICATION DISABLED — always returns null coords immediately
+  const getPosition = useCallback(() => {
+    return Promise.resolve({ latitude: null, longitude: null, accuracy: null });
+  }, []);
+
+  /* LOCATION VERIFICATION COMMENTED OUT:
   const getPosition = useCallback(() => {
     setState({
       loading: true,
@@ -116,6 +122,7 @@ export function useGeolocation() {
       resolve(bestCoords);
     });
   }, []);
+  END LOCATION VERIFICATION COMMENTED OUT */
 
   return { ...state, getPosition };
 }

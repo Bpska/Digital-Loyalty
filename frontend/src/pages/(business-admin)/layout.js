@@ -274,7 +274,7 @@ export default function BusinessAdminLayout({
   }, [authorized, isPending]);
 
   React.useEffect(() => {
-    if (!businessId || isPending) return;
+    if (!businessId || businessId === "null" || businessId === "undefined" || isPending) return;
     const fetchPending = async () => {
       try {
         const res = await api.get(`/loyalty-approval/analytics/${businessId}`);

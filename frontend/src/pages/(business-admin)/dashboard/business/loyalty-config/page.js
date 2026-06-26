@@ -50,16 +50,16 @@ export default function BusinessLoyaltyConfigPage() {
   const { data: levels = [], isLoading } = useQuery({
     queryKey: ["loyaltyLevels", businessId],
     queryFn: () => api.get(`/loyalty-approval/levels/${businessId}`).then(r => r.data),
-    enabled: !!businessId,
+    enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
   });
 
   const { data: settings, isLoading: isLoadingSettings } = useQuery({
     queryKey: ["loyaltySettings", businessId],
     queryFn: () => api.get(`/loyalty-approval/settings/${businessId}`).then(r => r.data),
-    enabled: !!businessId,
+    enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
   });
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (settings) {
       setSettingsForm({
         programName: settings.programName || "Coffee Rewards",
