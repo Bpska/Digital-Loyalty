@@ -48,12 +48,18 @@ export default function BusinessesManagementPage() {
   // Editing plan state
   const [editingPlan, setEditingPlan] = useState(null);
 
+  // Editing points per rupee business state
+  const [editingPointsBusiness, setEditingPointsBusiness] = useState(null);
+  const [editPointsVal, setEditPointsVal] = useState("");
+
   // Platform pricing settings state
   const [platformFee, setPlatformFee] = useState("");
   const [gstPercent, setGstPercent] = useState("");
   const [promoLimit, setPromoLimit] = useState("");
   const [promoPrice, setPromoPrice] = useState("");
   const [gatewayPercent, setGatewayPercent] = useState("");
+  const [pointsPerRupee, setPointsPerRupee] = useState("");
+  const [pointsPerStamp, setPointsPerStamp] = useState("");
   const [settingsSuccess, setSettingsSuccess] = useState(null);
   const [settingsError, setSettingsError] = useState(null);
   const [settingsLoading, setSettingsLoading] = useState(false);
@@ -73,6 +79,8 @@ export default function BusinessesManagementPage() {
       setPromoLimit(settingsData.promo_limit || "20");
       setPromoPrice(settingsData.promo_price || "999");
       setGatewayPercent(settingsData.gateway_percent || "2.3");
+      setPointsPerRupee(settingsData.points_per_rupee || "0.1");
+      setPointsPerStamp(settingsData.points_per_stamp || "50");
     }
   }, [settingsData]);
 
@@ -88,6 +96,8 @@ export default function BusinessesManagementPage() {
         promo_limit: parseInt(promoLimit),
         promo_price: parseFloat(promoPrice),
         gateway_percent: parseFloat(gatewayPercent),
+        points_per_rupee: parseFloat(pointsPerRupee),
+        points_per_stamp: parseInt(pointsPerStamp),
       });
       setSettingsSuccess("Settings saved successfully!");
       refetchSettings();
@@ -130,6 +140,20 @@ export default function BusinessesManagementPage() {
       api.patch(`/admin/businesses/${id}/status`, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["superBusinessesList"] });
+    }
+  });
+
+  // Update business point rate mutation
+  const updatePointsMutation = useMutation({
+    mutationFn: ({ id, pointsPerRupee }) =>
+      api.patch(`/admin/businesses/${id}/loyalty-settings`, { pointsPerRupee }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["superBusinessesList"] });
+      setEditingPointsBusiness(null);
+      alert("Business loyalty point rate updated successfully!");
+    },
+    onError: (err) => {
+      alert(err.message || "Failed to update point rate");
     }
   });
 
@@ -411,6 +435,25 @@ export default function BusinessesManagementPage() {
                       )
                       , _optionalChain([business, 'access', _5 => _5.subscription, 'optionalAccess', _6 => _6.currentPeriodEnd]) && (
                         React.createElement('p', { className: "text-[9px] text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 220 } }, "Expires: ", formatDate(business.subscription.currentPeriodEnd))
+                      )
+                      , React.createElement('div', { className: "pt-1 mt-1 border-t border-dashed border-border/50 text-[10px]", __self: this, __source: { fileName: _jsxFileName, lineNumber: 222 } }
+                        , React.createElement('p', { className: "text-slate-800 font-semibold", __self: this, __source: { fileName: _jsxFileName, lineNumber: 223 } }
+                          , "Point Rate: "
+                          , React.createElement('span', { className: "font-bold text-primary", __self: this, __source: { fileName: _jsxFileName, lineNumber: 224 } }, _optionalChain([business, 'access', _b => _b.loyaltyProgramSettings, 'optionalAccess', _s => _s.pointsPerRupee]) ?? "0.1")
+                          , " pts/₹"
+                        )
+                        , React.createElement('button', {
+                            type: "button",
+                            onClick: () => {
+                              setEditingPointsBusiness(business);
+                              setEditPointsVal(String(_optionalChain([business, 'access', _b => _b.loyaltyProgramSettings, 'optionalAccess', _s => _s.pointsPerRupee]) ?? "0.1"));
+                            },
+                            className: "text-[9px] text-indigo-650 hover:underline font-bold mt-0.5 block",
+                            __self: this,
+                            __source: { fileName: _jsxFileName, lineNumber: 226 }
+                          }
+                          , "Edit Point Rate"
+                        )
                       )
                     )
 
@@ -707,6 +750,30 @@ export default function BusinessesManagementPage() {
                       className: "text-xs border-border bg-white"
                     })
                   )
+                  , React.createElement('div', { className: "space-y-1.5" }
+                    , React.createElement(Label, { htmlFor: "points-per-rupee", className: "text-xs font-semibold text-muted-foreground" }, "Points Per Rupee (₹1 value in points)")
+                    , React.createElement(Input, {
+                      id: "points-per-rupee",
+                      type: "number",
+                      step: "0.001",
+                      value: pointsPerRupee,
+                      onChange: (e) => setPointsPerRupee(e.target.value),
+                      required: true,
+                      className: "text-xs border-border bg-white"
+                    })
+                  )
+                  , React.createElement('div', { className: "space-y-1.5" }
+                    , React.createElement(Label, { htmlFor: "points-per-stamp", className: "text-xs font-semibold text-muted-foreground" }, "Points Per Stamp (Stamps Conversion)")
+                    , React.createElement(Input, {
+                      id: "points-per-stamp",
+                      type: "number",
+                      step: "1",
+                      value: pointsPerStamp,
+                      onChange: (e) => setPointsPerStamp(e.target.value),
+                      required: true,
+                      className: "text-xs border-border bg-white"
+                    })
+                  )
                   , React.createElement(Button, { type: "submit", className: "w-full bg-primary text-primary-foreground hover:bg-primary/95 shadow-sm font-semibold", disabled: settingsLoading }
                     , settingsLoading ? React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin" }) : null
                     , "Save Platform Settings"
@@ -845,10 +912,72 @@ export default function BusinessesManagementPage() {
                     : (!!editingPlan ? "Save Changes" : "Deploy Plan Tier")
                 )
               )
+          )
+        )
+      )
+      /* Edit Point Rate Dialog */
+      , !!editingPointsBusiness && (
+        React.createElement(Dialog, {
+          open: !!editingPointsBusiness,
+          onOpenChange: (open) => !open && setEditingPointsBusiness(null),
+          __self: this,
+          __source: { fileName: _jsxFileName, lineNumber: 918 }
+        }
+          , React.createElement(DialogContent, { className: "max-w-[420px] bg-white border border-border" }
+            , React.createElement(DialogHeader, null
+              , React.createElement(DialogTitle, null, "Edit Point Earning Rate")
+              , React.createElement(DialogDescription, { className: "text-xs text-muted-foreground" }
+                , `Configure the points per rupee conversion rate for "${editingPointsBusiness.name}".`
+              )
+            )
+            , React.createElement('form', {
+                onSubmit: (e) => {
+                  e.preventDefault();
+                  const val = parseFloat(editPointsVal);
+                  if (isNaN(val) || val <= 0) {
+                    alert("Please enter a valid positive decimal number.");
+                    return;
+                  }
+                  updatePointsMutation.mutate({ id: editingPointsBusiness.id, pointsPerRupee: val });
+                },
+                className: "space-y-4 py-2"
+              }
+              , React.createElement('div', { className: "space-y-1.5" }
+                , React.createElement(Label, { htmlFor: "points-per-rupee-input" }, "Points Per Rupee (e.g. 0.1)")
+                , React.createElement(Input, {
+                    id: "points-per-rupee-input",
+                    type: "number",
+                    step: "0.001",
+                    min: "0.001",
+                    value: editPointsVal,
+                    onChange: (e) => setEditPointsVal(e.target.value),
+                    required: true,
+                    className: "text-xs border-border bg-white text-slate-800"
+                  })
+              )
+              , React.createElement(DialogFooter, { className: "pt-2" }
+                , React.createElement(Button, {
+                    type: "button",
+                    variant: "outline",
+                    onClick: () => setEditingPointsBusiness(null)
+                  }
+                  , "Cancel"
+                )
+                , React.createElement(Button, {
+                    type: "submit",
+                    className: "bg-primary text-primary-foreground font-bold",
+                    disabled: updatePointsMutation.isPending
+                  }
+                  , updatePointsMutation.isPending
+                    ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin" })
+                    : "Save Point Rate"
+                )
+              )
             )
           )
         )
       )
+    )
     )
   );
 }

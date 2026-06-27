@@ -203,13 +203,7 @@ export default function RewardsPage() {
                   )
                 )
                 , React.createElement(CardContent, { className: "p-6 space-y-4" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 193}}
-                  , React.createElement('div', { className: "grid grid-cols-2 gap-4 text-xs"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 194}}
-                    , React.createElement('div', { className: "bg-slate-50 p-3 rounded-lg border border-border"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 195}}
-                      , React.createElement('span', { className: "text-muted-foreground block uppercase tracking-wider text-[9px]"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 196}}, "Points Cost" )
-                      , React.createElement('span', { className: "text-foreground font-extrabold text-sm"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 197}}
-                        , reward.pointsRequired, " pts"
-                      )
-                    )
+                  , React.createElement('div', { className: "grid grid-cols-1 gap-4 text-xs"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 194}}
                     , React.createElement('div', { className: "bg-slate-50 p-3 rounded-lg border border-border"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 201}}
                       , React.createElement('span', { className: "text-muted-foreground block uppercase tracking-wider text-[9px]"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 202}}, "Expiry Date" )
                       , React.createElement('span', { className: "text-foreground font-semibold" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 203}}
@@ -329,17 +323,7 @@ export default function RewardsPage() {
                 )
               )
 
-              , React.createElement('div', { className: "space-y-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 282}}
-                , React.createElement(Label, { htmlFor: "reward-pts", __self: this, __source: {fileName: _jsxFileName, lineNumber: 283}}, "Points Cost (Required for Points Program)"     )
-                , React.createElement(Input, { 
-                  id: "reward-pts", 
-                  type: "number",
-                  placeholder: "e.g. 150 points"  , 
-                  value: pointsRequired,
-                  onChange: (e) => setPointsRequired(e.target.value),
-                  required: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 284}} 
-                )
-              )
+
 
               , React.createElement('div', { className: "space-y-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 294}}
                 , React.createElement(Label, { htmlFor: "reward-exp", __self: this, __source: {fileName: _jsxFileName, lineNumber: 295}}, "Voucher Validity Expiry"  )
@@ -403,17 +387,7 @@ export default function RewardsPage() {
                 )
               )
 
-              , React.createElement('div', { className: "space-y-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 356}}
-                , React.createElement(Label, { htmlFor: "edit-pts", __self: this, __source: {fileName: _jsxFileName, lineNumber: 357}}, "Points Cost" )
-                , React.createElement(Input, { 
-                  id: "edit-pts", 
-                  type: "number",
-                  placeholder: "Points required" , 
-                  value: pointsRequired,
-                  onChange: (e) => setPointsRequired(e.target.value),
-                  required: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 358}} 
-                )
-              )
+
 
               , React.createElement('div', { className: "space-y-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 368}}
                 , React.createElement(Label, { htmlFor: "edit-exp", __self: this, __source: {fileName: _jsxFileName, lineNumber: 369}}, "Validity Expiry" )

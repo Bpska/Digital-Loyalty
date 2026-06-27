@@ -488,12 +488,10 @@ export default function BusinessAdminLayout({
     : [
         { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard/business" },
         { label: "Branches", icon: MapPin, href: "/dashboard/business/branches" },
-        { label: "Loyalty Programs", icon: Settings, href: "/dashboard/business/loyalty" },
-        { label: "Rewards", icon: Award, href: "/dashboard/business/rewards" },
         { label: "Coupons", icon: Percent, href: "/dashboard/business/coupons" },
         { label: "Analytics", icon: BarChart3, href: "/dashboard/business/analytics" },
         { label: "Loyalty Approvals", icon: ClipboardCheck, href: "/dashboard/business/approvals", badge: pendingApprovals },
-        { label: "Loyalty Config", icon: Settings2, href: "/dashboard/business/loyalty-config" },
+        { label: "Loyalty Settings", icon: Settings2, href: "/dashboard/business/loyalty-config" },
       ];
 
   return (

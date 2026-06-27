@@ -6,516 +6,886 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Loader2, Star, ChevronUp, ChevronDown, Award, Info, Settings } from "lucide-react";
+import {
+  Loader2, CheckCircle2, Coffee, Stamp, Gift, Zap,
+  ArrowRight, IndianRupee, Star, Shield, Clock, Info,
+  Sparkles, Settings, AlertCircle
+} from "lucide-react";
 
-const PRESET_LEVELS = [
-  { name: "Bronze", description: "Entry-level visit", points: 1, color: "#CD7F32" },
-  { name: "Silver", description: "Regular customer", points: 2, color: "#A8A9AD" },
-  { name: "Gold", description: "Loyal customer", points: 5, color: "#FFD700" },
-  { name: "Platinum", description: "VIP customer", points: 10, color: "#E5E4E2" },
-];
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function getLevelColor(name) {
-  const n = name?.toLowerCase();
-  if (n?.includes("bronze")) return "#CD7F32";
-  if (n?.includes("silver")) return "#A8A9AD";
-  if (n?.includes("gold")) return "#FFD700";
-  if (n?.includes("platinum")) return "#E5E4E2";
-  return "#6366f1";
+function StampDot({ filled }) {
+  return React.createElement(
+    "div",
+    {
+      className: `h-9 w-9 rounded-full flex items-center justify-center border-2 transition-all ${
+        filled
+          ? "bg-gradient-to-tr from-[#FF6A00]/90 to-[#800020]/90 border-[#FF6A00] text-white shadow-md shadow-[#FF6A00]/20"
+          : "bg-white border-dashed border-slate-300 text-slate-300"
+      }`,
+    },
+    React.createElement(Stamp, {
+      className: filled ? "h-4 w-4 fill-white text-white stroke-none" : "h-4 w-4 opacity-30",
+    })
+  );
 }
 
+// ─── Flow Step Badge ──────────────────────────────────────────────────────────
+function FlowStep({ icon: Icon, label, color, isLast }) {
+  return React.createElement(
+    "div",
+    { className: "flex items-center gap-2" },
+    React.createElement(
+      "div",
+      { className: `flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-bold ${color}` },
+      React.createElement(Icon, { className: "h-3.5 w-3.5 shrink-0" }),
+      label
+    ),
+    !isLast &&
+      React.createElement(ArrowRight, { className: "h-3.5 w-3.5 text-muted-foreground shrink-0" })
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function BusinessLoyaltyConfigPage() {
   const { user } = useAuthStore();
   const businessId = user?.businessId;
   const queryClient = useQueryClient();
 
-  const [showDialog, setShowDialog] = useState(false);
-  const [editingLevel, setEditingLevel] = useState(null);
-  const [form, setForm] = useState({ name: "", description: "", points: "", sortOrder: "0" });
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
+  const [saved, setSaved] = useState(false);
+  const [stampCost, setStampCost] = useState("500");
+  const [isEditing, setIsEditing] = useState(false);
 
   // Settings form state
   const [settingsForm, setSettingsForm] = useState({
     programName: "",
-    pointsPerRupee: "0.1",
-    pointsPerStamp: "50",
     requiredStamps: "7",
     rewardName: "",
     validityDays: "30",
+    maxDailyStamps: "1",
   });
 
-  const { data: levels = [], isLoading } = useQuery({
-    queryKey: ["loyaltyLevels", businessId],
-    queryFn: () => api.get(`/loyalty-approval/levels/${businessId}`).then(r => r.data),
-    enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
-  });
+  // Simulation state
+  const [simAmount, setSimAmount] = useState(250);
 
   const { data: settings, isLoading: isLoadingSettings } = useQuery({
     queryKey: ["loyaltySettings", businessId],
-    queryFn: () => api.get(`/loyalty-approval/settings/${businessId}`).then(r => r.data),
+    queryFn: () => api.get(`/loyalty-approval/settings/${businessId}`).then((r) => r.data),
     enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
   });
+
+  const isConfigured = !!(settings && settings.programName && settings.programName !== "Coffee Rewards");
 
   React.useEffect(() => {
     if (settings) {
       setSettingsForm({
-        programName: settings.programName || "Coffee Rewards",
-        pointsPerRupee: String(settings.pointsPerRupee ?? 0.1),
-        pointsPerStamp: String(settings.pointsPerStamp ?? 50),
+        programName: settings.programName || "",
         requiredStamps: String(settings.requiredStamps ?? 7),
-        rewardName: settings.rewardName || "Free Coffee",
+        rewardName: settings.rewardName || "",
         validityDays: String(settings.validityDays ?? 30),
+        maxDailyStamps: String(settings.maxDailyStamps ?? 1),
       });
+      const ppr = settings.pointsPerRupee || 0.1;
+      const pps = settings.pointsPerStamp ?? 50;
+      setStampCost(String(Math.round(pps / ppr)));
+
+      // Auto-set editing mode to false if already configured
+      const isConfig = !!(settings.programName && settings.programName !== "Coffee Rewards");
+      setIsEditing(!isConfig);
     }
   }, [settings]);
-
-  const createMutation = useMutation({
-    mutationFn: (data) => api.post("/loyalty-approval/levels", data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["loyaltyLevels", businessId] });
-      closeDialog();
-    },
-    onError: (err) => setError(err.message || "Failed to save level"),
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => api.patch(`/loyalty-approval/levels/${id}`, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["loyaltyLevels", businessId] });
-      closeDialog();
-    },
-    onError: (err) => setError(err.message || "Failed to update level"),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id) => api.delete(`/loyalty-approval/levels/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["loyaltyLevels", businessId] });
-      setDeleteConfirm(null);
-    },
-    onError: (err) => alert(err.message || "Failed to delete level"),
-  });
-
-  const reorderMutation = useMutation({
-    mutationFn: ({ id, sortOrder }) => api.patch(`/loyalty-approval/levels/${id}`, { sortOrder }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["loyaltyLevels", businessId] }),
-  });
 
   const saveSettingsMutation = useMutation({
     mutationFn: (data) => api.post(`/loyalty-approval/settings/${businessId}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["loyaltySettings", businessId] });
-      alert("Settings saved successfully!");
+      setSaved(true);
+      setTimeout(() => setSaved(false), 4000);
+      setIsEditing(false);
     },
     onError: (err) => alert(err.message || "Failed to save settings"),
   });
 
-  function openCreate() {
-    setEditingLevel(null);
-    setForm({ name: "", description: "", points: "", sortOrder: String(levels.length) });
-    setError(null);
-    setShowDialog(true);
-  }
-
-  function openEdit(level) {
-    setEditingLevel(level);
-    setForm({
-      name: level.name,
-      description: level.description || "",
-      points: String(level.points),
-      sortOrder: String(level.sortOrder),
-    });
-    setError(null);
-    setShowDialog(true);
-  }
-
-  function closeDialog() {
-    setShowDialog(false);
-    setEditingLevel(null);
-    setError(null);
-  }
-
-  async function handleSave(e) {
-    e.preventDefault();
-    setError(null);
-    const pts = parseInt(form.points, 10);
-    if (!form.name.trim()) { setError("Level name is required"); return; }
-    if (isNaN(pts) || pts < 1) { setError("Points must be at least 1"); return; }
-
-    const payload = {
-      businessId,
-      name: form.name.trim(),
-      description: form.description.trim() || undefined,
-      points: pts,
-      sortOrder: parseInt(form.sortOrder, 10) || 0,
-    };
-
-    if (editingLevel) {
-      updateMutation.mutate({ id: editingLevel.id, data: payload });
-    } else {
-      createMutation.mutate(payload);
-    }
-  }
-
   function handleSaveSettings(e) {
     e.preventDefault();
-    const ppr = parseFloat(settingsForm.pointsPerRupee);
-    const pps = parseInt(settingsForm.pointsPerStamp, 10);
     const rs = parseInt(settingsForm.requiredStamps, 10);
     const vd = parseInt(settingsForm.validityDays, 10);
+    const mds = parseInt(settingsForm.maxDailyStamps, 10);
+    const sc = parseFloat(stampCost);
 
     if (!settingsForm.programName.trim()) { alert("Program name is required"); return; }
-    if (isNaN(ppr) || ppr <= 0) { alert("Points per ₹ must be a positive number"); return; }
-    if (isNaN(pps) || pps <= 0) { alert("Points per stamp must be a positive integer"); return; }
     if (isNaN(rs) || rs <= 0) { alert("Required stamps must be a positive integer"); return; }
     if (!settingsForm.rewardName.trim()) { alert("Reward name is required"); return; }
     if (isNaN(vd) || vd <= 0) { alert("Validity must be a positive integer"); return; }
+    if (isNaN(mds) || mds <= 0) { alert("Maximum Daily Stamp must be a positive integer"); return; }
+    if (isNaN(sc) || sc <= 0) { alert("Stamp cost must be a positive number"); return; }
+
+    const ppr = settings?.pointsPerRupee || 0.1;
 
     saveSettingsMutation.mutate({
       programName: settingsForm.programName.trim(),
-      pointsPerRupee: ppr,
-      pointsPerStamp: pps,
       requiredStamps: rs,
       rewardName: settingsForm.rewardName.trim(),
       validityDays: vd,
+      maxDailyStamps: mds,
+      pointsPerStamp: Math.round(sc * ppr),
     });
   }
 
-  async function applyPreset(preset, idx) {
-    createMutation.mutate({
-      businessId,
-      name: preset.name,
-      description: preset.description,
-      points: preset.points,
-      sortOrder: idx,
-    });
+  // Live calculation using global rates from settings response and current stampCost state
+  const ppr = settings?.pointsPerRupee || 0.1;
+  const currentStampCostInput = parseFloat(stampCost) || 500;
+  const pps = Math.max(1, Math.round(currentStampCostInput * ppr));
+  const reqStamps = parseInt(settingsForm.requiredStamps, 10) || 7;
+
+  const simPointsEarned = Math.floor(simAmount * ppr);
+  const simStampsFromPurchase = Math.floor(simPointsEarned / pps);
+  const simRupeePerStamp = Math.ceil(pps / ppr);
+  const simTotalSpendForReward = simRupeePerStamp * reqStamps;
+
+  if (isLoadingSettings) {
+    return React.createElement(
+      "div",
+      { className: "flex min-h-[400px] items-center justify-center" },
+      React.createElement(Loader2, { className: "h-8 w-8 animate-spin text-primary" })
+    );
   }
 
-  function moveLevel(level, direction) {
-    const sorted = [...levels].sort((a, b) => a.sortOrder - b.sortOrder);
-    const idx = sorted.findIndex(l => l.id === level.id);
-    const target = direction === "up" ? idx - 1 : idx + 1;
-    if (target < 0 || target >= sorted.length) return;
+  return React.createElement(
+    "div",
+    { className: "space-y-8 max-w-3xl" },
 
-    const targetLevel = sorted[target];
-    reorderMutation.mutate({ id: level.id, sortOrder: targetLevel.sortOrder });
-    reorderMutation.mutate({ id: targetLevel.id, sortOrder: level.sortOrder });
-  }
-
-  const isMutating = createMutation.isPending || updateMutation.isPending;
-
-  return (
-    React.createElement("div", { className: "space-y-6 max-w-2xl" },
-
-      /* Header */
-      React.createElement("div", { className: "flex items-center justify-between" },
-        React.createElement("div", null,
-          React.createElement("h1", { className: "text-2xl font-bold text-foreground" }, "Loyalty Configuration"),
-          React.createElement("p", { className: "text-sm text-muted-foreground mt-0.5" },
-            "Configure your hybrid points-to-stamps settings or define custom levels."
-          )
+    // ── Page Header ───────────────────────────────────────────────────────────
+    React.createElement(
+      "div",
+      { className: "flex items-start justify-between gap-4" },
+      React.createElement(
+        "div",
+        null,
+        React.createElement(
+          "h1",
+          { className: "text-2xl font-bold text-foreground flex items-center gap-2" },
+          React.createElement(Coffee, { className: "h-6 w-6 text-primary" }),
+          "Loyalty Program Setup"
         ),
-        React.createElement(Button, {
-          className: "bg-primary text-primary-foreground hover:bg-primary/90",
-          onClick: openCreate,
-          disabled: isMutating,
-        },
-          React.createElement(Plus, { className: "mr-2 h-4 w-4" }), "Add Level"
+        React.createElement(
+          "p",
+          { className: "text-sm text-muted-foreground mt-1" },
+          "Configure your stamp-based loyalty program. Customers earn stamps automatically when you approve their purchases."
         )
       ),
-
-      /* Info Banner */
-      React.createElement("div", { className: "flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800" },
-        React.createElement(Info, { className: "h-4 w-4 mt-0.5 shrink-0 text-blue-600" }),
-        React.createElement("div", null,
-          React.createElement("p", { className: "font-semibold" }, "How this works"),
-          React.createElement("p", { className: "text-xs mt-0.5 text-blue-700" },
-            "When a customer scans your QR code, a loyalty request is created. You can approve it using the hybrid program where points and stamps are automatically calculated based on purchase values, or award custom points based on levels."
+      // Status badge
+      isConfigured
+        ? React.createElement(
+            "div",
+            { className: "flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap" },
+            React.createElement("span", { className: "h-2 w-2 rounded-full bg-emerald-500 animate-pulse inline-block" }),
+            "Program Active"
           )
-        )
+        : React.createElement(
+            "div",
+            { className: "flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap" },
+            React.createElement(AlertCircle, { className: "h-3.5 w-3.5" }),
+            "Not Configured"
+          )
+    ),
+
+    // ── How It Works Flow ─────────────────────────────────────────────────────
+    React.createElement(
+      "div",
+      { className: "rounded-xl border border-border/60 bg-gradient-to-r from-slate-50 to-blue-50/30 p-4" },
+      React.createElement(
+        "p",
+        { className: "text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3" },
+        "Customer Journey"
       ),
+      React.createElement(
+        "div",
+        { className: "flex flex-wrap gap-2 items-center" },
+        React.createElement(FlowStep, {
+          icon: Star,
+          label: "Customer Scans QR",
+          color: "bg-blue-50 border-blue-200 text-blue-700",
+        }),
+        React.createElement(FlowStep, {
+          icon: IndianRupee,
+          label: "You Enter Purchase Amount",
+          color: "bg-orange-50 border-orange-200 text-orange-700",
+        }),
+        React.createElement(FlowStep, {
+          icon: Zap,
+          label: "Points Auto-Calculated",
+          color: "bg-violet-50 border-violet-200 text-violet-700",
+        }),
+        React.createElement(FlowStep, {
+          icon: Stamp,
+          label: "Stamps Auto-Awarded",
+          color: "bg-amber-50 border-amber-200 text-amber-700",
+        }),
+        React.createElement(FlowStep, {
+          icon: Gift,
+          label: `Customer Earns "${settingsForm.rewardName || "Reward"}"`,
+          color: "bg-emerald-50 border-emerald-200 text-emerald-700",
+          isLast: true,
+        })
+      )
+    ),
 
-      /* Loyalty Program Settings Card */
-      React.createElement(Card, { className: "border border-border/70 shadow-sm" },
-        React.createElement(CardHeader, null,
-          React.createElement(CardTitle, { className: "flex items-center gap-2 text-foreground font-bold" },
-            React.createElement(Settings, { className: "h-5 w-5 text-primary" }), "Loyalty Program Settings"
-          ),
-          React.createElement(CardDescription, null,
-            "Configure the Point conversion, Stamp conversion, and Rewards for your customers."
+    // ── Two-column layout: Form + Live Preview ─────────────────────────────────
+    React.createElement(
+      "div",
+      { className: "grid grid-cols-1 lg:grid-cols-2 gap-6 items-start" },
+
+      // Left: Settings Form or Active Program details card
+      isConfigured && !isEditing
+        ? React.createElement(
+            Card,
+            { className: "border border-emerald-100 bg-gradient-to-br from-emerald-50/10 to-white shadow-md relative overflow-hidden" },
+            React.createElement("div", { className: "absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-bl-full pointer-events-none" }),
+            React.createElement(
+              CardHeader,
+              { className: "pb-4 border-b border-slate-100" },
+              React.createElement(
+                "div",
+                { className: "flex items-center justify-between" },
+                React.createElement(
+                  "div",
+                  null,
+                  React.createElement(
+                    CardTitle,
+                    { className: "text-lg font-black text-slate-800 flex items-center gap-2" },
+                    React.createElement(Sparkles, { className: "h-5 w-5 text-emerald-600" }),
+                    settings?.programName || "Active Program"
+                  ),
+                  React.createElement(CardDescription, null, "Currently running stamp and points rules")
+                ),
+                React.createElement(
+                  Button,
+                  {
+                    size: "sm",
+                    variant: "outline",
+                    onClick: () => setIsEditing(true),
+                    className: "border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-bold"
+                  },
+                  "Edit Settings"
+                )
+              )
+            ),
+            React.createElement(
+              CardContent,
+              { className: "p-6 grid grid-cols-2 gap-4 text-xs" },
+
+              // Detail 1: Reward Name
+              React.createElement(
+                "div",
+                { className: "bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 space-y-1" },
+                React.createElement("span", { className: "text-slate-400 block uppercase tracking-wider text-[9px] font-bold" }, "Linked Reward Voucher"),
+                React.createElement(
+                  "span",
+                  { className: "text-slate-800 font-extrabold text-sm flex items-center gap-1.5" },
+                  React.createElement(Gift, { className: "h-4 w-4 text-primary shrink-0" }),
+                  settings?.rewardName
+                )
+              ),
+
+              // Detail 2: Stamp Cost
+              React.createElement(
+                "div",
+                { className: "bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 space-y-1" },
+                React.createElement("span", { className: "text-slate-400 block uppercase tracking-wider text-[9px] font-bold" }, "Stamp Earning Cost"),
+                React.createElement(
+                  "span",
+                  { className: "text-slate-800 font-extrabold text-sm flex items-center gap-1.5" },
+                  React.createElement(IndianRupee, { className: "h-4 w-4 text-emerald-600 shrink-0" }),
+                  `₹${Math.round((settings?.pointsPerStamp ?? 50) / (settings?.pointsPerRupee ?? 0.1))} Spent`
+                )
+              ),
+
+              // Detail 3: Stamps needed
+              React.createElement(
+                "div",
+                { className: "bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 space-y-1" },
+                React.createElement("span", { className: "text-slate-400 block uppercase tracking-wider text-[9px] font-bold" }, "Required Stamps"),
+                React.createElement(
+                  "span",
+                  { className: "text-slate-800 font-extrabold text-sm flex items-center gap-1.5" },
+                  React.createElement(Stamp, { className: "h-4 w-4 text-amber-500 shrink-0" }),
+                  `${settings?.requiredStamps} Stamps`
+                )
+              ),
+
+              // Detail 4: Validity
+              React.createElement(
+                "div",
+                { className: "bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 space-y-1" },
+                React.createElement("span", { className: "text-slate-400 block uppercase tracking-wider text-[9px] font-bold" }, "Stamp Expiry"),
+                React.createElement(
+                  "span",
+                  { className: "text-slate-800 font-extrabold text-sm flex items-center gap-1.5" },
+                  React.createElement(Clock, { className: "h-4 w-4 text-blue-500 shrink-0" }),
+                  `${settings?.validityDays} Days Validity`
+                )
+              ),
+
+              // Detail 5: Daily Limit
+              React.createElement(
+                "div",
+                { className: "bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 space-y-1 col-span-2" },
+                React.createElement("span", { className: "text-slate-400 block uppercase tracking-wider text-[9px] font-bold" }, "Daily Earn Limits"),
+                React.createElement(
+                  "span",
+                  { className: "text-slate-700 font-semibold flex items-center gap-1.5" },
+                  React.createElement(Shield, { className: "h-4 w-4 text-violet-500 shrink-0" }),
+                  `Maximum ${settings?.maxDailyStamps ?? 1} stamp(s) per customer per day`
+                )
+              )
+            )
           )
-        ),
-        React.createElement(CardContent, null,
-          React.createElement("form", { onSubmit: handleSaveSettings, className: "space-y-4" },
-            React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4" },
-              React.createElement("div", { className: "space-y-1.5" },
-                React.createElement(Label, { htmlFor: "prog-name" }, "Program Name"),
-                React.createElement(Input, {
-                  id: "prog-name",
-                  placeholder: "e.g. Coffee Rewards",
-                  value: settingsForm.programName,
-                  onChange: (e) => setSettingsForm(f => ({ ...f, programName: e.target.value })),
-                })
+        : React.createElement(
+            Card,
+            { className: "border border-border/70 shadow-sm" },
+            React.createElement(
+              CardHeader,
+              { className: "pb-3" },
+              React.createElement(
+                "div",
+                { className: "flex justify-between items-center" },
+                React.createElement(
+                  CardTitle,
+                  { className: "flex items-center gap-2 text-base text-foreground font-bold" },
+                  React.createElement(Settings, { className: "h-4.5 w-4.5 text-primary" }),
+                  "Program Configuration"
+                ),
+                isConfigured && React.createElement(
+                  Button,
+                  {
+                    type: "button",
+                    variant: "ghost",
+                    size: "sm",
+                    onClick: () => setIsEditing(false),
+                    className: "h-8 text-xs font-bold text-muted-foreground hover:text-foreground"
+                  },
+                  "Cancel"
+                )
               ),
-              React.createElement("div", { className: "space-y-1.5" },
-                React.createElement(Label, { htmlFor: "reward-name" }, "Reward Name"),
-                React.createElement(Input, {
-                  id: "reward-name",
-                  placeholder: "e.g. Free Coffee",
-                  value: settingsForm.rewardName,
-                  onChange: (e) => setSettingsForm(f => ({ ...f, rewardName: e.target.value })),
-                })
+              React.createElement(CardDescription, null, "Set up your stamp program. Point conversion rates are managed by the platform.")
+            ),
+            React.createElement(
+              CardContent,
+              null,
+          React.createElement(
+            "form",
+            { onSubmit: handleSaveSettings, className: "space-y-4" },
+
+            // Program Name
+            React.createElement(
+              "div",
+              { className: "space-y-1.5" },
+              React.createElement(
+                Label,
+                { htmlFor: "prog-name" },
+                "Program Name ",
+                React.createElement("span", { className: "text-destructive" }, "*")
               ),
-              React.createElement("div", { className: "space-y-1.5" },
-                React.createElement(Label, { htmlFor: "pts-per-rupee" }, "Points Per ₹"),
-                React.createElement(Input, {
-                  id: "pts-per-rupee",
-                  type: "number",
-                  step: "any",
-                  placeholder: "e.g. 0.1 for ₹10 = 1 Point",
-                  value: settingsForm.pointsPerRupee,
-                  onChange: (e) => setSettingsForm(f => ({ ...f, pointsPerRupee: e.target.value })),
-                })
+              React.createElement(Input, {
+                id: "prog-name",
+                placeholder: "e.g. Coffee Rewards, Brews Club",
+                value: settingsForm.programName,
+                onChange: (e) => setSettingsForm((f) => ({ ...f, programName: e.target.value })),
+                className: "border-border",
+              }),
+              React.createElement(
+                "p",
+                { className: "text-[10px] text-muted-foreground" },
+                "Shown on the customer's loyalty card"
+              )
+            ),
+
+            // Reward Name
+            React.createElement(
+              "div",
+              { className: "space-y-1.5" },
+              React.createElement(
+                Label,
+                { htmlFor: "reward-name" },
+                "Reward Name ",
+                React.createElement("span", { className: "text-destructive" }, "*")
               ),
-              React.createElement("div", { className: "space-y-1.5" },
-                React.createElement(Label, { htmlFor: "pts-per-stamp" }, "Points Per Stamp"),
-                React.createElement(Input, {
-                  id: "pts-per-stamp",
-                  type: "number",
-                  placeholder: "e.g. 50",
-                  value: settingsForm.pointsPerStamp,
-                  onChange: (e) => setSettingsForm(f => ({ ...f, pointsPerStamp: e.target.value })),
-                })
+              React.createElement(Input, {
+                id: "reward-name",
+                placeholder: "e.g. Free Coffee, Free Dessert",
+                value: settingsForm.rewardName,
+                onChange: (e) => setSettingsForm((f) => ({ ...f, rewardName: e.target.value })),
+                className: "border-border",
+              }),
+              React.createElement(
+                "p",
+                { className: "text-[10px] text-muted-foreground" },
+                "What customers earn after collecting enough stamps"
+              )
+            ),
+
+            // Cost of 1 Stamp (₹)
+            React.createElement(
+              "div",
+              { className: "space-y-1.5" },
+              React.createElement(
+                Label,
+                { htmlFor: "stamp-cost" },
+                "Purchase Amount Required for 1 Stamp (₹) ",
+                React.createElement("span", { className: "text-destructive" }, "*")
               ),
-              React.createElement("div", { className: "space-y-1.5" },
-                React.createElement(Label, { htmlFor: "req-stamps" }, "Required Stamps for Reward"),
+              React.createElement(Input, {
+                id: "stamp-cost",
+                type: "number",
+                min: "1",
+                placeholder: "e.g. 250 or 500",
+                value: stampCost,
+                onChange: (e) => setStampCost(e.target.value),
+                className: "border-border",
+              }),
+              React.createElement(
+                "p",
+                { className: "text-[10px] text-muted-foreground" },
+                "The spend threshold required for a customer to automatically earn 1 Stamp."
+              )
+            ),
+
+            // Required Stamps + Validity (row)
+            React.createElement(
+              "div",
+              { className: "grid grid-cols-2 gap-3" },
+              React.createElement(
+                "div",
+                { className: "space-y-1.5" },
+                React.createElement(
+                  Label,
+                  { htmlFor: "req-stamps" },
+                  "Stamps Needed"
+                ),
                 React.createElement(Input, {
                   id: "req-stamps",
                   type: "number",
                   placeholder: "e.g. 7",
+                  min: "1",
+                  max: "50",
                   value: settingsForm.requiredStamps,
-                  onChange: (e) => setSettingsForm(f => ({ ...f, requiredStamps: e.target.value })),
-                })
+                  onChange: (e) => setSettingsForm((f) => ({ ...f, requiredStamps: e.target.value })),
+                  className: "border-border",
+                }),
+                React.createElement(
+                  "p",
+                  { className: "text-[10px] text-muted-foreground" },
+                  "Stamps to unlock reward"
+                )
               ),
-              React.createElement("div", { className: "space-y-1.5" },
-                React.createElement(Label, { htmlFor: "validity-days" }, "Reward Validity (Days)"),
+              React.createElement(
+                "div",
+                { className: "space-y-1.5" },
+                React.createElement(Label, { htmlFor: "validity-days" }, "Validity (Days)"),
                 React.createElement(Input, {
                   id: "validity-days",
                   type: "number",
                   placeholder: "e.g. 30",
+                  min: "1",
                   value: settingsForm.validityDays,
-                  onChange: (e) => setSettingsForm(f => ({ ...f, validityDays: e.target.value })),
+                  onChange: (e) => setSettingsForm((f) => ({ ...f, validityDays: e.target.value })),
+                  className: "border-border",
+                }),
+                React.createElement(
+                  "p",
+                  { className: "text-[10px] text-muted-foreground" },
+                  "Days stamps stay active"
+                )
+              )
+            ),
+
+            // Max Daily Stamps
+            React.createElement(
+              "div",
+              { className: "space-y-1.5" },
+              React.createElement(Label, { htmlFor: "max-daily-stamps" }, "Max Stamps Per Day"),
+              React.createElement(Input, {
+                id: "max-daily-stamps",
+                type: "number",
+                placeholder: "e.g. 1",
+                min: "1",
+                value: settingsForm.maxDailyStamps,
+                onChange: (e) => setSettingsForm((f) => ({ ...f, maxDailyStamps: e.target.value })),
+                className: "border-border",
+              }),
+              React.createElement(
+                "p",
+                { className: "text-[10px] text-muted-foreground" },
+                "Limits one stamp card per customer per day"
+              )
+            ),
+
+            // Conversion rates info (read-only — controlled by Super Admin)
+            React.createElement(
+              "div",
+              {
+                className:
+                  "flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-xs text-slate-600",
+              },
+              React.createElement(Shield, { className: "h-3.5 w-3.5 mt-0.5 shrink-0 text-slate-500" }),
+              React.createElement(
+                "span",
+                null,
+                React.createElement("strong", null, "Conversion rates are platform-controlled: "),
+                `${ppr} pts/₹ · ${pps} pts = 1 Stamp. Contact Super Admin to change.`
+              )
+            ),
+
+            // Save Button
+            React.createElement(
+              "div",
+              { className: "flex items-center gap-3 pt-1" },
+              React.createElement(
+                Button,
+                {
+                  type: "submit",
+                  disabled: saveSettingsMutation.isPending,
+                  className: "flex-1 bg-primary text-primary-foreground font-bold h-10 rounded-xl",
+                },
+                saveSettingsMutation.isPending
+                  ? React.createElement(React.Fragment, null,
+                      React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin" }),
+                      "Saving..."
+                    )
+                  : saved
+                  ? React.createElement(React.Fragment, null,
+                      React.createElement(CheckCircle2, { className: "mr-2 h-4 w-4" }),
+                      "Saved!"
+                    )
+                  : React.createElement(React.Fragment, null,
+                      React.createElement(Sparkles, { className: "mr-2 h-4 w-4" }),
+                      isConfigured ? "Update Program" : "Activate Program"
+                    )
+              )
+            )
+          )
+        )
+      ),
+
+      // Right: Live Preview + Simulator
+      React.createElement(
+        "div",
+        { className: "space-y-4" },
+
+        // Simulator Card
+        React.createElement(
+          Card,
+          { className: "border border-border/70 shadow-sm" },
+          React.createElement(
+            CardHeader,
+            { className: "pb-3" },
+            React.createElement(
+              CardTitle,
+              { className: "flex items-center gap-2 text-base text-foreground font-bold" },
+              React.createElement(IndianRupee, { className: "h-4.5 w-4.5 text-emerald-600" }),
+              "Purchase Simulator"
+            ),
+            React.createElement(
+              CardDescription,
+              null,
+              "See how many points & stamps a purchase earns"
+            )
+          ),
+          React.createElement(
+            CardContent,
+            { className: "space-y-4" },
+
+            // Amount Input
+            React.createElement(
+              "div",
+              { className: "flex items-center gap-2" },
+              React.createElement(
+                "span",
+                { className: "text-sm font-bold text-muted-foreground" },
+                "₹"
+              ),
+              React.createElement(Input, {
+                type: "number",
+                min: "1",
+                value: simAmount,
+                onChange: (e) => setSimAmount(parseFloat(e.target.value) || 0),
+                className: "border-border text-lg font-bold",
+              })
+            ),
+
+            // Quick amount buttons
+            React.createElement(
+              "div",
+              { className: "flex flex-wrap gap-2" },
+              [50, 100, 200, 300, 500, 1000].map((amt) =>
+                React.createElement(
+                  "button",
+                  {
+                    key: amt,
+                    type: "button",
+                    onClick: () => setSimAmount(amt),
+                    className: `text-xs font-bold px-2.5 py-1 rounded-lg border transition-all ${
+                      simAmount === amt
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted border-border text-muted-foreground hover:border-primary/50"
+                    }`,
+                  },
+                  `₹${amt}`
+                )
+              )
+            ),
+
+            // Calculation result
+            React.createElement(
+              "div",
+              { className: "rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 space-y-2.5" },
+              React.createElement(
+                "div",
+                { className: "flex justify-between items-center text-sm" },
+                React.createElement("span", { className: "text-slate-600 font-medium" }, "Points Earned:"),
+                React.createElement(
+                  "span",
+                  { className: "font-extrabold text-slate-800" },
+                  `+${simPointsEarned} pts`
+                )
+              ),
+              React.createElement(
+                "div",
+                { className: "flex justify-between items-center text-sm" },
+                React.createElement("span", { className: "text-slate-600 font-medium" }, "Stamps Awarded:"),
+                React.createElement(
+                  "span",
+                  {
+                    className: `font-extrabold text-lg ${
+                      simStampsFromPurchase > 0 ? "text-emerald-600" : "text-slate-500"
+                    }`,
+                  },
+                  simStampsFromPurchase > 0
+                    ? `+${simStampsFromPurchase} Stamp${simStampsFromPurchase > 1 ? "s" : ""} 🎉`
+                    : "Partial progress"
+                )
+              ),
+              simStampsFromPurchase === 0 &&
+                React.createElement(
+                  "p",
+                  { className: "text-[10px] text-slate-500" },
+                  `Needs ₹${simRupeePerStamp} to earn 1 stamp. Points accumulate until threshold.`
+                )
+            ),
+
+            // Reward summary
+            React.createElement(
+              "div",
+              {
+                className:
+                  "rounded-xl border border-border bg-gradient-to-r from-amber-50 to-orange-50 p-3 space-y-1",
+              },
+              React.createElement(
+                "p",
+                { className: "text-[10px] font-black text-amber-700 uppercase tracking-wider" },
+                "Reward Summary"
+              ),
+              React.createElement(
+                "p",
+                { className: "text-xs font-semibold text-slate-700" },
+                `Collect ${reqStamps} stamps → Earn "${settingsForm.rewardName || "Reward"}"`
+              ),
+              React.createElement(
+                "p",
+                { className: "text-[11px] text-slate-500" },
+                `Approx. ₹${simTotalSpendForReward.toLocaleString("en-IN")} total spend to unlock`
+              )
+            )
+          )
+        ),
+
+        // Customer Card Preview
+        React.createElement(
+          Card,
+          { className: "border border-border/70 shadow-sm overflow-hidden" },
+          React.createElement(
+            CardHeader,
+            { className: "pb-2 bg-slate-50/50 border-b border-border" },
+            React.createElement(
+              "div",
+              { className: "flex items-center gap-2" },
+              React.createElement(
+                "div",
+                {
+                  className:
+                    "h-8 w-8 rounded-full bg-gradient-to-br from-primary/20 to-indigo-100 flex items-center justify-center font-bold text-primary border border-border text-xs",
+                },
+                (user?.name || "B")[0]
+              ),
+              React.createElement(
+                "div",
+                null,
+                React.createElement(
+                  "p",
+                  { className: "text-xs font-bold text-foreground" },
+                  settingsForm.programName || "Your Business"
+                ),
+                React.createElement(
+                  "div",
+                  { className: "flex items-center gap-1" },
+                  React.createElement(
+                    "span",
+                    {
+                      className:
+                        "text-[9px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded-full uppercase",
+                    },
+                    "● Active"
+                  ),
+                  React.createElement(
+                    "span",
+                    {
+                      className:
+                        "text-[9px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full border border-border",
+                    },
+                    "Stamp Program"
+                  )
+                )
+              )
+            )
+          ),
+          React.createElement(
+            CardContent,
+            { className: "p-4 space-y-3" },
+
+            // Program header
+            React.createElement(
+              "div",
+              { className: "flex items-center justify-between" },
+              React.createElement(
+                "div",
+                { className: "flex items-center gap-1.5" },
+                React.createElement(Coffee, { className: "h-4 w-4 text-[#800020]" }),
+                React.createElement(
+                  "span",
+                  { className: "text-sm font-extrabold text-[#800020]" },
+                  settingsForm.programName || "Program Name"
+                )
+              ),
+              React.createElement(
+                "span",
+                {
+                  className:
+                    "text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border font-medium flex items-center gap-1",
+                },
+                React.createElement(Gift, { className: "h-2.5 w-2.5" }),
+                settingsForm.rewardName || "Reward"
+              )
+            ),
+
+            // Stamps preview (first 7 or reqStamps)
+            React.createElement(
+              "div",
+              { className: "space-y-2 bg-slate-50/50 p-3 rounded-xl border border-slate-100" },
+              React.createElement(
+                "div",
+                { className: "flex justify-between items-center text-xs" },
+                React.createElement(
+                  "span",
+                  { className: "text-slate-600 font-medium" },
+                  "Stamps: ",
+                  React.createElement("strong", { className: "text-primary" }, "3"),
+                  " / ",
+                  reqStamps
+                ),
+                React.createElement(
+                  "span",
+                  { className: "text-[10px] text-muted-foreground flex items-center gap-1" },
+                  React.createElement(Clock, { className: "h-3 w-3" }),
+                  `${settingsForm.validityDays} days validity`
+                )
+              ),
+              React.createElement(
+                "div",
+                { className: "flex flex-wrap gap-1.5" },
+                Array.from({ length: Math.min(reqStamps, 12) }).map((_, i) =>
+                  React.createElement(StampDot, { key: i, filled: i < 3 })
+                ),
+                reqStamps > 12 &&
+                  React.createElement(
+                    "div",
+                    { className: "text-[10px] text-muted-foreground self-center pl-1" },
+                    `+${reqStamps - 12} more`
+                  )
+              )
+            ),
+
+            // Points progress bar
+            React.createElement(
+              "div",
+              { className: "space-y-1.5" },
+              React.createElement(
+                "div",
+                { className: "flex justify-between items-center text-xs" },
+                React.createElement(
+                  "span",
+                  { className: "text-muted-foreground" },
+                  "Points: ",
+                  React.createElement("strong", { className: "text-slate-800" }, "23"),
+                  " / ",
+                  pps
+                ),
+                React.createElement(
+                  "span",
+                  { className: "text-[10px] text-muted-foreground font-semibold" },
+                  `${pps - 23} pts to next stamp`
+                )
+              ),
+              React.createElement(
+                "div",
+                { className: "w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-border" },
+                React.createElement("div", {
+                  className:
+                    "bg-gradient-to-r from-primary to-indigo-400 h-full rounded-full",
+                  style: { width: `${Math.round((23 / pps) * 100)}%` },
                 })
               )
             ),
-            React.createElement("div", { className: "flex justify-end pt-2" },
-              React.createElement(Button, {
-                type: "submit",
-                disabled: saveSettingsMutation.isPending,
-                className: "bg-primary text-primary-foreground font-bold"
+
+            // Redeem button
+            React.createElement(
+              "div",
+              {
+                className:
+                  "w-full rounded-xl bg-slate-100 border border-slate-200 text-slate-400 text-xs font-bold py-2.5 text-center",
               },
-                saveSettingsMutation.isPending ? React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin" }) : null,
-                "Save Program Settings"
+              `Collect ${reqStamps - 3} more stamps to redeem`
+            ),
+
+            React.createElement(
+              "div",
+              { className: "text-center" },
+              React.createElement(
+                "p",
+                { className: "text-[10px] text-muted-foreground italic" },
+                "↑ Customer dashboard preview"
               )
-            )
-          )
-        )
-      ),
-
-      /* Custom Levels Header */
-      React.createElement("div", { className: "border-t border-border pt-6" },
-        React.createElement("h2", { className: "text-lg font-bold text-foreground" }, "Custom Loyalty Tiers")
-      ),
-
-      /* Quick-Start Presets (shown only when empty) */
-      levels.length === 0 && !isLoading && (
-        React.createElement(Card, { className: "border-dashed border-2 border-border/60" },
-          React.createElement(CardHeader, { className: "pb-2" },
-            React.createElement(CardTitle, { className: "text-sm font-semibold text-muted-foreground uppercase tracking-wider" }, "Quick Start — Add Preset Levels")
-          ),
-          React.createElement(CardContent, null,
-            React.createElement("p", { className: "text-xs text-muted-foreground mb-4" },
-              "No levels configured yet. Add presets with one click or create your own above."
-            ),
-            React.createElement("div", { className: "grid grid-cols-2 gap-3" },
-              PRESET_LEVELS.map((preset, idx) =>
-                React.createElement("button", {
-                  key: preset.name,
-                  className: "flex items-center gap-3 rounded-xl border border-border bg-card hover:bg-muted/50 p-3 text-left transition-colors text-sm",
-                  onClick: () => applyPreset(preset, idx),
-                  disabled: isMutating,
-                },
-                  React.createElement("div", {
-                    className: "h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0",
-                    style: { backgroundColor: preset.color }
-                  },
-                    React.createElement(Star, { className: "h-4 w-4" })
-                  ),
-                  React.createElement("div", null,
-                    React.createElement("p", { className: "font-bold text-foreground" }, preset.name),
-                    React.createElement("p", { className: "text-[11px] text-muted-foreground" }, `+${preset.points} point${preset.points !== 1 ? "s" : ""}`)
-                  )
-                )
-              )
-            )
-          )
-        )
-      ),
-
-      /* Loading */
-      isLoading && (
-        React.createElement("div", { className: "flex items-center justify-center py-12" },
-          React.createElement(Loader2, { className: "h-6 w-6 animate-spin text-muted-foreground" })
-        )
-      ),
-
-      /* Levels List */
-      !isLoading && levels.length > 0 && (
-        React.createElement("div", { className: "space-y-3" },
-          React.createElement("p", { className: "text-xs text-muted-foreground font-semibold uppercase tracking-wider" },
-            `${levels.length} Level${levels.length !== 1 ? "s" : ""} Configured`
-          ),
-          [...levels]
-            .sort((a, b) => a.sortOrder - b.sortOrder)
-            .map((level, idx, arr) =>
-              React.createElement(Card, { key: level.id, className: "border border-border/70 hover:border-border transition-colors" },
-                React.createElement(CardContent, { className: "flex items-center gap-4 p-4" },
-
-                  /* Color dot */
-                  React.createElement("div", {
-                    className: "h-10 w-10 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm",
-                    style: { backgroundColor: getLevelColor(level.name) }
-                  },
-                    React.createElement(Award, { className: "h-5 w-5" })
-                  ),
-
-                  /* Info */
-                  React.createElement("div", { className: "flex-1 min-w-0" },
-                    React.createElement("p", { className: "font-bold text-foreground text-sm" }, level.name),
-                    level.description && (
-                      React.createElement("p", { className: "text-xs text-muted-foreground truncate" }, level.description)
-                    ),
-                    React.createElement("div", { className: "mt-1" },
-                      React.createElement("span", { className: "inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary" },
-                        `+${level.points} pt${level.points !== 1 ? "s" : ""}`
-                      )
-                    )
-                  ),
-
-                  /* Reorder */
-                  React.createElement("div", { className: "flex flex-col gap-0.5" },
-                    React.createElement("button", {
-                      className: "h-6 w-6 rounded flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-30",
-                      onClick: () => moveLevel(level, "up"),
-                      disabled: idx === 0,
-                    }, React.createElement(ChevronUp, { className: "h-4 w-4" })),
-                    React.createElement("button", {
-                      className: "h-6 w-6 rounded flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-30",
-                      onClick: () => moveLevel(level, "down"),
-                      disabled: idx === arr.length - 1,
-                    }, React.createElement(ChevronDown, { className: "h-4 w-4" }))
-                  ),
-
-                  /* Actions */
-                  React.createElement("div", { className: "flex items-center gap-2" },
-                    React.createElement(Button, {
-                      variant: "outline", size: "sm",
-                      className: "h-8 w-8 p-0",
-                      onClick: () => openEdit(level),
-                    }, React.createElement(Pencil, { className: "h-3.5 w-3.5" })),
-                    React.createElement(Button, {
-                      variant: "outline", size: "sm",
-                      className: "h-8 w-8 p-0 text-destructive border-destructive/30 hover:bg-destructive/10",
-                      onClick: () => setDeleteConfirm(level),
-                    }, React.createElement(Trash2, { className: "h-3.5 w-3.5" }))
-                  )
-                )
-              )
-            )
-        )
-      ),
-
-      /* Create / Edit Dialog */
-      React.createElement(Dialog, { open: showDialog, onOpenChange: (open) => !open && closeDialog() },
-        React.createElement(DialogContent, { className: "sm:max-w-[420px]" },
-          React.createElement(DialogHeader, null,
-            React.createElement(DialogTitle, null, editingLevel ? "Edit Loyalty Level" : "Create Loyalty Level"),
-            React.createElement(DialogDescription, null,
-              "Define the level name, description, and how many points customers earn."
-            )
-          ),
-          React.createElement("form", { onSubmit: handleSave, className: "space-y-4 pt-2" },
-            React.createElement("div", { className: "space-y-1.5" },
-              React.createElement(Label, { htmlFor: "lvl-name" }, "Level Name *"),
-              React.createElement(Input, {
-                id: "lvl-name",
-                placeholder: "e.g. Gold, Silver, VIP",
-                value: form.name,
-                onChange: (e) => setForm(f => ({ ...f, name: e.target.value })),
-                maxLength: 50,
-              })
-            ),
-            React.createElement("div", { className: "space-y-1.5" },
-              React.createElement(Label, { htmlFor: "lvl-desc" }, "Description"),
-              React.createElement(Input, {
-                id: "lvl-desc",
-                placeholder: "e.g. Loyal customer, Regular buyer",
-                value: form.description,
-                onChange: (e) => setForm(f => ({ ...f, description: e.target.value })),
-                maxLength: 200,
-              })
-            ),
-            React.createElement("div", { className: "space-y-1.5" },
-              React.createElement(Label, { htmlFor: "lvl-points" }, "Points Awarded *"),
-              React.createElement(Input, {
-                id: "lvl-points",
-                type: "number",
-                min: "1",
-                max: "10000",
-                placeholder: "e.g. 5",
-                value: form.points,
-                onChange: (e) => setForm(f => ({ ...f, points: e.target.value })),
-              })
-            ),
-            error && (
-              React.createElement("p", { className: "text-xs text-destructive font-medium" }, error)
-            ),
-            React.createElement(DialogFooter, { className: "pt-2" },
-              React.createElement(Button, { type: "button", variant: "outline", onClick: closeDialog, disabled: isMutating }, "Cancel"),
-              React.createElement(Button, { type: "submit", disabled: isMutating },
-                isMutating ? React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin" }) : null,
-                editingLevel ? "Save Changes" : "Create Level"
-              )
-            )
-          )
-        )
-      ),
-
-      /* Delete Confirm Dialog */
-      React.createElement(Dialog, { open: !!deleteConfirm, onOpenChange: (open) => !open && setDeleteConfirm(null) },
-        React.createElement(DialogContent, { className: "sm:max-w-[380px]" },
-          React.createElement(DialogHeader, null,
-            React.createElement(DialogTitle, null, "Delete Loyalty Level"),
-            React.createElement(DialogDescription, null,
-              `Are you sure you want to delete "${deleteConfirm?.name}"? This cannot be undone.`
-            )
-          ),
-          React.createElement(DialogFooter, { className: "pt-4" },
-            React.createElement(Button, { variant: "outline", onClick: () => setDeleteConfirm(null) }, "Cancel"),
-            React.createElement(Button, {
-              className: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-              onClick: () => deleteMutation.mutate(deleteConfirm.id),
-              disabled: deleteMutation.isPending,
-            },
-              deleteMutation.isPending ? React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin" }) : null,
-              "Delete"
             )
           )
         )
       )
-    )
+    ),
+
+    // ── Success Banner ───────────────────────────────────────────────────────
+    saved &&
+      React.createElement(
+        "div",
+        {
+          className:
+            "flex items-center gap-3 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 font-medium",
+        },
+        React.createElement(CheckCircle2, { className: "h-5 w-5 text-emerald-600 shrink-0" }),
+        React.createElement(
+          "div",
+          null,
+          React.createElement("strong", null, "Program saved successfully! "),
+          "Customers can now start earning stamps when you approve their purchases in the Loyalty Approvals section."
+        )
+      )
   );
 }

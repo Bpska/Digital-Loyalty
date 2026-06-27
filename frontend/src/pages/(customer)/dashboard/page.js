@@ -268,7 +268,10 @@ function HybridProgramBlock({ settings, wallet, businessId }) {
     wallet.startedAt && wallet.expiresAt && React.createElement(
       "div", { className: "flex justify-between items-center text-[10px] text-muted-foreground bg-slate-50 px-2.5 py-1 rounded-md" },
       React.createElement("span", null, `Started: ${startDateStr}`),
-      React.createElement("span", { className: "font-medium text-amber-700" }, `Expires: ${expiryDateStr}`)
+      React.createElement("span", { className: "font-medium text-amber-700 flex items-center gap-1" },
+        React.createElement(Clock, { className: "h-3 w-3" }),
+        `Expires: ${expiryDateStr} (${daysLeft(wallet.expiresAt)})`
+      )
     ),
 
     // Stamps display
@@ -316,6 +319,40 @@ function HybridProgramBlock({ settings, wallet, businessId }) {
           className: "bg-gradient-to-r from-primary to-indigo-400 h-full rounded-full transition-all duration-700 ease-out",
           style: { width: `${progressPercent}%` }
         })
+      )
+    ),
+
+    // Detailed Stats List
+    React.createElement("div", { className: "mt-3 bg-slate-50 p-3.5 rounded-xl border border-slate-100 text-xs space-y-2 text-slate-700 font-medium" },
+      React.createElement("div", { className: "flex justify-between border-b border-dashed border-slate-200 pb-1.5" },
+        React.createElement("span", { className: "text-slate-500 font-semibold" }, "Loyalty Status:"),
+        React.createElement("span", { className: "font-bold text-emerald-600" }, wallet.expiresAt && new Date() > new Date(wallet.expiresAt) ? "Expired" : "Active")
+      ),
+      React.createElement("div", { className: "flex justify-between border-b border-dashed border-slate-200 pb-1.5" },
+        React.createElement("span", { className: "text-slate-500 font-semibold" }, "Stamps:"),
+        React.createElement("span", { className: "font-bold text-slate-800" }, `${currentStamps} / ${requiredStamps}`)
+      ),
+      React.createElement("div", { className: "flex justify-between border-b border-dashed border-slate-200 pb-1.5" },
+        React.createElement("span", { className: "text-slate-500 font-semibold" }, "Points:"),
+        React.createElement("span", { className: "font-bold text-slate-800" }, currentPoints)
+      ),
+      React.createElement("div", { className: "flex justify-between border-b border-dashed border-slate-200 pb-1.5" },
+        React.createElement("span", { className: "text-slate-500 font-semibold" }, "Next Stamp:"),
+        React.createElement("span", { className: "font-bold text-primary" }, `${pointsRemaining} Points Remaining`)
+      ),
+      React.createElement("div", { className: "flex justify-between border-b border-dashed border-slate-200 pb-1.5" },
+        React.createElement("span", { className: "text-slate-500 font-semibold" }, "Reward:"),
+        React.createElement("span", { className: "font-bold text-slate-800" }, settings.rewardName)
+      ),
+      wallet.expiresAt && React.createElement(React.Fragment, null,
+        React.createElement("div", { className: "flex justify-between border-b border-dashed border-slate-200 pb-1.5" },
+          React.createElement("span", { className: "text-slate-500 font-semibold" }, "Expiry Date:"),
+          React.createElement("span", { className: "font-semibold text-slate-800" }, expiryDateStr)
+        ),
+        React.createElement("div", { className: "flex justify-between" },
+          React.createElement("span", { className: "text-slate-500 font-semibold" }, "Expires In:"),
+          React.createElement("span", { className: "font-bold text-amber-700" }, daysLeft(wallet.expiresAt))
+        )
       )
     ),
 
@@ -437,14 +474,10 @@ function VisitStampCardBlock({ settings, wallet, businessId, unlockedRewards, se
 function BusinessCard({ card, unlockedRewards, setSelectedReward }) {
   const business = card.business;
 
-  // Only programs where BOTH the program AND its linked reward are active
-  const activePrograms = (business.loyaltyPrograms || []).filter(
-    p => p.reward && p.reward.isActive !== false
-  );
   const activeCoupons = business.coupons || [];
 
   // Hide card completely if nothing active
-  if (activePrograms.length === 0 && activeCoupons.length === 0 && !card.settings && !card.loyaltyWallet) return null;
+  if (activeCoupons.length === 0 && !card.settings) return null;
 
   return React.createElement(
     Card, { className: "border-border bg-white overflow-hidden shadow-sm rounded-xl" },
@@ -459,13 +492,11 @@ function BusinessCard({ card, unlockedRewards, setSelectedReward }) {
       React.createElement("div", { className: "flex-1 min-w-0" },
         React.createElement(CardTitle, { className: "text-sm font-bold truncate text-foreground" }, business.name),
         React.createElement("div", { className: "flex items-center gap-1.5 mt-0.5 flex-wrap" },
-          activePrograms.length > 0 && React.createElement("span", { className: "text-[9px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded-full uppercase" },
+          card.settings && React.createElement("span", { className: "text-[9px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded-full uppercase" },
             "● Active"
           ),
-          activePrograms.map(p =>
-            React.createElement("span", { key: p.id, className: "text-[9px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full border border-border" },
-              p.type === "VISIT_BASED" ? "Stamp Card" : p.type === "SPEND_BASED" ? "Spend" : "Points"
-            )
+          card.settings && React.createElement("span", { className: "text-[9px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full border border-border" },
+            "Stamp Program"
           ),
           activeCoupons.length > 0 && React.createElement("span", { className: "text-[9px] font-bold bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full uppercase" },
             `${activeCoupons.length} Deal${activeCoupons.length > 1 ? "s" : ""}`
@@ -481,11 +512,6 @@ function BusinessCard({ card, unlockedRewards, setSelectedReward }) {
     // Body
     React.createElement(CardContent, { className: "p-4 pt-3 space-y-4" },
 
-      // All active loyalty programs
-      activePrograms.map((prog, idx) =>
-        React.createElement(ProgramBlock, { key: prog.id, program: prog, card, isFirst: idx === 0 })
-      ),
-
       // Hybrid Points-to-Stamps Loyalty Program Settings
       card.settings && React.createElement(HybridProgramBlock, {
         settings: card.settings,
@@ -493,17 +519,8 @@ function BusinessCard({ card, unlockedRewards, setSelectedReward }) {
         businessId: business.id,
       }),
 
-      // Visit-Based Loyalty Wallet Stamp Card
-      card.loyaltyWallet && React.createElement(VisitStampCardBlock, {
-        settings: card.settings,
-        wallet: card.loyaltyWallet,
-        businessId: business.id,
-        unlockedRewards,
-        setSelectedReward,
-      }),
-
       // Divider between programs and coupons
-      (activePrograms.length > 0 || card.settings || card.loyaltyWallet) && activeCoupons.length > 0 &&
+      card.settings && activeCoupons.length > 0 &&
         React.createElement("div", { className: "border-t border-border" }),
 
       // Active coupons
@@ -555,14 +572,11 @@ export default function CustomerDashboard() {
 
   const { loyaltyCards = [], unlockedRewards = [] } = data || {};
 
-  // Only cards with active program OR active coupon OR hybrid settings OR active loyalty wallet OR earned points
+  // Only cards with active coupon OR hybrid settings
   const visibleCards = loyaltyCards.filter(card => {
-    const hasProgram = (card.business.loyaltyPrograms || []).length > 0;
     const hasCoupon  = (card.business.coupons || []).length > 0;
     const hasHybrid  = !!card.settings;
-    const hasLoyaltyWallet = !!card.loyaltyWallet;
-    const hasTotalPoints = (card.totalPoints || 0) > 0;
-    return hasProgram || hasCoupon || hasHybrid || hasLoyaltyWallet || hasTotalPoints;
+    return hasCoupon || hasHybrid;
   });
 
   return React.createElement("div", { className: "space-y-6" },
