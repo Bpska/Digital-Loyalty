@@ -60,6 +60,7 @@ export default function BusinessesManagementPage() {
   const [gatewayPercent, setGatewayPercent] = useState("");
   const [pointsPerRupee, setPointsPerRupee] = useState("");
   const [pointsPerStamp, setPointsPerStamp] = useState("");
+  const [mockBusinessCount, setMockBusinessCount] = useState("");
   const [settingsSuccess, setSettingsSuccess] = useState(null);
   const [settingsError, setSettingsError] = useState(null);
   const [settingsLoading, setSettingsLoading] = useState(false);
@@ -81,6 +82,7 @@ export default function BusinessesManagementPage() {
       setGatewayPercent(settingsData.gateway_percent || "2.3");
       setPointsPerRupee(settingsData.points_per_rupee || "0.1");
       setPointsPerStamp(settingsData.points_per_stamp || "50");
+      setMockBusinessCount(settingsData.mock_business_count || "50");
     }
   }, [settingsData]);
 
@@ -98,6 +100,7 @@ export default function BusinessesManagementPage() {
         gateway_percent: parseFloat(gatewayPercent),
         points_per_rupee: parseFloat(pointsPerRupee),
         points_per_stamp: parseInt(pointsPerStamp),
+        mock_business_count: parseInt(mockBusinessCount),
       });
       setSettingsSuccess("Settings saved successfully!");
       refetchSettings();
@@ -770,6 +773,18 @@ export default function BusinessesManagementPage() {
                       step: "1",
                       value: pointsPerStamp,
                       onChange: (e) => setPointsPerStamp(e.target.value),
+                      required: true,
+                      className: "text-xs border-border bg-white"
+                    })
+                  )
+                  , React.createElement('div', { className: "space-y-1.5" }
+                    , React.createElement(Label, { htmlFor: "mock-business-count", className: "text-xs font-semibold text-muted-foreground" }, "Mock Registered Businesses Count Offset")
+                    , React.createElement(Input, {
+                      id: "mock-business-count",
+                      type: "number",
+                      step: "1",
+                      value: mockBusinessCount,
+                      onChange: (e) => setMockBusinessCount(e.target.value),
                       required: true,
                       className: "text-xs border-border bg-white"
                     })

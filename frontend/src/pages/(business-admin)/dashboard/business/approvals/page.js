@@ -371,8 +371,12 @@ export default function BusinessApprovalsPage() {
                           const pointsEarned = Math.floor(amt * ppr);
                           const totalPoints = walletPoints + pointsEarned;
 
-                          const stampsEarned = Math.floor(totalPoints / pps);
-                          const pointsRemaining = totalPoints % pps;
+                          let stampsEarned = Math.floor(totalPoints / pps);
+                          let pointsRemaining = totalPoints % pps;
+                          if (stampsEarned > 1) {
+                            stampsEarned = 1;
+                            pointsRemaining = totalPoints - pps;
+                          }
 
                           return React.createElement("div", { className: "space-y-1.5" },
                             React.createElement("div", { className: "flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 font-medium" },

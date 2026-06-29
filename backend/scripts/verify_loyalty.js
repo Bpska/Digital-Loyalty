@@ -90,22 +90,48 @@ async function main() {
 
       if (!wallet) {
         wallet = await tx.userWallet.create({
-          data: { userId: customerId, businessId, currentPoints: 0, currentStamps: 0 },
+          data: { userId: customerId, businessId, currentPoints: 0, currentStamps: 0, pointsBalance: 0 },
         });
       }
 
       const prevPoints = wallet.currentPoints;
       const totalPointsAcc = prevPoints + pointsEarned;
-      const stampsEarned = Math.floor(totalPointsAcc / settings.pointsPerStamp);
-      const remainingPoints = totalPointsAcc % settings.pointsPerStamp;
+      let stampsEarned = Math.floor(totalPointsAcc / settings.pointsPerStamp);
+      let remainingPoints = totalPointsAcc % settings.pointsPerStamp;
+
+      if (stampsEarned > 1) {
+        stampsEarned = 1;
+        remainingPoints = totalPointsAcc - settings.pointsPerStamp;
+      }
+
+      // Task 2: Calculate bonus points
+      const bonusThreshold = settings.bonusThresholdAmount ?? 500;
+      const bonusRate = settings.pointsPerRupeeAboveThreshold ?? 0.1;
+      let bonusPoints = 0;
+      if (amount >= bonusThreshold) {
+        bonusPoints = Math.floor((amount - bonusThreshold) * bonusRate);
+      }
 
       const updatedWallet = await tx.userWallet.update({
         where: { id: wallet.id },
         data: {
           currentPoints: remainingPoints,
           currentStamps: wallet.currentStamps + stampsEarned,
+          pointsBalance: { increment: bonusPoints },
         },
       });
+
+      if (bonusPoints > 0) {
+        await tx.loyaltyPointsLedger.create({
+          data: {
+            userId: customerId,
+            businessId,
+            points: bonusPoints,
+            purchaseAmount: amount,
+            source: 'BONUS',
+          },
+        });
+      }
 
       const txRecord = await tx.walletTransaction.create({
         data: {
@@ -117,7 +143,7 @@ async function main() {
         },
       });
 
-      return { prevPoints, updatedWallet, txRecord };
+      return { prevPoints, updatedWallet, txRecord, bonusPoints };
     });
 
     console.log(`Wallet state updated:`);
@@ -125,90 +151,63 @@ async function main() {
     console.log(`- Points Added: ${pointsEarned}`);
     console.log(`- Current Points: ${result.updatedWallet.currentPoints}`);
     console.log(`- Current Stamps: ${result.updatedWallet.currentStamps}`);
+    console.log(`- Bonus Points Balance: ${result.updatedWallet.pointsBalance} (earned +${result.bonusPoints} bonus)`);
     return result.updatedWallet;
   }
 
-  // 3. Purchase Flow tests
-  // Small Purchase (₹50)
-  let wallet = await simulatePurchase(50);
-  if (wallet.currentPoints !== 5 || wallet.currentStamps !== 0) {
-    throw new Error('Small purchase calculation failed!');
-  }
-
-  // Medium Purchase (₹250)
-  wallet = await simulatePurchase(250);
-  if (wallet.currentPoints !== 30 || wallet.currentStamps !== 0) {
-    throw new Error('Medium purchase calculation failed!');
-  }
-
-  // Large Purchase (₹300)
-  wallet = await simulatePurchase(300);
-  if (wallet.currentPoints !== 10 || wallet.currentStamps !== 1) {
-    throw new Error('Large purchase calculation/stamp-conversion failed!');
-  }
-
-  // 4. Redemption Tests
-  console.log('\n4. Simulating more purchases to reach 7 stamps...');
-  // Add ₹1500 (150 points -> 3 stamps, remaining: 10 + 150 = 160 -> 10 points, 3 stamps added -> 4 stamps total)
-  wallet = await simulatePurchase(1500);
-  // Add another ₹1500 (150 points -> 3 stamps, remaining: 10 + 150 = 160 -> 10 points, 3 stamps added -> 7 stamps total)
-  wallet = await simulatePurchase(1500);
-
-  if (wallet.currentStamps !== 7) {
-    throw new Error(`Stamps count is ${wallet.currentStamps}, expected 7!`);
-  }
-
-  console.log('\nStamps reached 7! Attempting stamp redemption...');
-  // Find or create reward template
-  let reward = await prisma.reward.findFirst({
-    where: { businessId, title: settings.rewardName, isActive: true },
-  });
-  if (!reward) {
-    reward = await prisma.reward.create({
-      data: {
-        businessId,
-        title: settings.rewardName,
-        description: 'Redeemed from stamps',
-        pointsRequired: 0,
-        isActive: true,
-      },
-    });
-  }
-
-  const redemptionResult = await prisma.$transaction(async (tx) => {
-    // Deduct stamps
-    const updatedWallet = await tx.userWallet.update({
+  // Helper to reset wallet to specific values for testing
+  async function resetTestWallet(points, stamps, pointsBalance = 0) {
+    await prisma.userWallet.upsert({
       where: { userId_businessId: { userId: customerId, businessId } },
-      data: {
-        currentStamps: wallet.currentStamps - settings.requiredStamps,
-      },
+      update: { currentPoints: points, currentStamps: stamps, pointsBalance },
+      create: { userId: customerId, businessId, currentPoints: points, currentStamps: stamps, pointsBalance },
     });
-
-    const redemptionCode = 'rw-test-code';
-    const expiresAt = new Date(Date.now() + settings.validityDays * 24 * 60 * 60 * 1000);
-
-    const customerReward = await tx.customerReward.create({
-      data: {
-        customerId,
-        rewardId: reward.id,
-        status: 'UNLOCKED',
-        redemptionCode,
-        expiresAt,
-      },
-    });
-
-    return { updatedWallet, customerReward };
-  });
-
-  console.log('\nRedemption completed:');
-  console.log(`- Wallet stamps remaining: ${redemptionResult.updatedWallet.currentStamps}`);
-  console.log(`- Created CustomerReward: ${redemptionResult.customerReward.id} with title "${settings.rewardName}"`);
-
-  if (redemptionResult.updatedWallet.currentStamps !== 0) {
-    throw new Error('Stamp deduction failed!');
+    // Clean up points ledger for business/customer
+    await prisma.loyaltyPointsLedger.deleteMany({ where: { userId: customerId, businessId } });
   }
 
-  console.log('\n✅ All tests passed successfully!');
+  // 3. Purchase Flow tests
+  console.log('\n--- Running Task 1 & Task 2 Verification ---');
+
+  // Test Case A: ₹5000 Purchase on clean wallet (should award exactly 1 stamp, keep 450 points, and earn (5000 - 500) * 0.1 = 450 bonus points)
+  await resetTestWallet(0, 0, 0);
+  let wallet = await simulatePurchase(5000);
+  if (wallet.currentStamps !== 1 || wallet.currentPoints !== 450 || wallet.pointsBalance !== 450) {
+    throw new Error(`₹5000 purchase test failed! Stamps: ${wallet.currentStamps}, Points: ${wallet.currentPoints}, Bonus points: ${wallet.pointsBalance}`);
+  }
+  
+  // Verify that ledger record exists
+  const ledgerCountA = await prisma.loyaltyPointsLedger.count({
+    where: { userId: customerId, businessId, source: 'BONUS' },
+  });
+  if (ledgerCountA !== 1) {
+    throw new Error(`Expected 1 ledger record for ₹5000 purchase, found ${ledgerCountA}`);
+  }
+  console.log('✅ ₹5000 purchase test passed: 1 stamp awarded, 450 points retained, 450 bonus points earned + ledger recorded.');
+
+  // Test Case B: ₹500 Purchase on clean wallet (should award exactly 1 stamp, keep 0 points, and earn 0 bonus points)
+  await resetTestWallet(0, 0, 0);
+  wallet = await simulatePurchase(500);
+  if (wallet.currentStamps !== 1 || wallet.currentPoints !== 0 || wallet.pointsBalance !== 0) {
+    throw new Error(`₹500 purchase test failed! Stamps: ${wallet.currentStamps}, Points: ${wallet.currentPoints}, Bonus points: ${wallet.pointsBalance}`);
+  }
+  const ledgerCountB = await prisma.loyaltyPointsLedger.count({
+    where: { userId: customerId, businessId, source: 'BONUS' },
+  });
+  if (ledgerCountB !== 0) {
+    throw new Error(`Expected 0 ledger records for ₹500 purchase, found ${ledgerCountB}`);
+  }
+  console.log('✅ ₹500 purchase test passed: 1 stamp awarded, 0 points retained, 0 bonus points earned.');
+
+  // Test Case C: ₹50 Purchase on a wallet pre-funded with 45 points (should award exactly 1 stamp, keep 0 points, and earn 0 bonus points)
+  await resetTestWallet(45, 0, 0);
+  wallet = await simulatePurchase(50);
+  if (wallet.currentStamps !== 1 || wallet.currentPoints !== 0 || wallet.pointsBalance !== 0) {
+    throw new Error(`₹50 purchase test failed! Stamps: ${wallet.currentStamps}, Points: ${wallet.currentPoints}, Bonus points: ${wallet.pointsBalance}`);
+  }
+  console.log('✅ ₹50 purchase test passed (with 45 pre-existing points): 1 stamp awarded, 0 points retained, 0 bonus points earned.');
+
+  console.log('\n✅ All Task 1 & Task 2 verification tests passed successfully!');
 }
 
 main()

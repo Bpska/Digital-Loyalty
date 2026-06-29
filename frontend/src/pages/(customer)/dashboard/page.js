@@ -118,6 +118,68 @@ function CouponChip({ coupon }) {
   );
 }
 
+// ─── Campaign Coupon Card (shows business details) ────────────────────────────
+function CampaignCouponCard({ coupon, onClaim, isClaiming }) {
+  const isPercent = coupon.discountType === "PERCENTAGE";
+  const business = coupon.business;
+  const isEventCoupon = !!coupon.eventDate;
+
+  return React.createElement(
+    "div", { className: "flex items-center justify-between rounded-2xl border border-dashed border-amber-200 bg-gradient-to-r from-amber-50/60 to-orange-50/60 p-4 gap-3 shadow-sm hover:shadow-md transition-all duration-300 min-w-0" },
+
+    // Left & Middle Info
+    React.createElement("div", { className: "flex items-center gap-3 flex-1 min-w-0" },
+
+      // Business Logo
+      business.logoUrl
+        ? React.createElement("img", {
+          src: getImageUrl(business.logoUrl),
+          alt: business.name,
+          className: "h-11 w-11 rounded-xl object-cover border border-amber-100/80 flex-shrink-0 bg-white shadow-sm"
+        })
+        : React.createElement("div", {
+          className: "h-11 w-11 rounded-xl bg-amber-100/80 border border-amber-200/50 flex items-center justify-center font-bold text-amber-700 flex-shrink-0 text-sm shadow-sm"
+        }, business.name[0].toUpperCase()),
+
+      // Coupon Meta Info
+      React.createElement("div", { className: "flex-1 min-w-0 space-y-1" },
+        React.createElement("h4", { className: "text-sm font-extrabold text-slate-800 truncate leading-snug" }, coupon.title),
+        React.createElement("p", { className: "text-[10px] text-amber-800 font-semibold truncate tracking-wide" }, `at ${business.name}`),
+
+        // Badges row
+        React.createElement("div", { className: "flex flex-wrap items-center gap-1.5 pt-0.5" },
+          isEventCoupon
+            ? React.createElement("span", { className: "text-[9px] font-bold bg-[#E0F2FE] text-[#0369A1] px-1.5 py-0.5 rounded border border-[#BAE6FD]" }, "Event Offer")
+            : React.createElement("code", { className: "text-[9px] font-mono font-bold bg-white/80 border border-amber-200 text-amber-800 px-1.5 py-0.5 rounded shadow-sm shrink-0" }, coupon.code),
+
+          React.createElement("span", { className: "text-[9px] font-medium text-slate-600 bg-slate-100/80 px-1.5 py-0.5 rounded border border-slate-200/50 flex items-center gap-1 shrink-0" },
+            React.createElement(Clock, { className: "h-2.5 w-2.5 text-slate-500" }),
+            isEventCoupon
+              ? `Event: ${new Date(coupon.eventDate).toLocaleDateString('en-IN')}`
+              : daysLeft(coupon.validTo)
+          )
+        )
+      )
+    ),
+
+    // Right Section: Discount Badge & Action
+    React.createElement("div", { className: "flex flex-col items-end justify-center gap-2 shrink-0 border-l border-dashed border-amber-200/60 pl-4 h-full" },
+      React.createElement("span", { className: "text-xs font-black text-amber-800 bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg shadow-sm whitespace-nowrap uppercase tracking-wider" },
+        formatDiscount(coupon)
+      ),
+      isEventCoupon && React.createElement(Button, {
+        size: "xs",
+        className: "h-7 text-[10px] px-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-full shadow-sm border-0 transition-all duration-300",
+        onClick: (e) => {
+          e.stopPropagation();
+          onClaim(coupon.id);
+        },
+        disabled: isClaiming
+      }, isClaiming ? "Claiming..." : "Claim Offer")
+    )
+  );
+}
+
 // ─── Program progress block ───────────────────────────────────────────────────
 function ProgramBlock({ program, card, isFirst }) {
   const isVisitBased = program.type === "VISIT_BASED";
@@ -126,8 +188,8 @@ function ProgramBlock({ program, card, isFirst }) {
 
   return React.createElement(
     "div", {
-      className: `space-y-3 ${!isFirst ? "border-t border-dashed border-border pt-4" : ""}`
-    },
+    className: `space-y-3 ${!isFirst ? "border-t border-dashed border-border pt-4" : ""}`
+  },
 
     // Program type badge + reward label
     React.createElement("div", { className: "flex items-center justify-between" },
@@ -162,58 +224,57 @@ function ProgramBlock({ program, card, isFirst }) {
           const stamped = i < card.visitStreak;
           return React.createElement("div", {
             key: i,
-            className: `h-10 w-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
-              stamped
+            className: `h-10 w-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${stamped
                 ? "bg-gradient-to-tr from-[#FF6A00]/90 to-[#800020]/90 backdrop-blur-sm border-[#FF6A00] text-white shadow-md shadow-[#FF6A00]/20 scale-105"
                 : "bg-white/40 backdrop-blur-sm border-dashed border-[#CBD5E1] text-[#CBD5E1]"
-            }`
+              }`
           },
-          React.createElement(Stamp, {
-            className: stamped ? "h-4 w-4 fill-white text-white stroke-none" : "h-4 w-4 opacity-30"
-          }));
+            React.createElement(Stamp, {
+              className: stamped ? "h-4 w-4 fill-white text-white stroke-none" : "h-4 w-4 opacity-30"
+            }));
         })
       ),
       // Goal summary
       card.visitStreak >= threshold
         ? React.createElement("div", { className: "flex items-center gap-1.5 text-xs text-emerald-600 font-semibold" },
-            React.createElement(CheckCircle2, { className: "h-3.5 w-3.5" }),
-            "Target reached! Your reward is unlocked."
-          )
+          React.createElement(CheckCircle2, { className: "h-3.5 w-3.5" }),
+          "Target reached! Your reward is unlocked."
+        )
         : React.createElement("p", { className: "text-[11px] text-muted-foreground" },
-            `${threshold - card.visitStreak} more visit${threshold - card.visitStreak === 1 ? "" : "s"} to earn "${rewardTitle}"`
-          )
+          `${threshold - card.visitStreak} more visit${threshold - card.visitStreak === 1 ? "" : "s"} to earn "${rewardTitle}"`
+        )
     )
 
-    // POINTS_BASED: Progress bar
-    : React.createElement("div", { className: "space-y-2" },
-      React.createElement("div", { className: "flex justify-between items-center text-xs" },
-        React.createElement("span", { className: "text-muted-foreground" },
-          "Points: ",
-          React.createElement("strong", { className: "text-primary" }, card.totalPoints),
-          " / ", threshold
+      // POINTS_BASED: Progress bar
+      : React.createElement("div", { className: "space-y-2" },
+        React.createElement("div", { className: "flex justify-between items-center text-xs" },
+          React.createElement("span", { className: "text-muted-foreground" },
+            "Points: ",
+            React.createElement("strong", { className: "text-primary" }, card.totalPoints),
+            " / ", threshold
+          ),
+          React.createElement("span", { className: "text-[10px] text-muted-foreground" },
+            program.type === "SPEND_BASED"
+              ? `${program.pointsPerSpendUnit} pt${program.pointsPerSpendUnit !== 1 ? 's' : ''} / ₹ spent`
+              : `+${program.pointsPerVisit} pts / visit`
+          )
         ),
-        React.createElement("span", { className: "text-[10px] text-muted-foreground" },
-          program.type === "SPEND_BASED"
-            ? `${program.pointsPerSpendUnit} pt${program.pointsPerSpendUnit !== 1 ? 's' : ''} / ₹ spent`
-            : `+${program.pointsPerVisit} pts / visit`
-        )
-      ),
-      React.createElement("div", { className: "w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-border" },
-        React.createElement("div", {
-          className: "bg-gradient-to-r from-primary to-indigo-400 h-full rounded-full transition-all duration-700 ease-out",
-          style: { width: `${Math.min(100, Math.round((card.totalPoints / threshold) * 100))}%` }
-        })
-      ),
-      React.createElement("div", { className: "flex justify-between items-center text-[10px] text-muted-foreground" },
-        React.createElement("span", null, Math.min(100, Math.round((card.totalPoints / threshold) * 100)), "% complete"),
-        card.totalPoints >= threshold
-          ? React.createElement("span", { className: "text-emerald-600 flex items-center gap-0.5 font-semibold" },
+        React.createElement("div", { className: "w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-border" },
+          React.createElement("div", {
+            className: "bg-gradient-to-r from-primary to-indigo-400 h-full rounded-full transition-all duration-700 ease-out",
+            style: { width: `${Math.min(100, Math.round((card.totalPoints / threshold) * 100))}%` }
+          })
+        ),
+        React.createElement("div", { className: "flex justify-between items-center text-[10px] text-muted-foreground" },
+          React.createElement("span", null, Math.min(100, Math.round((card.totalPoints / threshold) * 100)), "% complete"),
+          card.totalPoints >= threshold
+            ? React.createElement("span", { className: "text-emerald-600 flex items-center gap-0.5 font-semibold" },
               React.createElement(CheckCircle2, { className: "h-3 w-3" }),
               "Reward unlocked!"
             )
-          : React.createElement("span", null, `${threshold - card.totalPoints} pts to earn "${rewardTitle}"`)
+            : React.createElement("span", null, `${threshold - card.totalPoints} pts to earn "${rewardTitle}"`)
+        )
       )
-    )
   );
 }
 
@@ -289,15 +350,14 @@ function HybridProgramBlock({ settings, wallet, businessId }) {
           const stamped = i < currentStamps;
           return React.createElement("div", {
             key: i,
-            className: `h-10 w-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
-              stamped
+            className: `h-10 w-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${stamped
                 ? "bg-gradient-to-tr from-[#FF6A00]/90 to-[#800020]/90 border-[#FF6A00] text-white shadow-md shadow-[#FF6A00]/20 scale-105"
                 : "bg-white border-dashed border-[#CBD5E1] text-[#CBD5E1]"
-            }`
+              }`
           },
-          React.createElement(Stamp, {
-            className: stamped ? "h-5 w-5 fill-white text-white stroke-none" : "h-5 w-5 opacity-35"
-          }));
+            React.createElement(Stamp, {
+              className: stamped ? "h-5 w-5 fill-white text-white stroke-none" : "h-5 w-5 opacity-35"
+            }));
         })
       )
     ),
@@ -340,6 +400,13 @@ function HybridProgramBlock({ settings, wallet, businessId }) {
         React.createElement("span", { className: "text-slate-500 font-semibold" }, "Next Stamp:"),
         React.createElement("span", { className: "font-bold text-primary" }, `${pointsRemaining} Points Remaining`)
       ),
+      React.createElement("div", { className: "flex justify-between border-b border-dashed border-slate-200 pb-1.5 bg-amber-50/40 px-2 py-0.5 rounded" },
+        React.createElement("span", { className: "text-slate-500 font-semibold flex items-center gap-1" },
+          React.createElement(Award, { className: "h-3.5 w-3.5 text-amber-500" }),
+          "Bonus Points Balance (Future Use):"
+        ),
+        React.createElement("span", { className: "font-black text-amber-600" }, `${wallet.pointsBalance ?? 0} pts`)
+      ),
       React.createElement("div", { className: "flex justify-between border-b border-dashed border-slate-200 pb-1.5" },
         React.createElement("span", { className: "text-slate-500 font-semibold" }, "Reward:"),
         React.createElement("span", { className: "font-bold text-slate-800" }, settings.rewardName)
@@ -361,11 +428,10 @@ function HybridProgramBlock({ settings, wallet, businessId }) {
       React.createElement(Button, {
         onClick: () => redeemMutation.mutate(),
         disabled: !isRedeemable || redeemMutation.isPending,
-        className: `w-full font-bold text-xs py-2.5 rounded-xl transition-all ${
-          isRedeemable
+        className: `w-full font-bold text-xs py-2.5 rounded-full transition-all ${isRedeemable
             ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md hover:scale-[1.01] active:scale-[0.99]"
             : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
-        }`
+          }`
       },
         redeemMutation.isPending ? "Redeeming..." : isRedeemable ? "Redeem Reward" : `Earn ${requiredStamps - currentStamps} more stamp${requiredStamps - currentStamps > 1 ? "s" : ""} to redeem`
       )
@@ -440,15 +506,14 @@ function VisitStampCardBlock({ settings, wallet, businessId, unlockedRewards, se
           const stamped = i < currentStamps;
           return React.createElement("div", {
             key: i,
-            className: `h-10 w-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
-              stamped
+            className: `h-10 w-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${stamped
                 ? "bg-gradient-to-tr from-[#10B981]/90 to-[#047857]/90 border-[#10B981] text-white shadow-md shadow-[#10B981]/20 scale-105"
                 : "bg-white border-dashed border-[#CBD5E1] text-[#CBD5E1]"
-            }`
+              }`
           },
-          React.createElement(Stamp, {
-            className: stamped ? "h-5 w-5 fill-white text-white stroke-none" : "h-5 w-5 opacity-35"
-          }));
+            React.createElement(Stamp, {
+              className: stamped ? "h-5 w-5 fill-white text-white stroke-none" : "h-5 w-5 opacity-35"
+            }));
         })
       )
     ),
@@ -458,11 +523,10 @@ function VisitStampCardBlock({ settings, wallet, businessId, unlockedRewards, se
       React.createElement(Button, {
         onClick: handleRedeemClick,
         disabled: !isRedeemable,
-        className: `w-full font-bold text-xs py-2.5 rounded-xl transition-all ${
-          isRedeemable
+        className: `w-full font-bold text-xs py-2.5 rounded-full transition-all ${isRedeemable
             ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md hover:scale-[1.01] active:scale-[0.99]"
             : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
-        }`
+          }`
       },
         isRedeemable ? "Redeem Reward" : `Collect ${requiredStamps - currentStamps} more stamp${requiredStamps - currentStamps > 1 ? "s" : ""} to unlock reward`
       )
@@ -521,7 +585,7 @@ function BusinessCard({ card, unlockedRewards, setSelectedReward }) {
 
       // Divider between programs and coupons
       card.settings && activeCoupons.length > 0 &&
-        React.createElement("div", { className: "border-t border-border" }),
+      React.createElement("div", { className: "border-t border-border" }),
 
       // Active coupons
       activeCoupons.length > 0 && React.createElement("div", { className: "space-y-2" },
@@ -562,20 +626,63 @@ export default function CustomerDashboard() {
   });
 
   const [selectedReward, setSelectedReward] = useState(null);
+  const [lastData, setLastData] = useState(null);
+  const [redemptionSuccessPlace, setRedemptionSuccessPlace] = useState(null);
 
   useEffect(() => {
     const id = setInterval(refetch, 15000);
     return () => clearInterval(id);
   }, [refetch]);
 
+  useEffect(() => {
+    if (data && lastData && selectedReward) {
+      const isRewardActive = data.unlockedRewards?.some(r => r.id === selectedReward.id) ||
+        data.claimedCoupons?.some(c => c.id === selectedReward.id);
+
+      const wasRewardActive = lastData.unlockedRewards?.some(r => r.id === selectedReward.id) ||
+        lastData.claimedCoupons?.some(c => c.id === selectedReward.id);
+
+      if (wasRewardActive && !isRewardActive) {
+        const biz = selectedReward.reward?.business || selectedReward.coupon?.business;
+        setRedemptionSuccessPlace({
+          businessName: biz?.name || "the business",
+          googleReviewUrl: biz?.googleReviewUrl || null,
+          title: selectedReward.reward?.title || selectedReward.coupon?.offerTitle || selectedReward.coupon?.title
+        });
+        setSelectedReward(null);
+      }
+    }
+    if (data && data !== lastData) {
+      setLastData(data);
+    }
+  }, [data, lastData, selectedReward]);
+
+  const queryClient = useQueryClient();
+  const [claimingId, setClaimingId] = useState(null);
+  const claimCouponMutation = useMutation({
+    mutationFn: (couponId) => { setClaimingId(couponId); return api.post(`/coupons/${couponId}/claim`); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customerDashboard"] });
+      setClaimingId(null);
+      alert("Coupon claimed! It is now in your vouchers — tap 'Redeem Now' at the counter.");
+    },
+    onError: (err) => { setClaimingId(null); alert(err.message || "Failed to claim coupon"); },
+  });
+
   if (isLoading) return React.createElement(DashboardSkeleton, null);
 
-  const { loyaltyCards = [], unlockedRewards = [] } = data || {};
+  const {
+    loyaltyCards = [],
+    unlockedRewards = [],
+    activeCampaigns = [],
+    activeEventCoupons = [],
+    claimedCoupons = []
+  } = data || {};
 
   // Only cards with active coupon OR hybrid settings
   const visibleCards = loyaltyCards.filter(card => {
-    const hasCoupon  = (card.business.coupons || []).length > 0;
-    const hasHybrid  = !!card.settings;
+    const hasCoupon = (card.business.coupons || []).length > 0;
+    const hasHybrid = !!card.settings;
     return hasCoupon || hasHybrid;
   });
 
@@ -589,11 +696,11 @@ export default function CustomerDashboard() {
       )
     ),
 
-    // Unlocked reward vouchers carousel
-    unlockedRewards.length > 0 && React.createElement("div", { className: "space-y-3" },
+    // Unlocked reward vouchers & claimed event coupons carousel
+    (unlockedRewards.length > 0 || claimedCoupons.length > 0) && React.createElement("div", { className: "space-y-3" },
       React.createElement("h3", { className: "text-sm font-semibold tracking-wider text-muted-foreground uppercase flex items-center" },
         React.createElement(Gift, { className: "mr-2 h-4 w-4 text-primary" }),
-        "Vouchers Ready to Redeem (", unlockedRewards.length, ")"
+        `Vouchers Ready to Redeem (${unlockedRewards.length + claimedCoupons.length})`
       ),
       React.createElement("div", { className: "flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x" },
         unlockedRewards.map(reward =>
@@ -602,22 +709,69 @@ export default function CustomerDashboard() {
             className: "w-72 shrink-0 snap-center border-indigo-100 bg-indigo-50/50 hover:bg-indigo-50 transition-all cursor-pointer shadow-sm rounded-xl",
             onClick: () => setSelectedReward(reward)
           },
-          React.createElement(CardHeader, { className: "p-4 pb-2" },
-            React.createElement("div", { className: "flex justify-between items-start" },
-              React.createElement("span", { className: "text-[10px] bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-full uppercase" }, "Unlocked"),
-              React.createElement(Award, { className: "h-5 w-5 text-indigo-600" })
+            React.createElement(CardHeader, { className: "p-4 pb-2" },
+              React.createElement("div", { className: "flex justify-between items-start" },
+                React.createElement("span", { className: "text-[10px] bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-full uppercase" }, "Unlocked"),
+                React.createElement(Award, { className: "h-5 w-5 text-indigo-600" })
+              ),
+              React.createElement(CardTitle, { className: "text-base mt-2 text-foreground font-bold" }, reward.reward.title),
+              React.createElement(CardDescription, { className: "text-xs text-muted-foreground line-clamp-1" },
+                reward.reward.description || "Show to staff to redeem your gift"
+              )
             ),
-            React.createElement(CardTitle, { className: "text-base mt-2 text-foreground font-bold" }, reward.reward.title),
-            React.createElement(CardDescription, { className: "text-xs text-muted-foreground line-clamp-1" },
-              reward.reward.description || "Show to staff to redeem your gift"
-            )
-          ),
-          React.createElement(CardContent, { className: "p-4 pt-0 flex justify-between items-center" },
-            React.createElement("span", { className: "text-[11px] text-muted-foreground font-mono" },
-              "Code: ", reward.redemptionCode.slice(0, 8), "…"
+            React.createElement(CardContent, { className: "p-4 pt-0 flex justify-between items-center gap-2" }
+              , React.createElement("div", { className: "flex items-center gap-1 min-w-0" }
+                , React.createElement("span", { className: "text-[10px] text-muted-foreground uppercase font-bold shrink-0" }, "Code: ")
+                , React.createElement("span", { className: "text-xs font-mono font-bold text-indigo-950 bg-indigo-100/70 border border-indigo-200/50 px-2 py-0.5 rounded truncate" }
+                  , reward.redemptionCode.length > 12 ? `${reward.redemptionCode.slice(0, 8).toUpperCase()}...` : reward.redemptionCode.toUpperCase()
+                )
+              )
+              , React.createElement(Button, { size: "sm", variant: "outline", className: "h-8 text-xs font-semibold bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50 rounded-full shrink-0" }, "Redeem Now")
+            ))
+        ),
+        claimedCoupons.map(claim =>
+          React.createElement(Card, {
+            key: claim.id,
+            className: "w-72 shrink-0 snap-center border-amber-100 bg-amber-50/40 hover:bg-amber-50 transition-all cursor-pointer shadow-sm rounded-xl",
+            onClick: () => setSelectedReward(claim)
+          },
+            React.createElement(CardHeader, { className: "p-4 pb-2" },
+              React.createElement("div", { className: "flex justify-between items-start" },
+                React.createElement("span", { className: "text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full uppercase" }, "Claimed"),
+                React.createElement(Tag, { className: "h-5 w-5 text-amber-600" })
+              ),
+              React.createElement(CardTitle, { className: "text-base mt-2 text-foreground font-bold" }, claim.coupon.offerTitle || claim.coupon.title),
+              React.createElement(CardDescription, { className: "text-xs text-muted-foreground line-clamp-1" },
+                claim.coupon.offerDescription || claim.coupon.description || "Show to staff to redeem at counter"
+              )
             ),
-            React.createElement(Button, { size: "sm", variant: "outline", className: "h-8 text-xs font-semibold bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50 rounded-full" }, "Redeem Now")
-          ))
+            React.createElement(CardContent, { className: "p-4 pt-0 flex justify-between items-center gap-2" }
+              , React.createElement("div", { className: "flex items-center gap-1 min-w-0" }
+                , React.createElement("span", { className: "text-[10px] text-muted-foreground uppercase font-bold shrink-0" }, "Code: ")
+                , React.createElement("span", { className: "text-xs font-mono font-bold text-amber-950 bg-amber-100/70 border border-amber-200/50 px-2 py-0.5 rounded truncate" }
+                  , claim.redemptionCode.length > 12 ? `${claim.redemptionCode.slice(0, 8).toUpperCase()}...` : claim.redemptionCode.toUpperCase()
+                )
+              )
+              , React.createElement(Button, { size: "sm", variant: "outline", className: "h-8 text-xs font-semibold bg-white border-amber-200 text-amber-700 hover:bg-amber-50 rounded-full shrink-0" }, "Redeem Now")
+            ))
+        )
+      )
+    ),
+
+    // Campaign Offers & Deals
+    (activeCampaigns.length > 0 || activeEventCoupons.length > 0) && React.createElement("div", { className: "space-y-3" },
+      React.createElement("h3", { className: "text-sm font-semibold tracking-wider text-muted-foreground uppercase flex items-center" },
+        React.createElement(Tag, { className: "mr-2 h-4 w-4 text-amber-500" }),
+        `Campaign Offers & Deals (${activeCampaigns.length + activeEventCoupons.length})`
+      ),
+      React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4" },
+        [...activeEventCoupons, ...activeCampaigns].map(coupon =>
+          React.createElement(CampaignCouponCard, {
+            key: coupon.id,
+            coupon,
+            onClaim: (id) => claimCouponMutation.mutate(id),
+            isClaiming: claimingId === coupon.id
+          })
         )
       )
     ),
@@ -630,29 +784,29 @@ export default function CustomerDashboard() {
 
       visibleCards.length === 0
         ? React.createElement(Card, { className: "border-dashed border-border bg-muted/20 py-8 text-center" },
-            React.createElement(CardContent, { className: "flex flex-col items-center justify-center space-y-3" },
-              React.createElement("div", { className: "rounded-full bg-muted p-3" },
-                React.createElement(Coffee, { className: "h-6 w-6 text-muted-foreground" })
-              ),
-              React.createElement("p", { className: "text-sm text-foreground font-medium" }, "No active programs right now"),
-              React.createElement("p", { className: "text-xs text-muted-foreground max-w-xs" },
-                "Visit a business and scan their QR code to start earning rewards!"
-              ),
-              React.createElement(Link, { to: "/checkin" },
-                React.createElement(Button, { size: "sm", variant: "outline", className: "mt-2 rounded-full" }, "Scan QR to Start")
-              )
+          React.createElement(CardContent, { className: "flex flex-col items-center justify-center space-y-3" },
+            React.createElement("div", { className: "rounded-full bg-muted p-3" },
+              React.createElement(Coffee, { className: "h-6 w-6 text-muted-foreground" })
+            ),
+            React.createElement("p", { className: "text-sm text-foreground font-medium" }, "No active programs right now"),
+            React.createElement("p", { className: "text-xs text-muted-foreground max-w-xs" },
+              "Visit a business and scan their QR code to start earning rewards!"
+            ),
+            React.createElement(Link, { to: "/checkin" },
+              React.createElement(Button, { size: "sm", variant: "outline", className: "mt-2 rounded-full" }, "Scan QR to Start")
             )
           )
+        )
         : React.createElement("div", { className: "space-y-4" },
-            visibleCards.map(card =>
-              React.createElement(BusinessCard, {
-                key: card.id,
-                card,
-                unlockedRewards,
-                setSelectedReward
-              })
-            )
+          visibleCards.map(card =>
+            React.createElement(BusinessCard, {
+              key: card.id,
+              card,
+              unlockedRewards,
+              setSelectedReward
+            })
           )
+        )
     ),
 
     // Redemption QR modal
@@ -660,9 +814,9 @@ export default function CustomerDashboard() {
       Dialog, { open: !!selectedReward, onOpenChange: (open) => !open && setSelectedReward(null) },
       React.createElement(DialogContent, { className: "max-w-[340px] bg-white border border-border p-6 rounded-2xl flex flex-col items-center text-slate-800" },
         React.createElement(DialogHeader, { className: "flex flex-col items-center justify-center text-center w-full" },
-          React.createElement(DialogTitle, { className: "text-xl font-bold text-foreground text-center" }, selectedReward.reward.title),
+          React.createElement(DialogTitle, { className: "text-xl font-bold text-foreground text-center" }, selectedReward.reward?.title || selectedReward.coupon?.offerTitle || selectedReward.coupon?.title),
           React.createElement(DialogDescription, { className: "text-xs mt-1 text-muted-foreground text-center" },
-            selectedReward.reward.description || "Show this QR code to the cashier/staff to claim your reward"
+            selectedReward.reward?.description || selectedReward.coupon?.offerDescription || selectedReward.coupon?.description || "Show this QR code to the cashier/staff to claim your reward"
           )
         ),
         React.createElement("div", { className: "flex flex-col items-center justify-center py-2 space-y-4 w-full" },
@@ -675,7 +829,12 @@ export default function CustomerDashboard() {
           ),
           React.createElement("div", { className: "text-center space-y-1.5 w-full" },
             React.createElement("span", { className: "text-[10px] text-muted-foreground uppercase tracking-widest block font-semibold" }, "Redemption Code"),
-            React.createElement("span", { className: "text-lg font-mono font-bold text-foreground tracking-widest select-all bg-slate-50 px-3 py-1.5 rounded-md border border-border block" },
+            React.createElement("span", {
+              className: `font-mono font-bold text-foreground select-all bg-slate-50 px-3 py-1.5 rounded-md border border-border block break-all text-center ${selectedReward.redemptionCode.length > 12
+                  ? "text-xs tracking-normal"
+                  : "text-lg tracking-widest"
+                }`
+            },
               selectedReward.redemptionCode.toUpperCase()
             )
           )
@@ -683,6 +842,53 @@ export default function CustomerDashboard() {
         React.createElement("div", { className: "rounded-lg bg-indigo-50 border border-indigo-100 p-3 text-[11px] text-center text-indigo-700 font-medium w-full" },
           "Cashier will scan this QR code or type in the code above to verify and complete the reward."
         )
+      )
+    )
+
+    // Post-Redemption Success & Google Review Prompt Modal
+    , redemptionSuccessPlace && React.createElement(
+      Dialog, { open: !!redemptionSuccessPlace, onOpenChange: (open) => !open && setRedemptionSuccessPlace(null) },
+      React.createElement(DialogContent, { className: "max-w-[360px] bg-white border border-border p-6 rounded-3xl flex flex-col items-center text-center text-slate-800" },
+        React.createElement("div", { className: "w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2 shadow-sm" },
+          React.createElement(CheckCircle2, { className: "h-6 w-6" })
+        ),
+        React.createElement(DialogHeader, { className: "flex flex-col items-center justify-center text-center w-full" },
+          React.createElement(DialogTitle, { className: "text-lg font-extrabold text-foreground" }, "Redemption Successful! 🎉"),
+          React.createElement(DialogDescription, { className: "text-xs mt-1 text-muted-foreground" },
+            `Your voucher "${redemptionSuccessPlace.title}" has been successfully redeemed at ${redemptionSuccessPlace.businessName}.`
+          )
+        ),
+        redemptionSuccessPlace.googleReviewUrl ? React.createElement('div', { className: "w-full bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 rounded-2xl p-4 mt-4 space-y-3" },
+          React.createElement('div', { className: "flex justify-center" },
+            React.createElement(Star, { className: "h-8 w-8 text-amber-500 fill-amber-500 animate-bounce" })
+          ),
+          React.createElement('div', { className: "space-y-1" },
+            React.createElement('p', { className: "text-xs font-bold text-slate-800" }, "Help us grow on Google!"),
+            React.createElement('p', { className: "text-[10px] text-slate-600 leading-relaxed" },
+              `Please take 10 seconds to share your experience at ${redemptionSuccessPlace.businessName}. Your review helps other customers find us.`
+            )
+          ),
+          React.createElement(Button, {
+            onClick: () => {
+              window.open(
+                redemptionSuccessPlace.googleReviewUrl.startsWith("http")
+                  ? redemptionSuccessPlace.googleReviewUrl
+                  : `https://${redemptionSuccessPlace.googleReviewUrl}`,
+                "_blank",
+                "noopener,noreferrer"
+              );
+              setRedemptionSuccessPlace(null);
+            },
+            className: "w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs rounded-full py-2.5 shadow-sm border-0 transition-all duration-300"
+          }, "Write Google Review ⭐")
+        ) : React.createElement('div', { className: "w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 mt-4" },
+          React.createElement('p', { className: "text-xs text-slate-600 font-medium" }, "Thank you for using our digital loyalty program!")
+        ),
+        React.createElement(Button, {
+          variant: "ghost",
+          onClick: () => setRedemptionSuccessPlace(null),
+          className: "w-full text-xs text-muted-foreground font-semibold rounded-full mt-2"
+        }, "Close")
       )
     )
   );

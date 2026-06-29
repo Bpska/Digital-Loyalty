@@ -57,7 +57,10 @@ async function seedDefaultSettings() {
     { key: 'platform_fee', value: '999' },
     { key: 'gst_percent', value: '5' },
     { key: 'promo_limit', value: '20' },
-    { key: 'promo_price', value: '1000' }
+    { key: 'promo_price', value: '1000' },
+    { key: 'points_per_rupee', value: '0.1' },
+    { key: 'points_per_stamp', value: '50' },
+    { key: 'mock_business_count', value: '50' }
   ];
   try {
     for (const item of defaults) {

@@ -29,6 +29,8 @@ export default function ProfilePage() {
   const [email, setEmail] = useState("");
   const [submitLoading, setSubmitLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDanger, setShowDanger] = useState(false);
+
   const [deleteConfirmPhone, setDeleteConfirmPhone] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [message, setMessage] = useState(null);
@@ -240,27 +242,46 @@ export default function ProfilePage() {
         )
       )
 
-      /* Danger Zone */
-      , React.createElement(Card, { className: "border-red-200 bg-red-50/20" , glass: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 200}}
-        , React.createElement(CardHeader, { className: "p-4 pb-2" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 201}}
-          , React.createElement(CardTitle, { className: "text-xs font-bold text-red-700 flex items-center uppercase tracking-wider"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 202}}
-            , React.createElement(ShieldAlert, { className: "mr-2 h-4 w-4"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 203}} ), " Danger Zone"
+      /* Danger Zone — subtle, collapsed by default */
+      , React.createElement('div', { className: "mt-2" },
+        React.createElement('button', {
+            type: "button",
+            onClick: () => setShowDanger(prev => !prev),
+            className: "w-full flex items-center justify-between text-left px-3 py-2.5 rounded-xl border border-red-100 bg-red-50/40 hover:bg-red-50/80 transition-colors group"
+          },
+          React.createElement('span', { className: "flex items-center gap-2 text-[11px] font-semibold text-red-400 group-hover:text-red-600 transition-colors" },
+            React.createElement(ShieldAlert, { className: "h-3.5 w-3.5 shrink-0" }),
+            "Danger Zone"
+          ),
+          React.createElement('svg', {
+              viewBox: "0 0 20 20", fill: "currentColor",
+              className: `h-3.5 w-3.5 text-red-300 transition-transform duration-300 ${showDanger ? "rotate-180" : "rotate-0"}`
+            },
+            React.createElement('path', { fillRule: "evenodd", d: "M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z", clipRule: "evenodd" })
           )
-          , React.createElement(CardDescription, { className: "text-[11px] text-red-600/80" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 205}}, "Irreversible privacy actions"
+        ),
 
-          )
-        )
-        , React.createElement(CardContent, { className: "p-4 pt-0" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 209}}
-          , React.createElement('p', { className: "text-[11px] text-red-700 mb-3"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 210}}, "Deleting your account will erase all your active loyalty cards, visit history, and unredeemed vouchers. This action cannot be undone."
-
-          )
-          , React.createElement(Button, { variant: "destructive", className: "w-full text-xs font-semibold h-10 bg-red-600 hover:bg-red-700 text-white rounded-full"      , onClick: () => setShowDeleteModal(true), __self: this, __source: {fileName: _jsxFileName, lineNumber: 213}}, "Request Account Deletion"
-
+        showDanger && React.createElement('div', { className: "mt-2 border border-red-200/70 bg-red-50/30 rounded-xl p-4 space-y-3" },
+          React.createElement('div', { className: "flex items-start gap-2" },
+            React.createElement(AlertTriangle, { className: "h-4 w-4 text-red-500 shrink-0 mt-0.5" }),
+            React.createElement('p', { className: "text-[11px] text-red-700/80 leading-relaxed" },
+              "Deleting your account will erase all your active loyalty cards, visit history, and unredeemed vouchers. ",
+              React.createElement('strong', null, "This action cannot be undone.")
+            )
+          ),
+          React.createElement(Button, {
+              variant: "outline",
+              className: "w-full h-9 text-[11px] font-semibold border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 hover:text-red-700 rounded-xl transition-all",
+              onClick: () => setShowDeleteModal(true)
+            },
+            React.createElement(ShieldAlert, { className: "h-3.5 w-3.5 mr-1.5" }),
+            "Request Account Deletion"
           )
         )
       )
 
       /* Deletion Dialog */
+
       , showDeleteModal && (
         React.createElement(Dialog, { open: showDeleteModal, onOpenChange: setShowDeleteModal, __self: this, __source: {fileName: _jsxFileName, lineNumber: 221}}
           , React.createElement(DialogContent, { className: "max-w-[340px]", __self: this, __source: {fileName: _jsxFileName, lineNumber: 222}}

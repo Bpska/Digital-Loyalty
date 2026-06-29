@@ -1,5 +1,6 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuthStore } from './store/authStore';
 
 // Layouts
 import RootLayout from './pages/layout.js';
@@ -38,6 +39,34 @@ import SuperBusinesses from './pages/(super-admin)/dashboard/super/businesses/pa
 import SuperFraud from './pages/(super-admin)/dashboard/super/fraud/page.js';
 import SuperSupport from './pages/(super-admin)/dashboard/super/support/page.js';
 
+function LandingGuard() {
+  const user = useAuthStore((state) => state.user);
+
+  if (user) {
+    if (user.role === 'SUPER_ADMIN') {
+      return <Navigate to="/dashboard/super" replace />;
+    } else if (user.role === 'BUSINESS_ADMIN') {
+      return <Navigate to="/dashboard/business" replace />;
+    } else {
+      if (typeof window !== 'undefined') {
+        const pending = sessionStorage.getItem('pendingCheckin');
+        if (pending) {
+          try {
+            const { businessId, branchId, token } = JSON.parse(pending);
+            sessionStorage.removeItem('pendingCheckin');
+            return <Navigate to={`/checkin?businessId=${businessId}&branchId=${branchId}&token=${token}`} replace />;
+          } catch (e) {
+            // Ignore
+          }
+        }
+      }
+      return <Navigate to="/dashboard" replace />;
+    }
+  }
+
+  return <PublicLanding />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -45,7 +74,7 @@ export default function App() {
         {/* Root Layout */}
         <Route element={<RootLayout />}>
           {/* Public Routes */}
-          <Route path="/" element={<PublicLanding />} />
+          <Route path="/" element={<LandingGuard />} />
           <Route path="/login" element={<Login />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />

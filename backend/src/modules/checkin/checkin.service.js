@@ -441,7 +441,85 @@ export async function redeemReward(
   });
 
   if (!customerReward) {
-    throw new AppError('Invalid redemption code', 404);
+    // Check if it's a ClaimedCoupon
+    const claimedCoupon = await prisma.claimedCoupon.findUnique({
+      where: { redemptionCode },
+      include: {
+        coupon: { select: { id: true, title: true, businessId: true, eventDate: true } },
+        customer: { select: { id: true, name: true } },
+      },
+    });
+
+    if (!claimedCoupon) {
+      throw new AppError('Invalid redemption code', 404);
+    }
+
+    if (claimedCoupon.coupon.businessId !== businessId) {
+      throw new AppError('This coupon does not belong to your business', 403);
+    }
+
+    if (claimedCoupon.status !== 'CLAIMED') {
+      const statusMessages = {
+        REDEEMED: 'Coupon has already been redeemed',
+        EXPIRED: 'Coupon has expired',
+      };
+      throw new AppError(statusMessages[claimedCoupon.status] ?? 'Coupon cannot be redeemed', 400);
+    }
+
+    // Verify event_date validity window
+    if (claimedCoupon.coupon.eventDate) {
+      const now = new Date();
+      const eventDate = new Date(claimedCoupon.coupon.eventDate);
+      
+      // Validity window check: Must match calendar day, or be within 24 hours of event date.
+      const sameDay = now.getUTCFullYear() === eventDate.getUTCFullYear() &&
+                      now.getUTCMonth() === eventDate.getUTCMonth() &&
+                      now.getUTCDate() === eventDate.getUTCDate();
+                      
+      const diffMs = Math.abs(now.getTime() - eventDate.getTime());
+      const isWithin24Hours = diffMs <= 24 * 60 * 60 * 1000;
+      
+      if (!sameDay && !isWithin24Hours) {
+        throw new AppError(`This coupon is only valid on the event day: ${eventDate.toLocaleDateString()}`, 400);
+      }
+    }
+
+    // Mark redeemed
+    await prisma.claimedCoupon.update({
+      where: { id: claimedCoupon.id },
+      data: {
+        status: 'REDEEMED',
+        redeemedAt: new Date(),
+      },
+    });
+
+    // Resolve staff user ID for audit log
+    let auditUserId = null;
+    if (staffId) {
+      const staffMember = await prisma.staff.findUnique({
+        where: { id: staffId },
+        select: { userId: true },
+      });
+      auditUserId = staffMember?.userId || null;
+    }
+
+    await writeAuditLog({
+      action: 'COUPON_REDEEMED',
+      entityType: 'ClaimedCoupon',
+      entityId: claimedCoupon.id,
+      userId: auditUserId || claimedCoupon.customerId,
+      metadata: {
+        customerId: claimedCoupon.customerId,
+        couponId: claimedCoupon.couponId,
+        redemptionCode,
+      },
+    });
+
+    return {
+      message: 'Coupon redeemed successfully',
+      reward: { title: claimedCoupon.coupon.title },
+      customerName: claimedCoupon.customer.name,
+    };
   }
 
   if (customerReward.reward.businessId !== businessId) {
@@ -476,7 +554,7 @@ export async function redeemReward(
       },
     });
 
-    // Update active CustomerLoyaltyWallet for this customer and business to REDEEMED
+    // Update active CustomerLoyaltyWallet for this customer and business to REDEEMED (starts new collection next check-in)
     await tx.customerLoyaltyWallet.updateMany({
       where: {
         userId: customerReward.customerId,
@@ -487,6 +565,30 @@ export async function redeemReward(
         status: 'REDEEMED',
       },
     });
+
+    // Reset customer's UserWallet stamps (for hybrid program tracker on dashboard)
+    const settings = await tx.loyaltyProgramSettings.findUnique({
+      where: { businessId: customerReward.reward.businessId },
+    });
+    const requiredStamps = settings?.requiredStamps || 7;
+
+    const wallet = await tx.userWallet.findUnique({
+      where: {
+        userId_businessId: {
+          userId: customerReward.customerId,
+          businessId: customerReward.reward.businessId,
+        },
+      },
+    });
+
+    if (wallet) {
+      await tx.userWallet.update({
+        where: { id: wallet.id },
+        data: {
+          currentStamps: Math.max(0, wallet.currentStamps - requiredStamps),
+        },
+      });
+    }
   });
 
   // Resolve staff user ID for audit log

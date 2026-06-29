@@ -16,10 +16,9 @@ const queryClient = new QueryClient({
 
 export default function ClientProviders({
   children,
-}
-
-) {
+}) {
   const checkSession = useAuthStore((state) => state.checkSession);
+  const initialized = useAuthStore((state) => state.initialized);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -44,7 +43,7 @@ export default function ClientProviders({
     };
   }, [checkSession]);
 
-  if (!mounted) {
+  if (!mounted || !initialized) {
     return (
       React.createElement('div', { className: "flex min-h-screen items-center justify-center bg-background"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 48}}
         , React.createElement('div', { className: "h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 49}} )

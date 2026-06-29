@@ -43,6 +43,31 @@ export default function BusinessDashboard() {
   const [revInstagramUrl, setRevInstagramUrl] = React.useState("");
   const [revFacebookUrl, setRevFacebookUrl] = React.useState("");
   const [revSaving, setRevSaving] = React.useState(false);
+  const [googleBusinessName, setGoogleBusinessName] = React.useState("");
+  const [googlePlaceId, setGooglePlaceId] = React.useState("");
+  const [googleSearchQuery, setGoogleSearchQuery] = React.useState("");
+  const [searchResults, setSearchResults] = React.useState([]);
+  const [searchingPlaces, setSearchingPlaces] = React.useState(false);
+
+  const handleSearchPlaces = async () => {
+    if (!googleSearchQuery.trim()) {
+      alert("Please enter a business name to search.");
+      return;
+    }
+    setSearchingPlaces(true);
+    setSearchResults([]);
+    try {
+      const res = await api.get(`/reviews/search-places/${businessId}?query=${encodeURIComponent(googleSearchQuery)}`);
+      setSearchResults(res.data || []);
+      if ((res.data || []).length === 0) {
+        alert("No listings found. Try adjusting your search query.");
+      }
+    } catch (err) {
+      alert(err.message || "Failed to search Google listings.");
+    } finally {
+      setSearchingPlaces(false);
+    }
+  };
 
   const queryClient = useQueryClient();
   const [showRedeemModal, setShowRedeemModal] = React.useState(false);
@@ -274,6 +299,8 @@ export default function BusinessDashboard() {
             setRevGoogleUrl(res.data.googleReviewUrl || "");
             setRevInstagramUrl(res.data.instagramUrl || "");
             setRevFacebookUrl(res.data.facebookUrl || "");
+            setGoogleBusinessName(res.data.googleBusinessName || "");
+            setGooglePlaceId(res.data.googlePlaceId || "");
           }
         })
         .catch((err) => {
@@ -286,12 +313,23 @@ export default function BusinessDashboard() {
     e.preventDefault();
     setRevSaving(true);
     try {
-      await api.post(`/reviews/settings/${businessId}`, {
+      const response = await api.post(`/reviews/settings/${businessId}`, {
         businessType: bizType || null,
         googleReviewUrl: revGoogleUrl || null,
         instagramUrl: revInstagramUrl || null,
         facebookUrl: revFacebookUrl || null,
+        googleBusinessName: googleBusinessName || null,
+        googlePlaceId: googlePlaceId || null,
       });
+      const updated = response?.data;
+      if (updated) {
+        setBizType(updated.businessType || "");
+        setRevGoogleUrl(updated.googleReviewUrl || "");
+        setRevInstagramUrl(updated.instagramUrl || "");
+        setRevFacebookUrl(updated.facebookUrl || "");
+        setGoogleBusinessName(updated.googleBusinessName || "");
+        setGooglePlaceId(updated.googlePlaceId || "");
+      }
       await refetchProfile();
       alert("AI Review settings saved successfully!");
     } catch (err) {
@@ -495,58 +533,58 @@ export default function BusinessDashboard() {
 
       /* Main KPI Stats Grid */
       , React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6", __self: this, __source: { fileName: _jsxFileName, lineNumber: 145 } }
-        , React.createElement(Card, { className: "glass", glass: true, __self: this, __source: { fileName: _jsxFileName, lineNumber: 146 } }
-          , React.createElement(CardHeader, { className: "flex flex-row items-center justify-between pb-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 147 } }
-            , React.createElement(CardDescription, { className: "text-xs font-bold uppercase tracking-wider text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 148 } }, "Total Customers"
-
+        , React.createElement(Link, { to: "/dashboard/business/analytics", className: "block cursor-pointer hover:scale-[1.02] transition-transform duration-200" }
+          , React.createElement(Card, { className: "glass hover:shadow-md transition-shadow h-full", glass: true }
+            , React.createElement(CardHeader, { className: "flex flex-row items-center justify-between pb-2" }
+              , React.createElement(CardDescription, { className: "text-xs font-bold uppercase tracking-wider text-muted-foreground" }, "Total Customers")
+              , React.createElement(Users, { className: "h-5 w-5 text-primary" })
             )
-            , React.createElement(Users, { className: "h-5 w-5 text-primary", __self: this, __source: { fileName: _jsxFileName, lineNumber: 151 } })
-          )
-          , React.createElement(CardContent, { __self: this, __source: { fileName: _jsxFileName, lineNumber: 153 } }
-            , React.createElement('span', { className: "text-3xl font-extrabold text-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 154 } }, _optionalChain([analytics, 'optionalAccess', _3 => _3.totalCustomers]) ?? 1)
-            , React.createElement('p', { className: "text-[10px] text-muted-foreground mt-1", __self: this, __source: { fileName: _jsxFileName, lineNumber: 155 } }, "Unique visitor registry count")
-          )
-        )
-
-        , React.createElement(Card, { className: "glass", glass: true, __self: this, __source: { fileName: _jsxFileName, lineNumber: 159 } }
-          , React.createElement(CardHeader, { className: "flex flex-row items-center justify-between pb-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 160 } }
-            , React.createElement(CardDescription, { className: "text-xs font-bold uppercase tracking-wider text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 161 } }, "Verified Check-Ins"
-
-            )
-            , React.createElement(UserCheck, { className: "h-5 w-5 text-emerald-600", __self: this, __source: { fileName: _jsxFileName, lineNumber: 164 } })
-          )
-          , React.createElement(CardContent, { __self: this, __source: { fileName: _jsxFileName, lineNumber: 166 } }
-            , React.createElement('span', { className: "text-3xl font-extrabold text-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 167 } }, _optionalChain([analytics, 'optionalAccess', _4 => _4.totalCheckIns]) ?? 2)
-            , React.createElement('p', { className: "text-[10px] text-emerald-600 flex items-center gap-1 mt-1 font-semibold", __self: this, __source: { fileName: _jsxFileName, lineNumber: 168 } }
-              , React.createElement(TrendingUp, { className: "h-3 w-3", __self: this, __source: { fileName: _jsxFileName, lineNumber: 169 } }), " +", _optionalChain([analytics, 'optionalAccess', _5 => _5.checkInsToday]) ?? 2, " check-ins today"
+            , React.createElement(CardContent, null
+              , React.createElement('span', { className: "text-3xl font-extrabold text-foreground" }, _optionalChain([analytics, 'optionalAccess', _3 => _3.totalCustomers]) ?? 1)
+              , React.createElement('p', { className: "text-[10px] text-muted-foreground mt-1" }, "Unique visitor registry count")
             )
           )
         )
 
-        , React.createElement(Card, { className: "glass", glass: true, __self: this, __source: { fileName: _jsxFileName, lineNumber: 174 } }
-          , React.createElement(CardHeader, { className: "flex flex-row items-center justify-between pb-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 175 } }
-            , React.createElement(CardDescription, { className: "text-xs font-bold uppercase tracking-wider text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 176 } }, "Repeat Rate"
-
+        , React.createElement(Link, { to: "/dashboard/business/checkins", className: "block cursor-pointer hover:scale-[1.02] transition-transform duration-200" }
+          , React.createElement(Card, { className: "glass hover:shadow-md transition-shadow h-full", glass: true }
+            , React.createElement(CardHeader, { className: "flex flex-row items-center justify-between pb-2" }
+              , React.createElement(CardDescription, { className: "text-xs font-bold uppercase tracking-wider text-muted-foreground" }, "Verified Check-Ins")
+              , React.createElement(UserCheck, { className: "h-5 w-5 text-emerald-600" })
             )
-            , React.createElement(Zap, { className: "h-5 w-5 text-indigo-600", __self: this, __source: { fileName: _jsxFileName, lineNumber: 179 } })
-          )
-          , React.createElement(CardContent, { __self: this, __source: { fileName: _jsxFileName, lineNumber: 181 } }
-            , React.createElement('span', { className: "text-3xl font-extrabold text-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 182 } }, _optionalChain([analytics, 'optionalAccess', _6 => _6.repeatRate]) ?? 100, "%")
-            , React.createElement('p', { className: "text-[10px] text-muted-foreground mt-1", __self: this, __source: { fileName: _jsxFileName, lineNumber: 183 } }, "Customers with >1 visit profile")
+            , React.createElement(CardContent, null
+              , React.createElement('span', { className: "text-3xl font-extrabold text-foreground" }, _optionalChain([analytics, 'optionalAccess', _4 => _4.totalCheckIns]) ?? 2)
+              , React.createElement('p', { className: "text-[10px] text-emerald-600 flex items-center gap-1 mt-1 font-semibold" }
+                , React.createElement(TrendingUp, { className: "h-3 w-3" }), " +", _optionalChain([analytics, 'optionalAccess', _5 => _5.checkInsToday]) ?? 2, " check-ins today"
+              )
+            )
           )
         )
 
-        , React.createElement(Card, { className: "glass", glass: true, __self: this, __source: { fileName: _jsxFileName, lineNumber: 187 } }
-          , React.createElement(CardHeader, { className: "flex flex-row items-center justify-between pb-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 188 } }
-            , React.createElement(CardDescription, { className: "text-xs font-bold uppercase tracking-wider text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 189 } }, "Reward Conversions"
-
+        , React.createElement(Link, { to: "/dashboard/business/analytics", className: "block cursor-pointer hover:scale-[1.02] transition-transform duration-200" }
+          , React.createElement(Card, { className: "glass hover:shadow-md transition-shadow h-full", glass: true }
+            , React.createElement(CardHeader, { className: "flex flex-row items-center justify-between pb-2" }
+              , React.createElement(CardDescription, { className: "text-xs font-bold uppercase tracking-wider text-muted-foreground" }, "Repeat Rate")
+              , React.createElement(Zap, { className: "h-5 w-5 text-indigo-600" })
             )
-            , React.createElement(Gift, { className: "h-5 w-5 text-primary", __self: this, __source: { fileName: _jsxFileName, lineNumber: 192 } })
+            , React.createElement(CardContent, null
+              , React.createElement('span', { className: "text-3xl font-extrabold text-foreground" }, _optionalChain([analytics, 'optionalAccess', _6 => _6.repeatRate]) ?? 100, "%")
+              , React.createElement('p', { className: "text-[10px] text-muted-foreground mt-1" }, "Customers with >1 visit profile")
+            )
           )
-          , React.createElement(CardContent, { __self: this, __source: { fileName: _jsxFileName, lineNumber: 194 } }
-            , React.createElement('span', { className: "text-3xl font-extrabold text-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 195 } }, _optionalChain([analytics, 'optionalAccess', _7 => _7.redemptionRate]) ?? 0, "%")
-            , React.createElement('p', { className: "text-[10px] text-muted-foreground mt-1", __self: this, __source: { fileName: _jsxFileName, lineNumber: 196 } }
-              , _optionalChain([analytics, 'optionalAccess', _8 => _8.totalRewardsRedeemed]) ?? 0, " of ", _optionalChain([analytics, 'optionalAccess', _9 => _9.totalRewardsIssued]) ?? 0, " redeemed"
+        )
+
+        , React.createElement(Link, { to: "/dashboard/business/approvals", className: "block cursor-pointer hover:scale-[1.02] transition-transform duration-200" }
+          , React.createElement(Card, { className: "glass hover:shadow-md transition-shadow h-full", glass: true }
+            , React.createElement(CardHeader, { className: "flex flex-row items-center justify-between pb-2" }
+              , React.createElement(CardDescription, { className: "text-xs font-bold uppercase tracking-wider text-muted-foreground" }, "Reward Conversions")
+              , React.createElement(Gift, { className: "h-5 w-5 text-primary" })
+            )
+            , React.createElement(CardContent, null
+              , React.createElement('span', { className: "text-3xl font-extrabold text-foreground" }, _optionalChain([analytics, 'optionalAccess', _7 => _7.redemptionRate]) ?? 0, "%")
+              , React.createElement('p', { className: "text-[10px] text-muted-foreground mt-1" }
+                , _optionalChain([analytics, 'optionalAccess', _8 => _8.totalRewardsRedeemed]) ?? 0, " of ", _optionalChain([analytics, 'optionalAccess', _9 => _9.totalRewardsIssued]) ?? 0, " redeemed"
+              )
             )
           )
         )
@@ -700,6 +738,69 @@ export default function BusinessDashboard() {
             )
             , React.createElement(CardContent, { className: "p-6 pt-0 space-y-4" }
               , React.createElement('form', { onSubmit: handleSaveReviewSettings, className: "space-y-4" }
+                
+                // Google Places Integrator Search Panel
+                , React.createElement('div', { className: "bg-indigo-50/50 p-4 rounded-xl border border-indigo-100/60 space-y-3 mb-2" }
+                  , React.createElement('div', { className: "flex justify-between items-center" }
+                    , React.createElement('h4', { className: "text-xs font-bold text-indigo-900" }, "🔍 Google Place Finder")
+                    , React.createElement('span', { className: "text-[9px] text-indigo-600 bg-indigo-100 font-semibold px-2 py-0.5 rounded-full" }, "Auto Review Link")
+                  )
+                  , React.createElement('p', { className: "text-[10px] text-indigo-700 leading-normal" }, "Enter your shop/brand name to locate your Google listing and automatically generate a direct review link.")
+                  , React.createElement('div', { className: "flex gap-2" }
+                    , React.createElement(Input, {
+                        value: googleSearchQuery,
+                        onChange: (e) => setGoogleSearchQuery(e.target.value),
+                        placeholder: "e.g. Starbucks Cafe",
+                        className: "text-xs border-indigo-200 bg-white flex-1"
+                      })
+                    , React.createElement(Button, {
+                        type: "button",
+                        onClick: handleSearchPlaces,
+                        disabled: searchingPlaces,
+                        className: "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-lg px-3"
+                      }
+                      , searchingPlaces ? "Searching..." : "Search"
+                    )
+                  )
+                  , searchResults.length > 0 && React.createElement('div', { className: "space-y-1.5 bg-white border border-indigo-100 p-2 rounded-lg max-h-[160px] overflow-y-auto" }
+                    , React.createElement('p', { className: "text-[9px] font-bold text-indigo-500 uppercase tracking-wider mb-1" }, "Search results:")
+                    , searchResults.map((place) =>
+                        React.createElement('div', {
+                          key: place.placeId,
+                          className: "flex justify-between items-center p-2 rounded hover:bg-indigo-50 transition-colors text-left text-xs border-b border-slate-50 last:border-b-0 gap-2"
+                        }
+                          , React.createElement('div', { className: "min-w-0" }
+                            , React.createElement('p', { className: "font-bold text-slate-800 truncate text-[11px]" }, place.name)
+                            , React.createElement('p', { className: "text-[9px] text-slate-500 truncate" }, place.formattedAddress)
+                          )
+                          , React.createElement(Button, {
+                              type: "button",
+                              size: "xs",
+                              onClick: () => {
+                                setGooglePlaceId(place.placeId);
+                                setGoogleBusinessName(place.name);
+                                setRevGoogleUrl(`https://search.google.com/local/writereview?placeid=${place.placeId}`);
+                                setSearchResults([]);
+                                alert(`Listing verified! Google Place ID set to "${place.placeId}". Click Save below to apply.`);
+                              },
+                              className: "bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold h-6 rounded-md px-2 shrink-0"
+                            }, "Confirm")
+                        )
+                      )
+                    )
+                  , googlePlaceId && React.createElement('div', { className: "text-[10px] text-emerald-700 font-semibold bg-emerald-50 border border-emerald-100 p-2 rounded-lg flex items-center justify-between" }
+                      , React.createElement('span', { className: "truncate flex-1 mr-2" }, `✓ Matched: ${googleBusinessName}`)
+                      , React.createElement('button', {
+                          type: "button",
+                          onClick: () => {
+                            setGooglePlaceId("");
+                            setGoogleBusinessName("");
+                          },
+                          className: "text-[9px] text-red-500 hover:underline font-bold shrink-0"
+                        }, "Clear")
+                    )
+                )
+
                 , React.createElement('div', { className: "space-y-1.5" }
                   , React.createElement(Label, { htmlFor: "review-biz-type", className: "text-xs font-semibold text-muted-foreground" }, "Business Type")
                   , React.createElement(Input, {
@@ -745,6 +846,43 @@ export default function BusinessDashboard() {
                   , "Save Review Settings"
                 )
               )
+            )
+          )
+
+          // Google Review Link & QR Code Card
+          , revGoogleUrl && React.createElement(Card, { className: "border-border bg-white shadow-sm rounded-xl" }
+            , React.createElement(CardHeader, { className: "p-6 pb-2" }
+              , React.createElement(CardTitle, { className: "text-base font-bold text-[#FF6A00] flex items-center gap-2" }
+                , React.createElement(QrCode, { className: "h-4 w-4" })
+                , "Google Review QR Code"
+              )
+              , React.createElement(CardDescription, { className: "text-xs text-muted-foreground" }, "Show this QR code at your checkout counter to collect reviews")
+            )
+            , React.createElement(CardContent, { className: "p-6 pt-2 flex flex-col items-center text-center space-y-4" }
+              , React.createElement('div', { className: "rounded-xl border border-dashed border-indigo-100 bg-slate-50/50 p-4 shadow-sm" }
+                , React.createElement('img', {
+                    src: `https://api.qrserver.com/v1/create-qr-code/?size=180x180&color=0f172a&data=${encodeURIComponent(revGoogleUrl)}`,
+                    alt: "Google Review QR Code",
+                    className: "h-36 w-36 shadow-sm border border-slate-100 rounded-lg bg-white"
+                  })
+              )
+              , React.createElement('div', { className: "w-full space-y-1.5" }
+                , React.createElement('span', { className: "text-[9px] text-muted-foreground uppercase tracking-widest font-bold" }, "Direct Review Link")
+                , React.createElement('input', {
+                    readOnly: true,
+                    value: revGoogleUrl,
+                    className: "w-full text-[10px] font-mono select-all bg-slate-50 border border-border p-2 rounded-lg text-center"
+                  })
+              )
+              , React.createElement(Button, {
+                  type: "button",
+                  variant: "outline",
+                  onClick: () => {
+                    navigator.clipboard.writeText(revGoogleUrl);
+                    alert("Google Review Link copied to clipboard!");
+                  },
+                  className: "w-full rounded-full border-[#FF6A00] text-[#FF6A00] hover:bg-orange-50 font-bold text-xs"
+                }, "Copy Review Link")
             )
           )
         )
@@ -1048,7 +1186,7 @@ export default function BusinessDashboard() {
                           type: "button",
                           onClick: () => handleProcessRedeem(),
                           disabled: redeemLoading,
-                          className: "bg-[#FF6A00] hover:bg-[#FF8E3C] text-white text-xs font-bold rounded-xl"
+                          className: "bg-gradient-to-r from-[#FF6A00] to-[#800020] hover:from-[#FF8E3C] hover:to-[#FF6A00] text-white text-xs font-bold rounded-xl border-0 shadow-sm transition-all duration-300"
                         }
                         , redeemLoading ? React.createElement(Loader2, { className: "h-3.5 w-3.5 animate-spin" }) : "Redeem"
                       )

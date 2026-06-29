@@ -11,6 +11,8 @@ const router = Router();
 router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res, next) => {
   try {
     const now = new Date();
+    const nowForStart = new Date(Date.now() + 14 * 60 * 60 * 1000); // 14 hours forward for UTC+14 starts
+    const nowForEnd = new Date(Date.now() - 30 * 60 * 60 * 1000);   // 30 hours backward for UTC-12 expiry
 
     const loyaltyCards = await prisma.customerPoints.findMany({
       where: { customerId: req.user.sub },
@@ -35,6 +37,8 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
                 requiredStamps: true,
                 rewardName: true,
                 validityDays: true,
+                bonusThresholdAmount: true,
+                pointsPerRupeeAboveThreshold: true,
               },
             },
             userWallets: {
@@ -43,6 +47,7 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
                 id: true,
                 currentPoints: true,
                 currentStamps: true,
+                pointsBalance: true,
                 startedAt: true,
                 expiresAt: true,
               },
@@ -76,8 +81,8 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
             coupons: {
               where: {
                 isActive: true,
-                validFrom: { lte: now },
-                validTo: { gte: now },
+                validFrom: { lte: nowForStart },
+                validTo: { gte: nowForEnd },
               },
               select: {
                 id: true,
@@ -98,6 +103,14 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
       orderBy: { updatedAt: 'desc' },
     });
 
+    // Fetch global points settings
+    const [globalRupeeSetting, globalStampSetting] = await Promise.all([
+      prisma.systemSetting.findUnique({ where: { key: 'points_per_rupee' } }),
+      prisma.systemSetting.findUnique({ where: { key: 'points_per_stamp' } }),
+    ]);
+    const globalPointsPerRupee = globalRupeeSetting ? parseFloat(globalRupeeSetting.value) : 0.1;
+    const globalPointsPerStamp = globalStampSetting ? parseInt(globalStampSetting.value, 10) : 50;
+
     // Filter out coupons that have hit their usage cap and attach wallet/settings
     // Check and reset expired hybrid wallets on the fly
     const loyaltyCardsWithFilteredCoupons = await Promise.all(loyaltyCards.map(async card => {
@@ -116,11 +129,17 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
           id: wallet.id,
           currentPoints: 0,
           currentStamps: 0,
+          pointsBalance: wallet.pointsBalance || 0,
           startedAt: null,
           expiresAt: null,
         };
       }
-      const settings = card.business.loyaltyProgramSettings || null;
+      const settings = card.business.loyaltyProgramSettings 
+        ? {
+            ...card.business.loyaltyProgramSettings,
+            pointsPerRupee: globalPointsPerRupee,
+          }
+        : null;
       const loyaltyWallet = card.business.loyaltyWallets?.[0] || null;
       
       const businessCopy = { ...card.business };
@@ -142,18 +161,94 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
       };
     }));
 
-    const unlockedRewards = await prisma.customerReward.findMany({
-      where: {
-        customerId: req.user.sub,
-        status: 'UNLOCKED',
-        reward: { isActive: true },
-      },
-      include: {
-        reward: { select: { id: true, title: true, description: true, businessId: true, isActive: true } },
-      },
-    });
+    const [unlockedRewards, activeCampaigns, activeEventCoupons, claimedCoupons] = await Promise.all([
+      prisma.customerReward.findMany({
+        where: {
+          customerId: req.user.sub,
+          status: 'UNLOCKED',
+          reward: { isActive: true },
+        },
+        include: {
+          reward: {
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              businessId: true,
+              isActive: true,
+              business: {
+                select: {
+                  id: true,
+                  name: true,
+                  logoUrl: true,
+                  googleReviewUrl: true,
+                }
+              }
+            }
+          },
+        },
+      }),
+      prisma.coupon.findMany({
+        where: {
+          isActive: true,
+          eventDate: null,
+          validFrom: { lte: nowForStart },
+          validTo: { gte: nowForEnd },
+          business: { status: 'ACTIVE', deletedAt: null },
+        },
+        include: {
+          business: {
+            select: { id: true, name: true, logoUrl: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.coupon.findMany({
+        where: {
+          isActive: true,
+          eventDate: { not: null },
+          validFrom: { lte: nowForStart },
+          validTo: { gte: nowForEnd },
+          business: { status: 'ACTIVE', deletedAt: null },
+          claims: {
+            none: { customerId: req.user.sub }
+          }
+        },
+        include: {
+          business: {
+            select: { id: true, name: true, logoUrl: true }
+          }
+        },
+        orderBy: { eventDate: 'asc' }
+      }),
+      prisma.claimedCoupon.findMany({
+        where: {
+          customerId: req.user.sub,
+          status: 'CLAIMED',
+          coupon: { isActive: true }
+        },
+        include: {
+          coupon: {
+            include: {
+              business: {
+                select: { id: true, name: true, logoUrl: true, googleReviewUrl: true }
+              }
+            }
+          }
+        },
+        orderBy: { claimedAt: 'desc' }
+      })
+    ]);
 
-    sendSuccess(res, { loyaltyCards: loyaltyCardsWithFilteredCoupons, unlockedRewards });
+    const filteredCampaigns = activeCampaigns.filter(c => c.usageLimit === null || c.totalUsed < c.usageLimit);
+
+    sendSuccess(res, {
+      loyaltyCards: loyaltyCardsWithFilteredCoupons,
+      unlockedRewards,
+      activeCampaigns: filteredCampaigns,
+      activeEventCoupons,
+      claimedCoupons
+    });
   } catch (err) { next(err); }
 });
 

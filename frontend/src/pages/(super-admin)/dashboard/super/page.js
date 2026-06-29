@@ -340,7 +340,7 @@ export default function SuperDashboard() {
               , React.createElement(Button, {
                   type: "submit",
                   disabled: sendingAlert,
-                  className: "w-full md:w-auto bg-[#FF6A00] hover:bg-[#FF8E3C] text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-md shadow-[#FF6A00]/25 flex items-center justify-center gap-2"
+                  className: "w-full md:w-auto bg-gradient-to-r from-[#FF6A00] to-[#800020] hover:from-[#FF8E3C] hover:to-[#FF6A00] text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-md shadow-[#FF6A00]/25 flex items-center justify-center gap-2 border-0 transition-all duration-300"
                 }
                 , sendingAlert ? React.createElement(Loader2, { className: "h-3.5 w-3.5 animate-spin" }) : null
                 , sendingAlert ? "Sending..." : "Send Notification"

@@ -27,4 +27,6 @@ export const reviewSettingsSchema = z.object({
   googleReviewUrl: z.string().url().optional().nullable().or(z.literal('')).transform(v => v || null),
   instagramUrl: z.string().url().optional().nullable().or(z.literal('')).transform(v => v || null),
   facebookUrl: z.string().url().optional().nullable().or(z.literal('')).transform(v => v || null),
+  googleBusinessName: z.string().max(200).optional().nullable(),
+  googlePlaceId: z.string().max(200).optional().nullable(),
 });

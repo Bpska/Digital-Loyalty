@@ -15,7 +15,18 @@ router.get('/public/count', async (req, res, next) => {
   try {
     const prisma = await import('../../config/prisma.js').then(m => m.default);
     const count = await prisma.checkIn.count();
-    sendSuccess(res, { count }, 'Total check-ins retrieved successfully');
+    
+    // Fetch mock business count offset from system settings
+    const mockBizSetting = await prisma.systemSetting.findUnique({
+      where: { key: 'mock_business_count' }
+    });
+    const mockOffset = mockBizSetting ? parseInt(mockBizSetting.value, 10) : 50;
+    const actualBizCount = await prisma.business.count({
+      where: { deletedAt: null }
+    });
+    const businessCount = mockOffset + actualBizCount;
+
+    sendSuccess(res, { count, businessCount }, 'Public stats retrieved successfully');
   } catch (err) {
     next(err);
   }

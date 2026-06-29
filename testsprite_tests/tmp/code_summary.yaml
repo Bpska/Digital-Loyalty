@@ -1,0 +1,239 @@
+version: "2"
+type: backend
+tech_stack:
+  - language: JavaScript
+  - framework: Express.js
+  - database: PostgreSQL
+  - orm: Prisma
+features:
+  - name: Authentication
+    description: Handle signup, password login, Google login, OTP flow, token refreshing, and logout.
+    files:
+      - backend/src/modules/auth/auth.routes.js
+    endpoints:
+      - method: POST
+        path: /api/v1/auth/register
+        description: Register a new customer
+        auth_required: false
+      - method: POST
+        path: /api/v1/auth/google
+        description: Authenticate customer via Google
+        auth_required: false
+      - method: POST
+        path: /api/v1/auth/register-business
+        description: Register a business admin
+        auth_required: false
+      - method: POST
+        path: /api/v1/auth/otp/send
+        description: Send SMS OTP
+        auth_required: false
+      - method: POST
+        path: /api/v1/auth/otp/verify
+        description: Verify SMS OTP
+        auth_required: false
+      - method: POST
+        path: /api/v1/auth/login
+        description: Username/password login
+        auth_required: false
+      - method: POST
+        path: /api/v1/auth/refresh
+        description: Refresh access tokens using refresh token
+        auth_required: false
+      - method: POST
+        path: /api/v1/auth/logout
+        description: Revoke session and log out
+        auth_required: false
+      - method: GET
+        path: /api/v1/auth/me
+        description: Retrieve current authenticated user profile
+        auth_required: true
+
+  - name: Super Admin Dashboard
+    description: Perform platform operations, business/plan management, view metrics and audit logs, configure global settings.
+    files:
+      - backend/src/modules/admin/admin.routes.js
+    endpoints:
+      - method: GET
+        path: /api/v1/admin/dashboard
+        description: Get platform stats
+        auth_required: true
+      - method: GET
+        path: /api/v1/admin/businesses
+        description: List registered businesses
+        auth_required: true
+      - method: PATCH
+        path: /api/v1/admin/businesses/:id/status
+        description: Update business active status
+        auth_required: true
+      - method: DELETE
+        path: /api/v1/admin/businesses/:id
+        description: Soft-delete a business
+        auth_required: true
+      - method: GET
+        path: /api/v1/admin/plans
+        description: List subscription plans
+        auth_required: true
+      - method: POST
+        path: /api/v1/admin/plans
+        description: Create a subscription plan
+        auth_required: true
+      - method: PATCH
+        path: /api/v1/admin/plans/:id
+        description: Modify a subscription plan
+        auth_required: true
+      - method: DELETE
+        path: /api/v1/admin/plans/:id
+        description: Delete a subscription plan
+        auth_required: true
+      - method: GET
+        path: /api/v1/admin/fraud/checkins
+        description: Get suspicious check-ins
+        auth_required: true
+      - method: DELETE
+        path: /api/v1/admin/fraud/checkins/:id
+        description: Remove suspicious check-in
+        auth_required: true
+      - method: GET
+        path: /api/v1/admin/audit-logs
+        description: Retrieve admin audit logs
+        auth_required: true
+      - method: POST
+        path: /api/v1/admin/notifications
+        description: Broadcast notifications
+        auth_required: true
+      - method: GET
+        path: /api/v1/admin/settings
+        description: Get platform-wide settings
+        auth_required: true
+      - method: PUT
+        path: /api/v1/admin/settings
+        description: Update platform-wide settings
+        auth_required: true
+      - method: GET
+        path: /api/v1/admin/users
+        description: List users in the platform
+        auth_required: true
+      - method: GET
+        path: /api/v1/admin/support-messages
+        description: View support inquiries
+        auth_required: true
+
+  - name: Business Management
+    description: Manage tenant businesses, branches, settings, and view branch customer lists.
+    files:
+      - backend/src/modules/business/business.routes.js
+    endpoints:
+      - method: POST
+        path: /api/v1/businesses
+        description: Create a business
+        auth_required: true
+      - method: GET
+        path: /api/v1/businesses/:businessId
+        description: View specific business details
+        auth_required: true
+      - method: PATCH
+        path: /api/v1/businesses/:businessId
+        description: Edit business profile
+        auth_required: true
+      - method: POST
+        path: /api/v1/businesses/:businessId/logo
+        description: Upload business logo image
+        auth_required: true
+      - method: GET
+        path: /api/v1/businesses/:businessId/customers
+        description: List customers and points for a business
+        auth_required: true
+
+  - name: Customer Portal
+    description: Customer endpoints to fetch dashboard, edit customer profile, view earned rewards, and submit support questions.
+    files:
+      - backend/src/modules/customer/customer.routes.js
+    endpoints:
+      - method: GET
+        path: /api/v1/customer/dashboard
+        description: Fetch customer loyalty cards, coupons, and rewards
+        auth_required: true
+      - method: GET
+        path: /api/v1/customer/profile
+        description: Get customer profile fields
+        auth_required: true
+      - method: PATCH
+        path: /api/v1/customer/profile
+        description: Update name and email fields
+        auth_required: true
+      - method: DELETE
+        path: /api/v1/customer/account
+        description: Soft-delete customer profile (GDPR compliance)
+        auth_required: true
+      - method: GET
+        path: /api/v1/customer/rewards
+        description: List all earned customer rewards
+        auth_required: true
+      - method: POST
+        path: /api/v1/customer/support-message
+        description: Send message to customer support
+        auth_required: true
+
+  - name: Loyalty Approval System
+    description: Allows businesses to configure tier/stamp rules, view check-in request lists, approve check-ins, or redeem loyalty points.
+    files:
+      - backend/src/modules/loyalty-approval/loyalty-approval.routes.js
+    endpoints:
+      - method: GET
+        path: /api/v1/loyalty-approval/levels/:businessId
+        description: List loyalty tier levels
+        auth_required: true
+      - method: POST
+        path: /api/v1/loyalty-approval/levels
+        description: Create a loyalty tier level
+        auth_required: true
+      - method: PATCH
+        path: /api/v1/loyalty-approval/levels/:levelId
+        description: Update loyalty level details
+        auth_required: true
+      - method: DELETE
+        path: /api/v1/loyalty-approval/levels/:levelId
+        description: Delete loyalty tier level
+        auth_required: true
+      - method: POST
+        path: /api/v1/loyalty-approval/request
+        description: Request points after scanning
+        auth_required: true
+      - method: GET
+        path: /api/v1/loyalty-approval/requests/:businessId
+        description: List pending loyalty requests
+        auth_required: true
+      - method: POST
+        path: /api/v1/loyalty-approval/approve/:requestId
+        description: Approve loyalty request with specific tier
+        auth_required: true
+      - method: POST
+        path: /api/v1/loyalty-approval/reject/:requestId
+        description: Reject customer request
+        auth_required: true
+      - method: GET
+        path: /api/v1/loyalty-approval/history
+        description: Get customer transaction logs
+        auth_required: true
+      - method: GET
+        path: /api/v1/loyalty-approval/analytics/:businessId
+        description: Retrieve loyalty summary statistics
+        auth_required: true
+      - method: GET
+        path: /api/v1/loyalty-approval/settings/:businessId
+        description: Retrieve settings of hybrid loyalty scheme
+        auth_required: true
+      - method: POST
+        path: /api/v1/loyalty-approval/settings/:businessId
+        description: Save settings of hybrid loyalty scheme
+        auth_required: true
+      - method: POST
+        path: /api/v1/loyalty-approval/approve-wallet/:requestId
+        description: Approve a loyalty request using purchase amount and wallet
+        auth_required: true
+      - method: POST
+        path: /api/v1/loyalty-approval/redeem-wallet-reward/:businessId
+        description: Redeem stamps for a reward voucher
+        auth_required: true
+
+known_limitations: []

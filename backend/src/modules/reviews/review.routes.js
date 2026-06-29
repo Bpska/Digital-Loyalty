@@ -19,7 +19,10 @@ import {
   getReviewSettings,
   saveReviewSettings,
   getGoogleReviewUrl,
+  searchGooglePlaces,
 } from './review.service.js';
+
+import { AppError } from '../../middlewares/error.middleware.js';
 
 const router = Router();
 
@@ -168,6 +171,28 @@ router.post(
     try {
       const settings = await saveReviewSettings(req.params.businessId, req.body);
       sendSuccess(res, settings, 'Review settings saved');
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * GET /api/v1/reviews/search-places/:businessId
+ * Business Admin: search Google listings for a business.
+ */
+router.get(
+  '/search-places/:businessId',
+  authenticate,
+  authorize(Role.BUSINESS_ADMIN, Role.SUPER_ADMIN),
+  requireSameBusiness,
+  async (req, res, next) => {
+    try {
+      const { query } = req.query;
+      if (!query) throw new AppError('Search query is required', 400);
+
+      const results = await searchGooglePlaces(query, req.params.businessId);
+      sendSuccess(res, results, 'Google places searched successfully');
     } catch (err) {
       next(err);
     }

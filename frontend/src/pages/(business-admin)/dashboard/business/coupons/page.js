@@ -47,6 +47,9 @@ export default function CouponsPage() {
   const [validFrom, setValidFrom] = useState("");
   const [validTo, setValidTo] = useState("");
   const [usageLimit, setUsageLimit] = useState("");
+  const [eventDate, setEventDate] = useState("");
+  const [offerTitle, setOfferTitle] = useState("");
+  const [offerDescription, setOfferDescription] = useState("");
 
   // 1. Fetch coupons list
   const { data: coupons = [], isLoading } = useQuery({
@@ -114,6 +117,9 @@ export default function CouponsPage() {
       validFrom: new Date(validFrom).toISOString(),
       validTo: new Date(validTo).toISOString(),
       usageLimit: usageLimit ? parseInt(usageLimit) : undefined,
+      eventDate: eventDate ? new Date(eventDate).toISOString() : null,
+      offerTitle: offerTitle || null,
+      offerDescription: offerDescription || null,
     });
   };
 
@@ -133,6 +139,9 @@ export default function CouponsPage() {
         validFrom: new Date(validFrom).toISOString(),
         validTo: new Date(validTo).toISOString(),
         usageLimit: usageLimit ? parseInt(usageLimit) : null,
+        eventDate: eventDate ? new Date(eventDate).toISOString() : null,
+        offerTitle: offerTitle || null,
+        offerDescription: offerDescription || null,
       }
     });
   };
@@ -147,6 +156,9 @@ export default function CouponsPage() {
     setValidFrom(new Date(coupon.validFrom).toISOString().split("T")[0]);
     setValidTo(new Date(coupon.validTo).toISOString().split("T")[0]);
     setUsageLimit(coupon.usageLimit ? coupon.usageLimit.toString() : "");
+    setEventDate(coupon.eventDate ? new Date(coupon.eventDate).toISOString().split("T")[0] : "");
+    setOfferTitle(coupon.offerTitle || "");
+    setOfferDescription(coupon.offerDescription || "");
     setShowEditModal(true);
   };
 
@@ -159,6 +171,9 @@ export default function CouponsPage() {
     setValidFrom("");
     setValidTo("");
     setUsageLimit("");
+    setEventDate("");
+    setOfferTitle("");
+    setOfferDescription("");
     setSelectedCoupon(null);
     setErrorMsg(null);
   };
@@ -416,6 +431,39 @@ export default function CouponsPage() {
                 )
               )
 
+              , React.createElement('div', { className: "border-t border-dashed border-border pt-3 space-y-3" },
+                  React.createElement('span', { className: "text-[10px] font-bold text-muted-foreground uppercase tracking-widest block" }, "Event-Day Settings (Optional)"),
+                  React.createElement('div', { className: "grid grid-cols-2 gap-4" },
+                    React.createElement('div', { className: "space-y-1" },
+                      React.createElement(Label, { htmlFor: "event-date" }, "Event Date"),
+                      React.createElement(Input, {
+                        id: "event-date",
+                        type: "date",
+                        value: eventDate,
+                        onChange: (e) => setEventDate(e.target.value)
+                      })
+                    ),
+                    React.createElement('div', { className: "space-y-1" },
+                      React.createElement(Label, { htmlFor: "offer-title" }, "Offer Title"),
+                      React.createElement(Input, {
+                        id: "offer-title",
+                        placeholder: "e.g. Independence Day Special",
+                        value: offerTitle,
+                        onChange: (e) => setOfferTitle(e.target.value)
+                      })
+                    )
+                  ),
+                  React.createElement('div', { className: "space-y-1" },
+                    React.createElement(Label, { htmlFor: "offer-desc" }, "Offer Description"),
+                    React.createElement(Input, {
+                      id: "offer-desc",
+                      placeholder: "e.g. Claim this coupon to get 20% off at the counter.",
+                      value: offerDescription,
+                      onChange: (e) => setOfferDescription(e.target.value)
+                    })
+                  )
+                )
+
               , React.createElement(DialogFooter, { className: "pt-2", __self: this, __source: {fileName: _jsxFileName, lineNumber: 342}}
                 , React.createElement(Button, { type: "button", variant: "outline", onClick: () => setShowAddModal(false), __self: this, __source: {fileName: _jsxFileName, lineNumber: 343}}, "Cancel"
 
@@ -537,6 +585,39 @@ export default function CouponsPage() {
                   onChange: (e) => setUsageLimit(e.target.value), __self: this, __source: {fileName: _jsxFileName, lineNumber: 333}}
                 )
               )
+
+              , React.createElement('div', { className: "border-t border-dashed border-border pt-3 space-y-3" },
+                  React.createElement('span', { className: "text-[10px] font-bold text-muted-foreground uppercase tracking-widest block" }, "Event-Day Settings (Optional)"),
+                  React.createElement('div', { className: "grid grid-cols-2 gap-4" },
+                    React.createElement('div', { className: "space-y-1" },
+                      React.createElement(Label, { htmlFor: "edit-event-date" }, "Event Date"),
+                      React.createElement(Input, {
+                        id: "edit-event-date",
+                        type: "date",
+                        value: eventDate,
+                        onChange: (e) => setEventDate(e.target.value)
+                      })
+                    ),
+                    React.createElement('div', { className: "space-y-1" },
+                      React.createElement(Label, { htmlFor: "edit-offer-title" }, "Offer Title"),
+                      React.createElement(Input, {
+                        id: "edit-offer-title",
+                        placeholder: "e.g. Independence Day Special",
+                        value: offerTitle,
+                        onChange: (e) => setOfferTitle(e.target.value)
+                      })
+                    )
+                  ),
+                  React.createElement('div', { className: "space-y-1" },
+                    React.createElement(Label, { htmlFor: "edit-offer-desc" }, "Offer Description"),
+                    React.createElement(Input, {
+                      id: "edit-offer-desc",
+                      placeholder: "e.g. Claim this coupon to get 20% off at the counter.",
+                      value: offerDescription,
+                      onChange: (e) => setOfferDescription(e.target.value)
+                    })
+                  )
+                )
 
               , React.createElement(DialogFooter, { className: "pt-2", __self: this, __source: {fileName: _jsxFileName, lineNumber: 342}}
                 , React.createElement(Button, { type: "button", variant: "outline", onClick: () => setShowEditModal(false), __self: this, __source: {fileName: _jsxFileName, lineNumber: 343}}, "Cancel"

@@ -1,7 +1,8 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Circle, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { Loader2 } from "lucide-react";
 
 // Use CDNs for Leaflet's marker icons to bypass Vite asset bundling bugs
 const customMarkerIcon = new L.Icon({
@@ -33,6 +34,16 @@ function MapUpdater({ center }) {
 }
 
 export default function BranchMap({ lat, lng, radius, onChange }) {
+  const [shouldRender, setShouldRender] = useState(false);
+
+  useEffect(() => {
+    // Delay mounting Leaflet container to keep modal open/close animations buttery smooth
+    const timer = setTimeout(() => {
+      setShouldRender(true);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, []);
+
   const numericLat = parseFloat(lat);
   const numericLng = parseFloat(lng);
   
@@ -48,6 +59,15 @@ export default function BranchMap({ lat, lng, radius, onChange }) {
   };
 
   const parsedRadius = parseInt(radius) || 50;
+
+  if (!shouldRender) {
+    return (
+      <div className="h-56 w-full rounded-lg border border-dashed border-border bg-slate-50/50 flex flex-col items-center justify-center text-xs text-muted-foreground my-3 gap-2">
+        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        <span>Loading map interface...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="h-56 w-full rounded-lg overflow-hidden border border-border shadow-sm relative z-0 my-3">

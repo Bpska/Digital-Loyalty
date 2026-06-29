@@ -93,6 +93,7 @@ router.get('/businesses', async (req, res, next) => {
           owner: { select: { id: true, name: true, phone: true, email: true } },
           plan: { select: { name: true, priceMonthly: true } },
           subscription: { select: { status: true, currentPeriodEnd: true } },
+          loyaltyProgramSettings: { select: { pointsPerRupee: true } },
           _count: { select: { branches: true, staff: true } },
         },
       }),
@@ -200,6 +201,37 @@ router.delete(
         },
       });
       sendSuccess(res, null, 'Business deleted successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// PATCH /admin/businesses/:id/loyalty-settings — update points per rupee setting for a specific business
+router.patch(
+  '/businesses/:id/loyalty-settings',
+  validate(z.object({
+    pointsPerRupee: z.coerce.number().positive(),
+  })),
+  auditLog('BUSINESS_LOYALTY_SETTINGS_CHANGED', 'LoyaltyProgramSettings'),
+  async (req, res, next) => {
+    try {
+      const { pointsPerRupee } = req.body;
+      const settings = await prisma.loyaltyProgramSettings.upsert({
+        where: { businessId: req.params.id },
+        update: { pointsPerRupee },
+        create: {
+          businessId: req.params.id,
+          pointsPerRupee,
+          programName: 'Coffee Rewards',
+          pointsPerStamp: 50,
+          requiredStamps: 7,
+          rewardName: 'Free Coffee',
+          validityDays: 30,
+          maxDailyStamps: 1,
+        },
+      });
+      sendSuccess(res, settings, 'Business loyalty points setting updated');
     } catch (err) {
       next(err);
     }
@@ -388,6 +420,9 @@ const settingsSchema = z.object({
   promo_limit: z.coerce.number().int().positive(),
   promo_price: z.coerce.number().positive(),
   gateway_percent: z.coerce.number().min(0).max(100).optional(),
+  points_per_rupee: z.coerce.number().positive().optional(),
+  points_per_stamp: z.coerce.number().int().positive().optional(),
+  mock_business_count: z.coerce.number().int().min(0).optional(),
 });
 
 router.get('/settings', async (req, res, next) => {

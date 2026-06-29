@@ -124,6 +124,8 @@ model User {
   userWallets          UserWallet[]
   walletTransactions   WalletTransaction[]
   loyaltyWallets       CustomerLoyaltyWallet[]
+  loyaltyPointsLedgers LoyaltyPointsLedger[]
+  claimedCoupons       ClaimedCoupon[]
 
   @@index([phone])
   @@index([role])
@@ -175,6 +177,7 @@ model Business {
   userWallets          UserWallet[]
   walletTransactions   WalletTransaction[]
   loyaltyWallets         CustomerLoyaltyWallet[]
+  loyaltyPointsLedgers LoyaltyPointsLedger[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -415,23 +418,27 @@ model CustomerReward {
 
 /// Time-bound discount coupon — separate from loyalty rewards.
 model Coupon {
-  id            String       @id @default(cuid())
-  code          String       @unique
-  title         String
-  description   String?
-  discountType  DiscountType
-  discountValue Decimal      @db.Decimal(10, 2)
-  validFrom     DateTime
-  validTo       DateTime
+  id               String          @id @default(cuid())
+  code             String          @unique
+  title            String
+  description      String?
+  discountType     DiscountType
+  discountValue    Decimal         @db.Decimal(10, 2)
+  validFrom        DateTime
+  validTo          DateTime
   /// null = unlimited global usage
-  usageLimit    Int?
-  totalUsed     Int          @default(0)
-  isActive      Boolean      @default(true)
+  usageLimit       Int?
+  totalUsed        Int             @default(0)
+  isActive         Boolean         @default(true)
+  eventDate        DateTime?       @map("event_date")
+  offerTitle       String?         @map("offer_title")
+  offerDescription String?         @map("offer_description")
 
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   usages CouponUsage[]
+  claims ClaimedCoupon[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -454,6 +461,21 @@ model CouponUsage {
   @@unique([couponId, customerId])
   @@index([couponId])
   @@map("coupon_usages")
+}
+
+model ClaimedCoupon {
+  id             String    @id @default(cuid())
+  couponId       String    @map("coupon_id")
+  coupon         Coupon    @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  customerId     String    @map("customer_id")
+  customer       User      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  claimedAt      DateTime  @default(now()) @map("claimed_at")
+  redeemedAt     DateTime? @map("redeemed_at")
+  status         String    @default("CLAIMED") // CLAIMED, REDEEMED, EXPIRED
+  redemptionCode String    @unique @default(cuid()) @map("redemption_code")
+
+  @@unique([couponId, customerId])
+  @@map("claimed_coupons")
 }
 
 /// Denormalized points/visits counter per customer per business.
@@ -646,6 +668,8 @@ model BusinessReviewSettings {
   googleReviewUrl String?
   instagramUrl    String?
   facebookUrl     String?
+  googleBusinessName String?
+  googlePlaceId      String?
 
   businessId String   @unique
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -695,18 +719,20 @@ model PushSubscription {
 // ─────────────────────────────────────────────────────────────
 
 model LoyaltyProgramSettings {
-  id              String   @id @default(cuid())
-  businessId      String   @unique @map("business_id")
-  business        Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  programName     String   @default("Coffee Rewards") @map("program_name")
-  pointsPerRupee  Float    @default(0.1) @map("points_per_rupee")
-  pointsPerStamp  Int      @default(50) @map("points_per_stamp")
-  requiredStamps  Int      @default(7) @map("required_stamps")
-  rewardName      String   @default("Free Coffee") @map("reward_name")
-  validityDays    Int      @default(30) @map("validity_days")
-  maxDailyStamps  Int      @default(1) @map("max_daily_stamps")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id                            String   @id @default(cuid())
+  businessId                    String   @unique @map("business_id")
+  business                      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  programName                   String   @default("Coffee Rewards") @map("program_name")
+  pointsPerRupee                Float    @default(0.1) @map("points_per_rupee")
+  pointsPerStamp                Int      @default(50) @map("points_per_stamp")
+  requiredStamps                Int      @default(7) @map("required_stamps")
+  rewardName                    String   @default("Free Coffee") @map("reward_name")
+  validityDays                  Int      @default(30) @map("validity_days")
+  maxDailyStamps                Int      @default(1) @map("max_daily_stamps")
+  bonusThresholdAmount          Float    @default(500) @map("bonus_threshold_amount")
+  pointsPerRupeeAboveThreshold  Float    @default(0.1) @map("points_per_rupee_above_threshold")
+  createdAt                     DateTime @default(now()) @map("created_at")
+  updatedAt                     DateTime @updatedAt @map("updated_at")
 
   @@map("loyalty_program_settings")
 }
@@ -719,6 +745,7 @@ model UserWallet {
   business       Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
   currentPoints  Int       @default(0) @map("current_points")
   currentStamps  Int       @default(0) @map("current_stamps")
+  pointsBalance  Int       @default(0) @map("points_balance")
   startedAt      DateTime? @map("started_at")
   expiresAt      DateTime? @map("expires_at")
   createdAt      DateTime  @default(now()) @map("created_at")
@@ -740,6 +767,20 @@ model WalletTransaction {
   createdAt     DateTime @default(now()) @map("created_at")
 
   @@map("wallet_transactions")
+}
+
+model LoyaltyPointsLedger {
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessId     String   @map("business_id")
+  business       Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  points         Int
+  purchaseAmount Float    @map("purchase_amount")
+  source         String   @default("BONUS")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("loyalty_points_ledger")
 }
 
 enum LoyaltyWalletStatus {

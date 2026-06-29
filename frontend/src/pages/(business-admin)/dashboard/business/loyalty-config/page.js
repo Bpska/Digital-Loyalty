@@ -63,6 +63,8 @@ export default function BusinessLoyaltyConfigPage() {
     rewardName: "",
     validityDays: "30",
     maxDailyStamps: "1",
+    bonusThresholdAmount: "500",
+    pointsPerRupeeAboveThreshold: "0.1",
   });
 
   // Simulation state
@@ -84,6 +86,8 @@ export default function BusinessLoyaltyConfigPage() {
         rewardName: settings.rewardName || "",
         validityDays: String(settings.validityDays ?? 30),
         maxDailyStamps: String(settings.maxDailyStamps ?? 1),
+        bonusThresholdAmount: String(settings.bonusThresholdAmount ?? 500),
+        pointsPerRupeeAboveThreshold: String(settings.pointsPerRupeeAboveThreshold ?? 0.1),
       });
       const ppr = settings.pointsPerRupee || 0.1;
       const pps = settings.pointsPerStamp ?? 50;
@@ -112,6 +116,8 @@ export default function BusinessLoyaltyConfigPage() {
     const vd = parseInt(settingsForm.validityDays, 10);
     const mds = parseInt(settingsForm.maxDailyStamps, 10);
     const sc = parseFloat(stampCost);
+    const bta = parseFloat(settingsForm.bonusThresholdAmount);
+    const prt = parseFloat(settingsForm.pointsPerRupeeAboveThreshold);
 
     if (!settingsForm.programName.trim()) { alert("Program name is required"); return; }
     if (isNaN(rs) || rs <= 0) { alert("Required stamps must be a positive integer"); return; }
@@ -119,6 +125,8 @@ export default function BusinessLoyaltyConfigPage() {
     if (isNaN(vd) || vd <= 0) { alert("Validity must be a positive integer"); return; }
     if (isNaN(mds) || mds <= 0) { alert("Maximum Daily Stamp must be a positive integer"); return; }
     if (isNaN(sc) || sc <= 0) { alert("Stamp cost must be a positive number"); return; }
+    if (isNaN(bta) || bta < 0) { alert("Bonus threshold must be a non-negative number"); return; }
+    if (isNaN(prt) || prt < 0) { alert("Bonus points rate must be a non-negative number"); return; }
 
     const ppr = settings?.pointsPerRupee || 0.1;
 
@@ -129,6 +137,8 @@ export default function BusinessLoyaltyConfigPage() {
       validityDays: vd,
       maxDailyStamps: mds,
       pointsPerStamp: Math.round(sc * ppr),
+      bonusThresholdAmount: bta,
+      pointsPerRupeeAboveThreshold: prt,
     });
   }
 
@@ -139,7 +149,10 @@ export default function BusinessLoyaltyConfigPage() {
   const reqStamps = parseInt(settingsForm.requiredStamps, 10) || 7;
 
   const simPointsEarned = Math.floor(simAmount * ppr);
-  const simStampsFromPurchase = Math.floor(simPointsEarned / pps);
+  let simStampsFromPurchase = Math.floor(simPointsEarned / pps);
+  if (simStampsFromPurchase > 1) {
+    simStampsFromPurchase = 1;
+  }
   const simRupeePerStamp = Math.ceil(pps / ppr);
   const simTotalSpendForReward = simRupeePerStamp * reqStamps;
 
@@ -338,6 +351,19 @@ export default function BusinessLoyaltyConfigPage() {
                   React.createElement(Shield, { className: "h-4 w-4 text-violet-500 shrink-0" }),
                   `Maximum ${settings?.maxDailyStamps ?? 1} stamp(s) per customer per day`
                 )
+              ),
+
+              // Detail 6: Bonus Points Rules
+              React.createElement(
+                "div",
+                { className: "bg-amber-50/40 p-3.5 rounded-xl border border-amber-100 space-y-1 col-span-2" },
+                React.createElement("span", { className: "text-amber-800/60 block uppercase tracking-wider text-[9px] font-bold" }, "Bonus Loyalty Points"),
+                React.createElement(
+                  "span",
+                  { className: "text-slate-700 font-semibold flex items-center gap-1.5" },
+                  React.createElement(Sparkles, { className: "h-4 w-4 text-amber-500 shrink-0" }),
+                  `Spend ≥ ₹${settings?.bonusThresholdAmount ?? 500} earns bonus points at ${settings?.pointsPerRupeeAboveThreshold ?? 0.1} pts/₹ above threshold`
+                )
               )
             )
           )
@@ -518,6 +544,55 @@ export default function BusinessLoyaltyConfigPage() {
                 "p",
                 { className: "text-[10px] text-muted-foreground" },
                 "Limits one stamp card per customer per day"
+              )
+            ),
+
+            // Bonus Spend Threshold & Rate
+            React.createElement(
+              "div",
+              { className: "grid grid-cols-2 gap-3" },
+              React.createElement(
+                "div",
+                { className: "space-y-1.5" },
+                React.createElement(
+                  Label,
+                  { htmlFor: "bonus-threshold" },
+                  "Bonus Spend Threshold (₹)"
+                ),
+                React.createElement(Input, {
+                  id: "bonus-threshold",
+                  type: "number",
+                  placeholder: "e.g. 500",
+                  min: "0",
+                  value: settingsForm.bonusThresholdAmount,
+                  onChange: (e) => setSettingsForm((f) => ({ ...f, bonusThresholdAmount: e.target.value })),
+                  className: "border-border",
+                }),
+                React.createElement(
+                  "p",
+                  { className: "text-[10px] text-muted-foreground" },
+                  "Minimum spend to earn bonus points"
+                )
+              ),
+              React.createElement(
+                "div",
+                { className: "space-y-1.5" },
+                React.createElement(Label, { htmlFor: "bonus-rate" }, "Bonus Points Rate (pts/₹)"),
+                React.createElement(Input, {
+                  id: "bonus-rate",
+                  type: "number",
+                  step: "0.01",
+                  placeholder: "e.g. 0.1",
+                  min: "0",
+                  value: settingsForm.pointsPerRupeeAboveThreshold,
+                  onChange: (e) => setSettingsForm((f) => ({ ...f, pointsPerRupeeAboveThreshold: e.target.value })),
+                  className: "border-border",
+                }),
+                React.createElement(
+                  "p",
+                  { className: "text-[10px] text-muted-foreground" },
+                  "Bonus points per ₹ spent above threshold"
+                )
               )
             ),
 

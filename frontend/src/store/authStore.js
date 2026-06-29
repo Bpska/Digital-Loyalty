@@ -60,6 +60,7 @@ export const useAuthStore = create((set) => {
     user: initialUser,
     accessToken: initialToken,
     loading: false,
+    initialized: false,
     error: null,
     otpSent: false,
     phoneForOtp: null,
@@ -226,13 +227,20 @@ export const useAuthStore = create((set) => {
     checkSession: async () => {
       set({ loading: true });
       try {
+        const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+        if (!token) {
+          set({ user: null, accessToken: null, loading: false, initialized: true });
+          return;
+        }
         const response = await api.get("/auth/me");
         if (response.success && response.data) {
           const user = response.data;
           if (typeof window !== "undefined") {
             localStorage.setItem("user", JSON.stringify(user));
           }
-          set({ user, loading: false });
+          set({ user, loading: false, initialized: true });
+        } else {
+          throw new Error("Invalid session");
         }
       } catch (err) {
         // Clear auth if /me returns error (meaning session expired)
@@ -240,7 +248,7 @@ export const useAuthStore = create((set) => {
           localStorage.removeItem("user");
           localStorage.removeItem("accessToken");
         }
-        set({ user: null, accessToken: null, loading: false });
+        set({ user: null, accessToken: null, loading: false, initialized: true });
       }
     },
 

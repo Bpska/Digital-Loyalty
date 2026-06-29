@@ -1,10 +1,11 @@
 const _jsxFileName = "src\\pages\\(business-admin)\\dashboard\\business\\analytics\\page.tsx"; function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }"use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { 
   ResponsiveContainer, 
   AreaChart, 
@@ -12,31 +13,18 @@ import {
   XAxis, 
   YAxis, 
   Tooltip,
-
- 
   Cell, 
   PieChart, 
   Pie 
 } from "recharts";
-import { Activity } from "lucide-react";
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+import { Activity, Coins, TrendingUp, Users, Award, ShoppingBag } from "lucide-react";
 
 export default function AnalyticsPage() {
   const { user } = useAuthStore();
   const businessId = _optionalChain([user, 'optionalAccess', _ => _.businessId]);
+
+  // Average bill state in Rupees for estimating profit
+  const [avgBill, setAvgBill] = useState(250);
 
   const { data: analytics, isLoading } = useQuery({
     queryKey: ["businessAnalyticsDetails", businessId],
@@ -100,174 +88,267 @@ export default function AnalyticsPage() {
   
   const voucherPieData = [
     { name: "Claimed & Redeemed", value: redeemedCount, color: "#FF6A00" },
-    { name: "Unlocked & Unredeemed", value: lockedCount, color: "#FF5E00" }
+    { name: "Unlocked & Unredeemed", value: lockedCount, color: "#FFaa66" }
   ];
 
   return (
-    React.createElement('div', { className: "space-y-8 animate-fade-in" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 107}}
+    React.createElement('div', { className: "space-y-6 sm:space-y-8 animate-fade-in p-1 sm:p-2" }
       /* Header */
-      , React.createElement('div', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 109}}
-        , React.createElement('h1', { className: "text-3xl font-extrabold text-foreground tracking-tight"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 110}}, "Analytics Ledger" )
-        , React.createElement('p', { className: "text-xs text-muted-foreground mt-1"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 111}}, "Perform audit reviews on repeat customer frequencies and voucher conversion pipelines"
+      , React.createElement('div', null
+        , React.createElement('h1', { className: "text-2xl sm:text-3xl font-black text-foreground tracking-tight" }, "Live Business Analytics" )
+        , React.createElement('p', { className: "text-xs sm:text-sm text-muted-foreground mt-1" }, "See how your rewards program is driving return visits and growing your sales." )
+      )
 
+      /* Interactive Program Value Card (Profit Calculator) */
+      , React.createElement(Card, { className: "glass border border-[#FF6A00]/25 bg-gradient-to-tr from-white via-amber-50/10 to-[#FF6A00]/5 overflow-hidden shadow-lg", glass: true }
+        , React.createElement(CardContent, { className: "p-6 sm:p-8 space-y-6" }
+          , React.createElement('div', { className: "flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4" }
+            , React.createElement('div', { className: "space-y-1.5" }
+              , React.createElement('h2', { className: "text-lg font-black text-slate-800 flex items-center gap-2" }
+                , React.createElement(Coins, { className: "h-5 .5 text-[#FF6A00] shrink-0" })
+                , "Business Sales & Profit Estimator"
+              )
+              , React.createElement('p', { className: "text-xs text-muted-foreground" }
+                , "Calculate estimated revenue generated from customer visits and stamp card completions."
+              )
+            )
+            /* Average Bill Selector */
+            , React.createElement('div', { className: "flex flex-wrap items-center gap-1.5 bg-slate-100/80 border border-slate-200 rounded-xl p-1.5 shrink-0 self-start lg:self-auto" }
+              , React.createElement('span', { className: "text-[10px] font-black text-slate-500 uppercase px-2" }, "Avg Bill:")
+              , [150, 250, 500, 1000].map((val) => (
+                  React.createElement(Button, {
+                    key: val,
+                    variant: avgBill === val ? "default" : "ghost",
+                    className: `h-8 text-xs px-3 font-bold rounded-lg transition-all ${
+                      avgBill === val ? "bg-gradient-to-tr from-[#FF6A00] to-[#800020] hover:opacity-95 text-white shadow-sm" : "text-slate-600 hover:bg-slate-200/50"
+                    }`,
+                    onClick: () => setAvgBill(val)
+                  }
+                  , `₹${val}`
+                )
+              ))
+            )
+          )
+
+          , React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-3 gap-6 pt-2" }
+            /* Total Sales Driven */
+            , React.createElement('div', { className: "bg-gradient-to-br from-emerald-500/10 via-emerald-50/20 to-teal-500/5 border border-emerald-500/25 rounded-2xl p-5 shadow-sm space-y-2 flex flex-col justify-between" }
+              , React.createElement('div', { className: "flex justify-between items-center" }
+                , React.createElement('span', { className: "text-[9px] font-black text-emerald-700 uppercase tracking-widest block" }, "Estimated Sales")
+                , React.createElement('span', { className: "bg-emerald-100 text-emerald-800 text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider" }, "🚀 Total")
+              )
+              , React.createElement('span', { className: "text-3xl font-black text-emerald-800 block pt-1" }
+                , `₹ ${((analytics?.totalCheckIns || 0) * avgBill).toLocaleString()}`
+              )
+              , React.createElement('span', { className: "text-[10px] text-emerald-800/80 block leading-snug pt-1" }
+                , `Calculated from ${analytics?.totalCheckIns || 0} counter scans.`
+              )
+            )
+            /* Repeat visits sales */
+            , React.createElement('div', { className: "bg-gradient-to-br from-amber-500/10 via-amber-50/20 to-orange-500/5 border border-amber-500/25 rounded-2xl p-5 shadow-sm space-y-2 flex flex-col justify-between" }
+              , React.createElement('div', { className: "flex justify-between items-center" }
+                , React.createElement('span', { className: "text-[9px] font-black text-amber-700 uppercase tracking-widest block" }, "Loyal Repeat Sales")
+                , React.createElement('span', { className: "bg-amber-100 text-amber-800 text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider" }, "🔥 Profit")
+              )
+              , React.createElement('span', { className: "text-3xl font-black text-amber-800 block pt-1" }
+                , `₹ ${(Math.max(0, (analytics?.totalCheckIns || 0) - (analytics?.totalCustomers || 0)) * avgBill).toLocaleString()}`
+              )
+              , React.createElement('span', { className: "text-[10px] text-amber-800/80 block leading-snug pt-1" }
+                , "Pure cash flow driven by returning customers."
+              )
+            )
+            /* Customer retention */
+            , React.createElement('div', { className: "bg-gradient-to-br from-indigo-500/10 via-indigo-50/20 to-purple-500/5 border border-indigo-500/25 rounded-2xl p-5 shadow-sm space-y-2 flex flex-col justify-between" }
+              , React.createElement('div', { className: "flex justify-between items-center" }
+                , React.createElement('span', { className: "text-[9px] font-black text-indigo-700 uppercase tracking-widest block" }, "Retention Score")
+                , React.createElement('span', { className: "bg-indigo-100 text-indigo-800 text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider" }, "💎 Loyalty")
+              )
+              , React.createElement('span', { className: "text-3xl font-black text-indigo-800 block pt-1" }
+                , `${analytics?.repeatRate || 0}%`
+              )
+              , React.createElement('span', { className: "text-[10px] text-indigo-800/80 block leading-snug pt-1" }
+                , "Percentage of customers coming back 2+ times."
+              )
+            )
+          )
         )
       )
 
       /* Detail Analytics Cards Grid */
-      , React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-3 gap-6"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 117}}
+      , React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6" }
 
         /* Card 1: Repeat Rate */
-        , React.createElement(Card, { className: "glass", glass: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 120}}
-          , React.createElement(CardHeader, { className: "pb-2", __self: this, __source: {fileName: _jsxFileName, lineNumber: 121}}
-            , React.createElement(CardDescription, { className: "text-xs font-bold uppercase tracking-wider text-muted-foreground"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 122}}, "Customer Retention Rate"
-
+        , React.createElement(Card, { className: "glass", glass: true }
+          , React.createElement(CardHeader, { className: "pb-2" }
+            , React.createElement(CardTitle, { className: "text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5" }
+              , React.createElement(Users, { className: "h-4 w-4 text-primary shrink-0" })
+              , "Customer Loyalty"
             )
           )
-          , React.createElement(CardContent, { className: "space-y-4", __self: this, __source: {fileName: _jsxFileName, lineNumber: 126}}
-            , React.createElement('div', { className: "flex items-baseline space-x-2"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 127}}
-              , React.createElement('span', { className: "text-4xl font-extrabold text-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 128}}, _optionalChain([analytics, 'optionalAccess', _5 => _5.repeatRate]), "%")
-              , React.createElement('span', { className: "text-xs text-muted-foreground" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 129}}, "repeat visitors" )
+          , React.createElement(CardContent, { className: "space-y-3" }
+            , React.createElement('div', { className: "flex items-baseline space-x-1.5" }
+              , React.createElement('span', { className: "text-3xl font-black text-foreground" }, _optionalChain([analytics, 'optionalAccess', _5 => _5.repeatRate]), "%")
+              , React.createElement('span', { className: "text-xs text-muted-foreground font-semibold" }, "Return Rate")
             )
-            , React.createElement('div', { className: "w-full bg-slate-100 rounded-full h-2.5 overflow-hidden"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 131}}
+            , React.createElement('div', { className: "w-full bg-slate-100 rounded-full h-2 overflow-hidden" }
               , React.createElement('div', { 
-                className: "bg-gradient-to-r from-primary to-indigo-400 h-full rounded-full"    , 
-                style: { width: `${_optionalChain([analytics, 'optionalAccess', _6 => _6.repeatRate])}%` }, __self: this, __source: {fileName: _jsxFileName, lineNumber: 132}}
+                className: "bg-gradient-to-r from-primary to-amber-500 h-full rounded-full"    , 
+                style: { width: `${_optionalChain([analytics, 'optionalAccess', _6 => _6.repeatRate])}%` }}
               )
             )
-            , React.createElement('p', { className: "text-[10px] text-muted-foreground leading-normal"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 137}}, "Retention rate measures the percentage of your registered customer pool that have checked in at least 2 times. Higher rate reflects strong loyalty."
-
+            , React.createElement('p', { className: "text-[10px] text-muted-foreground leading-normal" }
+              , "This shows how many customers check in 2 or more times. A higher percentage shows healthier customer retention."
             )
           )
         )
 
         /* Card 2: Conversion Rate */
-        , React.createElement(Card, { className: "glass", glass: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 144}}
-          , React.createElement(CardHeader, { className: "pb-2", __self: this, __source: {fileName: _jsxFileName, lineNumber: 145}}
-            , React.createElement(CardDescription, { className: "text-xs font-bold uppercase tracking-wider text-muted-foreground"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 146}}, "Voucher Redemption conversion"
-
+        , React.createElement(Card, { className: "glass", glass: true }
+          , React.createElement(CardHeader, { className: "pb-2" }
+            , React.createElement(CardTitle, { className: "text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5" }
+              , React.createElement(Award, { className: "h-4 w-4 text-primary shrink-0" })
+              , "Voucher Claim Rate"
             )
           )
-          , React.createElement(CardContent, { className: "space-y-4", __self: this, __source: {fileName: _jsxFileName, lineNumber: 150}}
-            , React.createElement('div', { className: "flex items-baseline space-x-2"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 151}}
-              , React.createElement('span', { className: "text-4xl font-extrabold text-primary"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 152}}, _optionalChain([analytics, 'optionalAccess', _7 => _7.redemptionRate]), "%")
-              , React.createElement('span', { className: "text-xs text-muted-foreground" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 153}}, "claimed")
+          , React.createElement(CardContent, { className: "space-y-3" }
+            , React.createElement('div', { className: "flex items-baseline space-x-1.5" }
+              , React.createElement('span', { className: "text-3xl font-black text-foreground" }, _optionalChain([analytics, 'optionalAccess', _7 => _7.redemptionRate]), "%")
+              , React.createElement('span', { className: "text-xs text-muted-foreground font-semibold" }, "Redeemed")
             )
-            , React.createElement('div', { className: "w-full bg-slate-100 rounded-full h-2.5 overflow-hidden"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 155}}
+            , React.createElement('div', { className: "w-full bg-slate-100 rounded-full h-2 overflow-hidden" }
               , React.createElement('div', { 
                 className: "bg-primary h-full rounded-full"  , 
-                style: { width: `${_optionalChain([analytics, 'optionalAccess', _8 => _8.redemptionRate])}%` }, __self: this, __source: {fileName: _jsxFileName, lineNumber: 156}}
+                style: { width: `${_optionalChain([analytics, 'optionalAccess', _8 => _8.redemptionRate])}%` }}
               )
             )
-            , React.createElement('p', { className: "text-[10px] text-muted-foreground leading-normal"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 161}}, "Redemption conversion tracks the ratio of earned customer rewards that cashiers successfully process and redeem at checkout counters."
-
+            , React.createElement('p', { className: "text-[10px] text-muted-foreground leading-normal" }
+              , "Tracks how many customers complete their stamp cards and successfully claim their rewards at your billing counter."
             )
           )
         )
 
-        /* Card 3: Check-in Activity Overview */
-        , React.createElement(Card, { className: "glass", glass: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 168}}
-          , React.createElement(CardHeader, { className: "pb-2", __self: this, __source: {fileName: _jsxFileName, lineNumber: 169}}
-            , React.createElement(CardDescription, { className: "text-xs font-bold uppercase tracking-wider text-muted-foreground"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 170}}, "Check-in Windows"
-
+        /* Card 3: Registered customers */
+        , React.createElement(Card, { className: "glass", glass: true }
+          , React.createElement(CardHeader, { className: "pb-2" }
+            , React.createElement(CardTitle, { className: "text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5" }
+              , React.createElement(ShoppingBag, { className: "h-4 w-4 text-primary shrink-0" })
+              , "Registered Customers"
             )
           )
-          , React.createElement(CardContent, { className: "grid grid-cols-3 gap-2 text-center pt-2"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 174}}
-            , React.createElement('div', { className: "bg-slate-50/60 p-2.5 rounded-lg border border-border/50"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 175}}
-              , React.createElement('span', { className: "text-muted-foreground block text-[9px] uppercase tracking-wider"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 176}}, "Today")
-              , React.createElement('span', { className: "text-lg font-bold text-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 177}}, _optionalChain([analytics, 'optionalAccess', _9 => _9.checkInsToday]))
+          , React.createElement(CardContent, { className: "space-y-3" }
+            , React.createElement('div', { className: "flex items-baseline space-x-1.5" }
+              , React.createElement('span', { className: "text-3xl font-black text-foreground" }, _optionalChain([analytics, 'optionalAccess', _5 => _5.totalCustomers]))
+              , React.createElement('span', { className: "text-xs text-muted-foreground font-semibold" }, "Total Members")
             )
-            , React.createElement('div', { className: "bg-slate-50/60 p-2.5 rounded-lg border border-border/50"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 179}}
-              , React.createElement('span', { className: "text-muted-foreground block text-[9px] uppercase tracking-wider"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 180}}, "This Week" )
-              , React.createElement('span', { className: "text-lg font-bold text-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 181}}, _optionalChain([analytics, 'optionalAccess', _10 => _10.checkInsThisWeek]))
+            , React.createElement('div', { className: "pt-2 border-t border-slate-100 flex justify-between text-[11px]" }
+              , React.createElement('span', { className: "text-muted-foreground" }, "Active Promos:")
+              , React.createElement('span', { className: "font-bold text-foreground" }, _optionalChain([analytics, 'optionalAccess', _12 => _12.activeCoupons]) || 0, " coupons")
             )
-            , React.createElement('div', { className: "bg-slate-50/60 p-2.5 rounded-lg border border-border/50"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 183}}
-              , React.createElement('span', { className: "text-muted-foreground block text-[9px] uppercase tracking-wider"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 184}}, "This Month" )
-              , React.createElement('span', { className: "text-lg font-bold text-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 185}}, _optionalChain([analytics, 'optionalAccess', _11 => _11.checkInsThisMonth]))
+            , React.createElement('p', { className: "text-[10px] text-muted-foreground leading-normal" }
+              , "This is the total number of unique customers who have scanned your QR code and joined your digital club."
             )
           )
         )
       )
 
+      /* Store Visits Tracker (Today, This Week, This Month) */
+      , React.createElement(Card, { className: "glass", glass: true }
+        , React.createElement(CardHeader, { className: "pb-2" }
+          , React.createElement(CardTitle, { className: "text-xs font-black uppercase tracking-wider text-muted-foreground" }, "Recent Store Scans Tracker")
+          , React.createElement(CardDescription, { className: "text-xs" }, "Real-time count of customer check-in scans completed at your storefront counter.")
+        )
+        , React.createElement(CardContent, { className: "grid grid-cols-3 gap-2.5 text-center pt-2" }
+          , React.createElement('div', { className: "bg-slate-50/60 p-3 rounded-xl border border-border/50" }
+            , React.createElement('span', { className: "text-muted-foreground block text-[9px] uppercase tracking-wider font-bold" }, "Today")
+            , React.createElement('span', { className: "text-xl sm:text-2xl font-black text-foreground block pt-1" }, _optionalChain([analytics, 'optionalAccess', _9 => _9.checkInsToday]))
+          )
+          , React.createElement('div', { className: "bg-slate-50/60 p-3 rounded-xl border border-border/50" }
+            , React.createElement('span', { className: "text-muted-foreground block text-[9px] uppercase tracking-wider font-bold" }, "Last 7 Days" )
+            , React.createElement('span', { className: "text-xl sm:text-2xl font-black text-foreground block pt-1" }, _optionalChain([analytics, 'optionalAccess', _10 => _10.checkInsThisWeek]))
+          )
+          , React.createElement('div', { className: "bg-slate-50/60 p-3 rounded-xl border border-border/50" }
+            , React.createElement('span', { className: "text-muted-foreground block text-[9px] uppercase tracking-wider font-bold" }, "Last 30 Days" )
+            , React.createElement('span', { className: "text-xl sm:text-2xl font-black text-foreground block pt-1" }, _optionalChain([analytics, 'optionalAccess', _11 => _11.checkInsThisMonth]))
+          )
+        )
+      )
+
       /* Charts Panels */
-      , React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-3 gap-6"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 192}}
+      , React.createElement('div', { className: "grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6" }
 
         /* Main Check-in Area Chart */
-        , React.createElement(Card, { className: "md:col-span-2 glass" , glass: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 195}}
-          , React.createElement(CardHeader, {__self: this, __source: {fileName: _jsxFileName, lineNumber: 196}}
-            , React.createElement(CardTitle, { className: "text-base flex items-center gap-2"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 197}}
-              , React.createElement(Activity, { className: "h-4.5 w-4.5 text-primary"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 198}} ), " Store Check-in Volume Trend"
+        , React.createElement(Card, { className: "lg:col-span-2 glass", glass: true }
+          , React.createElement(CardHeader, { className: "pb-2" }
+            , React.createElement(CardTitle, { className: "text-sm sm:text-base flex items-center gap-2" }
+              , React.createElement(Activity, { className: "h-4.5 w-4.5 text-primary shrink-0" }), "Store Customer Visits Trend"
             )
-            , React.createElement(CardDescription, { className: "text-xs", __self: this, __source: {fileName: _jsxFileName, lineNumber: 200}}, "Verified GPS scans aggregated over the past 6 months"
-
-            )
+            , React.createElement(CardDescription, { className: "text-xs" }, "Number of scans completed at your storefront month-by-month." )
           )
-          , React.createElement(CardContent, { className: "h-64 pt-2" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 204}}
-            , React.createElement(ResponsiveContainer, { width: "100%", height: "100%", __self: this, __source: {fileName: _jsxFileName, lineNumber: 205}}
-              , React.createElement(AreaChart, { data: chartData, margin: { top: 10, right: 10, left: -20, bottom: 0 }, __self: this, __source: {fileName: _jsxFileName, lineNumber: 206}}
-                , React.createElement('defs', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 207}}
-                  , React.createElement('linearGradient', { id: "colorCheckins", x1: "0", y1: "0", x2: "0", y2: "1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 208}}
-                    , React.createElement('stop', { offset: "5%", stopColor: "#FF6A00", stopOpacity: 0.2, __self: this, __source: {fileName: _jsxFileName, lineNumber: 209}})
-                    , React.createElement('stop', { offset: "95%", stopColor: "#FF6A00", stopOpacity: 0, __self: this, __source: {fileName: _jsxFileName, lineNumber: 210}})
+          , React.createElement(CardContent, { className: "h-56 sm:h-64 pt-2" }
+            , React.createElement(ResponsiveContainer, { width: "100%", height: "100%" }
+              , React.createElement(AreaChart, { data: chartData, margin: { top: 10, right: 10, left: -25, bottom: 0 } }
+                , React.createElement('defs', null
+                  , React.createElement('linearGradient', { id: "colorCheckins", x1: "0", y1: "0", x2: "0", y2: "1" }
+                    , React.createElement('stop', { offset: "5%", stopColor: "#FF6A00", stopOpacity: 0.15 })
+                    , React.createElement('stop', { offset: "95%", stopColor: "#FF6A00", stopOpacity: 0 })
                   )
                 )
-                , React.createElement(XAxis, { dataKey: "name", stroke: "#FF5E00", fontSize: 10, tickLine: false, __self: this, __source: {fileName: _jsxFileName, lineNumber: 213}} )
-                , React.createElement(YAxis, { stroke: "#FF5E00", fontSize: 10, tickLine: false, __self: this, __source: {fileName: _jsxFileName, lineNumber: 214}} )
+                , React.createElement(XAxis, { dataKey: "name", stroke: "#94a3b8", fontSize: 9, tickLine: false })
+                , React.createElement(YAxis, { stroke: "#94a3b8", fontSize: 9, tickLine: false })
                 , React.createElement(Tooltip, { 
-                  contentStyle: { backgroundColor: "var(--card)", borderColor: "var(--border)", borderRadius: 8, fontSize: 11 },
-                  labelClassName: "text-foreground font-bold" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 215}}
-                )
-                , React.createElement(Area, { type: "monotone", dataKey: "checkins", stroke: "#FF6A00", strokeWidth: 2.5, fillOpacity: 1, fill: "url(#colorCheckins)", name: "Check-ins", __self: this, __source: {fileName: _jsxFileName, lineNumber: 219}} )
+                  contentStyle: { backgroundColor: "var(--card)", borderColor: "var(--border)", borderRadius: 12, fontSize: 11 },
+                  labelClassName: "text-foreground font-bold"
+                })
+                , React.createElement(Area, { type: "monotone", dataKey: "checkins", stroke: "#FF6A00", strokeWidth: 2, fillOpacity: 1, fill: "url(#colorCheckins)", name: "Visits" })
               )
             )
           )
         )
 
         /* Voucher Conversion Pie Chart */
-        , React.createElement(Card, { className: "glass", glass: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 226}}
-          , React.createElement(CardHeader, {__self: this, __source: {fileName: _jsxFileName, lineNumber: 227}}
-            , React.createElement(CardTitle, { className: "text-base", __self: this, __source: {fileName: _jsxFileName, lineNumber: 228}}, "Voucher Redemption Split"  )
-            , React.createElement(CardDescription, { className: "text-xs", __self: this, __source: {fileName: _jsxFileName, lineNumber: 229}}, "Review unlocked vs redeemed vouchers"
-
-            )
+        , React.createElement(Card, { className: "glass", glass: true }
+          , React.createElement(CardHeader, { className: "pb-2" }
+            , React.createElement(CardTitle, { className: "text-sm sm:text-base" }, "Voucher Rewards Status" )
+            , React.createElement(CardDescription, { className: "text-xs" }, "Breakdown of completed stamp cards vs redeemed gifts." )
           )
-          , React.createElement(CardContent, { className: "h-64 pt-2 flex flex-col justify-between items-center"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 233}}
+          , React.createElement(CardContent, { className: "h-56 sm:h-64 pt-2 flex flex-col justify-between items-center" }
             , redeemedCount === 0 && lockedCount === 0 ? (
-              React.createElement('div', { className: "flex-1 flex flex-col items-center justify-center text-muted-foreground text-xs"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 235}}, "No vouchers issued yet."
-
+              React.createElement('div', { className: "flex-1 flex flex-col items-center justify-center text-muted-foreground text-xs text-center p-4" }
+                , "No coupons or stamp cards completed by customers yet."
               )
             ) : (
               React.createElement(React.Fragment, null
-                , React.createElement('div', { className: "w-full h-44" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 240}}
-                  , React.createElement(ResponsiveContainer, { width: "100%", height: "100%", __self: this, __source: {fileName: _jsxFileName, lineNumber: 241}}
-                    , React.createElement(PieChart, {__self: this, __source: {fileName: _jsxFileName, lineNumber: 242}}
+                , React.createElement('div', { className: "w-full h-36 sm:h-40" }
+                  , React.createElement(ResponsiveContainer, { width: "100%", height: "100%" }
+                    , React.createElement(PieChart, null
                       , React.createElement(Pie, {
                         data: voucherPieData,
                         cx: "50%",
                         cy: "50%",
-                        innerRadius: 55,
-                        outerRadius: 70,
+                        innerRadius: 45,
+                        outerRadius: 60,
                         paddingAngle: 3,
-                        dataKey: "value", __self: this, __source: {fileName: _jsxFileName, lineNumber: 243}}
-
+                        dataKey: "value"
+                      }
                         , voucherPieData.map((entry, index) => (
-                          React.createElement(Cell, { key: `cell-${index}`, fill: entry.color, __self: this, __source: {fileName: _jsxFileName, lineNumber: 253}} )
+                          React.createElement(Cell, { key: `cell-${index}`, fill: entry.color } )
                         ))
                       )
                       , React.createElement(Tooltip, { 
-                        contentStyle: { backgroundColor: "var(--card)", borderColor: "var(--border)", borderRadius: 8, fontSize: 11 }, __self: this, __source: {fileName: _jsxFileName, lineNumber: 256}}
-                      )
+                        contentStyle: { backgroundColor: "var(--card)", borderColor: "var(--border)", borderRadius: 12, fontSize: 11 }
+                      })
                     )
                   )
                 )
                 /* Custom Legend */
-                , React.createElement('div', { className: "w-full space-y-2 text-[10px] text-muted-foreground px-2"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 263}}
+                , React.createElement('div', { className: "w-full space-y-1.5 text-[10px] text-muted-foreground px-1 pb-2" }
                   , voucherPieData.map((item, i) => (
-                    React.createElement('div', { key: i, className: "flex justify-between items-center"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 265}}
-                      , React.createElement('span', { className: "flex items-center gap-1.5 font-medium"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 266}}
-                        , React.createElement('span', { className: "h-2 w-2 rounded-full"  , style: { backgroundColor: item.color }, __self: this, __source: {fileName: _jsxFileName, lineNumber: 267}} )
+                    React.createElement('div', { key: i, className: "flex justify-between items-center" }
+                      , React.createElement('span', { className: "flex items-center gap-1.5 font-medium" }
+                        , React.createElement('span', { className: "h-2 w-2 rounded-full", style: { backgroundColor: item.color } } )
                         , item.name
                       )
-                      , React.createElement('span', { className: "font-mono text-foreground font-semibold"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 270}}, item.value, " vouchers" )
+                      , React.createElement('span', { className: "font-mono text-foreground font-semibold" }, item.value, " rewards" )
                     )
                   ))
                 )

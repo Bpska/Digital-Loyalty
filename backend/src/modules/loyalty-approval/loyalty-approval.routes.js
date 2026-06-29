@@ -301,14 +301,29 @@ router.get(
         prisma.loyaltyRequest.count({ where: { businessId, status: status } }),
       ]);
 
-      // Include customer's current points balance for context
+      // Include customer's current points balance and wallet data for accurate display
       const requestsWithPoints = await Promise.all(
         requests.map(async (r) => {
-          const cp = await prisma.customerPoints.findUnique({
-            where: { customerId_businessId: { customerId: r.customerId, businessId } },
-            select: { totalPoints: true, totalVisits: true },
-          });
-          return { ...r, customerCurrentPoints: cp?.totalPoints ?? 0, customerTotalVisits: cp?.totalVisits ?? 0 };
+          const [cp, wallet] = await Promise.all([
+            prisma.customerPoints.findUnique({
+              where: { customerId_businessId: { customerId: r.customerId, businessId } },
+              select: { totalPoints: true, totalVisits: true },
+            }),
+            prisma.userWallet.findUnique({
+              where: { userId_businessId: { userId: r.customerId, businessId } },
+              select: { currentPoints: true, currentStamps: true, expiresAt: true, pointsBalance: true },
+            }),
+          ]);
+          return {
+            ...r,
+            customerCurrentPoints: cp?.totalPoints ?? 0,
+            customerTotalVisits: cp?.totalVisits ?? 0,
+            // Wallet fields — actual stamps earned and points toward next stamp
+            customerWalletPoints: wallet?.currentPoints ?? 0,
+            customerWalletStamps: wallet?.currentStamps ?? 0,
+            customerWalletPointsBalance: wallet?.pointsBalance ?? 0,
+            customerWalletExpiresAt: wallet?.expiresAt ?? null,
+          };
         })
       );
 
@@ -620,11 +635,14 @@ router.get(
 
 const settingsSchema = z.object({
   programName: z.string().min(1),
-  pointsPerRupee: z.coerce.number().positive(),
-  pointsPerStamp: z.coerce.number().int().positive(),
+  pointsPerRupee: z.coerce.number().positive().optional(),
+  pointsPerStamp: z.coerce.number().int().positive().optional(),
   requiredStamps: z.coerce.number().int().positive(),
   rewardName: z.string().min(1),
   validityDays: z.coerce.number().int().positive(),
+  maxDailyStamps: z.coerce.number().int().positive().optional(),
+  bonusThresholdAmount: z.coerce.number().nonnegative().optional(),
+  pointsPerRupeeAboveThreshold: z.coerce.number().nonnegative().optional(),
 });
 
 // GET /loyalty-approval/settings/:businessId — retrieve program settings
@@ -651,11 +669,29 @@ router.get(
           requiredStamps: 7,
           rewardName: 'Free Coffee',
           validityDays: 30,
+          maxDailyStamps: 1,
+          bonusThresholdAmount: 500,
+          pointsPerRupeeAboveThreshold: 0.1,
           businessId,
         };
       }
 
-      sendSuccess(res, settings, 'Loyalty program settings retrieved');
+      // Always inject the Super Admin global pointsPerRupee conversion rate,
+      // but keep pointsPerStamp business-specific (default to globalPointsPerStamp if not set).
+      const [globalRupeeSetting, globalStampSetting] = await Promise.all([
+        prisma.systemSetting.findUnique({ where: { key: 'points_per_rupee' } }),
+        prisma.systemSetting.findUnique({ where: { key: 'points_per_stamp' } }),
+      ]);
+      const globalPointsPerRupee = globalRupeeSetting ? parseFloat(globalRupeeSetting.value) : 0.1;
+      const globalPointsPerStamp = globalStampSetting ? parseInt(globalStampSetting.value, 10) : 50;
+
+      sendSuccess(res, {
+        bonusThresholdAmount: 500,
+        pointsPerRupeeAboveThreshold: 0.1,
+        ...settings,
+        pointsPerRupee: globalPointsPerRupee,
+        pointsPerStamp: settings.pointsPerStamp ?? globalPointsPerStamp,
+      }, 'Loyalty program settings retrieved');
     } catch (err) { next(err); }
   }
 );
@@ -674,10 +710,33 @@ router.post(
         await assertBusinessOwner(req.user.sub, businessId);
       }
 
+      // Fetch global points settings
+      const [globalRupeeSetting, globalStampSetting] = await Promise.all([
+        prisma.systemSetting.findUnique({ where: { key: 'points_per_rupee' } }),
+        prisma.systemSetting.findUnique({ where: { key: 'points_per_stamp' } }),
+      ]);
+      const globalPointsPerRupee = globalRupeeSetting ? parseFloat(globalRupeeSetting.value) : 0.1;
+      const globalPointsPerStamp = globalStampSetting ? parseInt(globalStampSetting.value, 10) : 50;
+
+      const updateData = {
+        programName: req.body.programName,
+        requiredStamps: req.body.requiredStamps,
+        rewardName: req.body.rewardName,
+        validityDays: req.body.validityDays,
+        maxDailyStamps: req.body.maxDailyStamps ?? 1,
+        pointsPerStamp: req.body.pointsPerStamp ?? globalPointsPerStamp,
+        bonusThresholdAmount: req.body.bonusThresholdAmount ?? 500,
+        pointsPerRupeeAboveThreshold: req.body.pointsPerRupeeAboveThreshold ?? 0.1,
+      };
+
       const settings = await prisma.loyaltyProgramSettings.upsert({
         where: { businessId },
-        update: req.body,
-        create: { ...req.body, businessId },
+        update: updateData,
+        create: {
+          ...updateData,
+          businessId,
+          pointsPerRupee: globalPointsPerRupee,
+        },
       });
 
       sendSuccess(res, settings, 'Loyalty program settings saved');
@@ -708,7 +767,7 @@ router.post(
         where: { id: requestId },
         include: {
           customer: { select: { id: true, name: true } },
-          business: { select: { id: true, name: true, ownerId: true } },
+          business: { select: { id: true, name: true, ownerId: true, timezone: true } },
         },
       });
 
@@ -735,11 +794,35 @@ router.post(
             requiredStamps: 7,
             rewardName: 'Free Coffee',
             validityDays: 30,
+            maxDailyStamps: 1,
           },
         });
       }
 
-      const pointsEarned = Math.floor(purchaseValue * settings.pointsPerRupee);
+      // Load global points conversion rules controlled by Super Admin
+      const [globalRupeeSetting, globalStampSetting] = await Promise.all([
+        prisma.systemSetting.findUnique({ where: { key: 'points_per_rupee' } }),
+        prisma.systemSetting.findUnique({ where: { key: 'points_per_stamp' } }),
+      ]);
+      const pointsPerRupee = globalRupeeSetting ? parseFloat(globalRupeeSetting.value) : 0.1;
+      const pointsPerStamp = settings.pointsPerStamp ?? (globalStampSetting ? parseInt(globalStampSetting.value, 10) : 50);
+
+      const pointsEarned = Math.floor(purchaseValue * pointsPerRupee);
+
+      // Enforce maxDailyStamps limit by counting stamps already earned by this customer today at this business
+      const timezone = request.business.timezone || 'Asia/Kolkata';
+      const { start: todayStart } = getTodayBoundsInTimezone(timezone);
+
+      const walletTransactionsToday = await prisma.walletTransaction.findMany({
+        where: {
+          userId: request.customerId,
+          businessId: request.businessId,
+          createdAt: { gte: todayStart },
+        },
+        select: { stampEarned: true },
+      });
+
+      const stampsEarnedToday = walletTransactionsToday.reduce((sum, tx) => sum + tx.stampEarned, 0);
 
       const result = await prisma.$transaction(async (tx) => {
         // Ensure CustomerPoints exists and increment points so dashboard shows correct balance
@@ -808,18 +891,47 @@ router.post(
 
         // 2. Calculate point accumulation and stamp conversion
         const totalPointsAcc = currentPoints + pointsEarned;
-        const stampsEarned = Math.floor(totalPointsAcc / settings.pointsPerStamp);
-        const remainingPoints = totalPointsAcc % settings.pointsPerStamp;
+        let stampsEarned = Math.floor(totalPointsAcc / pointsPerStamp);
+        let remainingPoints = totalPointsAcc % pointsPerStamp;
+
+        if (stampsEarned > 1) {
+          stampsEarned = 1;
+          remainingPoints = totalPointsAcc - pointsPerStamp;
+        }
+
+        if (settings.maxDailyStamps && (stampsEarnedToday + stampsEarned) > settings.maxDailyStamps) {
+          throw new AppError(`Approval failed: Exceeds the maximum daily limit of ${settings.maxDailyStamps} stamp(s) per customer.`, 400);
+        }
+
+        const bonusThreshold = settings.bonusThresholdAmount ?? 500;
+        const bonusRate = settings.pointsPerRupeeAboveThreshold ?? 0.1;
+        let bonusPoints = 0;
+        if (Number(purchaseValue) >= bonusThreshold) {
+          bonusPoints = Math.floor((Number(purchaseValue) - bonusThreshold) * bonusRate);
+        }
 
         const updatedWallet = await tx.userWallet.update({
           where: { id: wallet.id },
           data: {
             currentPoints: remainingPoints,
             currentStamps: currentStamps + stampsEarned,
+            pointsBalance: { increment: bonusPoints },
             startedAt,
             expiresAt,
           },
         });
+
+        if (bonusPoints > 0) {
+          await tx.loyaltyPointsLedger.create({
+            data: {
+              userId: request.customerId,
+              businessId: request.businessId,
+              points: bonusPoints,
+              purchaseAmount: Number(purchaseValue),
+              source: 'BONUS',
+            },
+          });
+        }
 
         // 3. Create wallet transaction
         const walletTx = await tx.walletTransaction.create({
@@ -932,8 +1044,21 @@ router.post(
         throw new AppError('Your stamps have expired (validity period has passed). Please scan QR to start collecting again.', 400);
       }
 
-      if (!wallet || wallet.currentStamps < settings.requiredStamps) {
+      if (!wallet) {
         throw new AppError('Insufficient stamps to redeem reward', 400);
+      }
+
+      const activeUnlockedCount = await prisma.customerReward.count({
+        where: {
+          customerId,
+          reward: { title: settings.rewardName, businessId },
+          status: 'UNLOCKED',
+        },
+      });
+
+      const availableStamps = wallet.currentStamps - (activeUnlockedCount * settings.requiredStamps);
+      if (availableStamps < settings.requiredStamps) {
+        throw new AppError('Insufficient stamps to claim this reward (you already have a pending voucher claimed).', 400);
       }
 
       // Find or create a Reward template for this business based on settings.rewardName
@@ -954,12 +1079,10 @@ router.post(
       }
 
       const result = await prisma.$transaction(async (tx) => {
-        // 1. Deduct stamps
-        const updatedWallet = await tx.userWallet.update({
+        // We do NOT deduct stamps here; we only verify and create the voucher code.
+        // Stamps will be fully reset / deducted when the business admin verifies/approves redemption.
+        const updatedWallet = await tx.userWallet.findUnique({
           where: { id: wallet.id },
-          data: {
-            currentStamps: wallet.currentStamps - settings.requiredStamps,
-          },
         });
 
         // 2. Create customer reward voucher
@@ -982,7 +1105,7 @@ router.post(
             userId: customerId,
             businessId,
             title: 'Reward Voucher Unlocked! 🎁',
-            body: `You have successfully redeemed ${settings.requiredStamps} stamps for a "${settings.rewardName}".`,
+            body: `You have successfully claimed a voucher for a "${settings.rewardName}". Please present it at the store counter.`,
             type: 'REWARD_UNLOCKED',
             metadata: {
               rewardId: reward.id,

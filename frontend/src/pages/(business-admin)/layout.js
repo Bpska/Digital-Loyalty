@@ -487,10 +487,10 @@ export default function BusinessAdminLayout({
     ? [{ label: "Subscription Required", icon: LayoutDashboard, href: "/dashboard/business" }]
     : [
         { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard/business" },
-        { label: "Branches", icon: MapPin, href: "/dashboard/business/branches" },
+        { label: "Loyalty Approvals", icon: ClipboardCheck, href: "/dashboard/business/approvals", badge: pendingApprovals },
         { label: "Coupons", icon: Percent, href: "/dashboard/business/coupons" },
         { label: "Analytics", icon: BarChart3, href: "/dashboard/business/analytics" },
-        { label: "Loyalty Approvals", icon: ClipboardCheck, href: "/dashboard/business/approvals", badge: pendingApprovals },
+        { label: "Branches", icon: MapPin, href: "/dashboard/business/branches" },
         { label: "Loyalty Settings", icon: Settings2, href: "/dashboard/business/loyalty-config" },
       ];
 
@@ -584,7 +584,16 @@ export default function BusinessAdminLayout({
             );
           })
         )
-        , React.createElement('div', { className: "p-4 border-t border-border"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 150}}
+        , React.createElement('div', { className: "p-4 border-t border-border space-y-1" }
+          /* Settings shortcut */
+          , React.createElement('button', {
+              onClick: () => { setMobileOpen(false); handleOpenProfileModal(); },
+              className: "flex items-center space-x-3 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors",
+              __self: this, __source: {fileName: _jsxFileName, lineNumber: 150}
+            }
+            , React.createElement(Settings, { className: "h-4.5 w-4.5" })
+            , React.createElement('span', null, "Settings & Profile")
+          )
           , React.createElement('button', {
             onClick: logout,
             className: "flex items-center space-x-3 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"           , __self: this, __source: {fileName: _jsxFileName, lineNumber: 151}}
@@ -799,9 +808,9 @@ export default function BusinessAdminLayout({
         , !isPending && React.createElement('div', { className: "fixed bottom-0 left-0 right-0 z-40 bg-white/95 border-t border-border/60 flex justify-around items-center py-2 pb-safe md:hidden shadow-[0_-4px_16px_rgba(0,0,0,0.04)] backdrop-blur-md" }
           , [
               { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard/business" },
-              { label: "Branches", icon: MapPin, href: "/dashboard/business/branches" },
-              { label: "Rewards", icon: Award, href: "/dashboard/business/rewards" },
+              { label: "Approvals", icon: ClipboardCheck, href: "/dashboard/business/approvals", badge: pendingApprovals },
               { label: "Coupons", icon: Percent, href: "/dashboard/business/coupons" },
+              { label: "Analytics", icon: BarChart3, href: "/dashboard/business/analytics" },
               { label: "Menu", icon: Menu, onClick: () => setMobileOpen(true) }
             ].map((item, idx) => {
               const isActive = item.href ? pathname === item.href : false;
@@ -810,13 +819,14 @@ export default function BusinessAdminLayout({
               const content = React.createElement(React.Fragment, null,
                 React.createElement('div', { 
                   className: cn(
-                    "h-8 w-14 rounded-full flex items-center justify-center transition-all duration-300 transform",
+                    "h-8 w-14 rounded-full flex items-center justify-center transition-all duration-300 transform relative",
                     isActive 
                       ? "bg-primary/10 text-primary scale-105" 
                       : "text-muted-foreground group-hover:text-foreground"
                   )
                 }, 
                   React.createElement(Icon, { className: "h-4.5 w-4.5" })
+                  , item.badge > 0 && React.createElement('span', { className: "absolute top-0 right-2 bg-amber-500 text-white text-[8px] font-black h-3.5 min-w-[14px] flex items-center justify-center px-1 rounded-full shadow-sm" }, item.badge)
                 ),
                 React.createElement('span', { 
                   className: cn(
