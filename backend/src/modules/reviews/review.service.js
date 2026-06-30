@@ -138,11 +138,16 @@ export async function saveReviewSettings(businessId, data) {
     create: { businessId, ...updateData },
   });
 
-  // Sync googleReviewUrl to the main Business record for backwards compatibility
-  if (updateData.googleReviewUrl !== undefined) {
+  // Sync URLs to the main Business record for backwards compatibility
+  const businessUpdateData = {};
+  if (updateData.googleReviewUrl !== undefined) businessUpdateData.googleReviewUrl = updateData.googleReviewUrl;
+  if (updateData.instagramUrl !== undefined) businessUpdateData.instagramUrl = updateData.instagramUrl;
+  if (updateData.facebookUrl !== undefined) businessUpdateData.facebookUrl = updateData.facebookUrl;
+
+  if (Object.keys(businessUpdateData).length > 0) {
     await prisma.business.update({
       where: { id: businessId },
-      data: { googleReviewUrl: updateData.googleReviewUrl },
+      data: businessUpdateData,
     });
   }
 

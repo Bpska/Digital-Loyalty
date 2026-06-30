@@ -25,6 +25,7 @@ export default function LoginPage() {
   const [businessName, setBusinessName] = useState("");
   const [businessAddress, setBusinessAddress] = useState("");
   const [category, setCategory] = useState("Cafe");
+  const [customCategory, setCustomCategory] = useState("");
   const [bookingUrl, setBookingUrl] = useState("");
   const [successMsg, setSuccessMsg] = useState(null);
   const [showForgotDialog, setShowForgotDialog] = useState(false);
@@ -167,7 +168,8 @@ export default function LoginPage() {
       }
       // Prepend +91 so backend phone schema always gets E.164 format
       const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
-      const success = await registerBusiness(name, email, formattedPhone, password, businessName, businessAddress, category, category === "Hotels" ? bookingUrl : null);
+      const finalCategory = category === "Other" ? (customCategory || "Other") : category;
+      const success = await registerBusiness(name, email, formattedPhone, password, businessName, businessAddress, finalCategory, category === "Hotels" ? bookingUrl : null);
       if (success && !useAuthStore.getState().user) {
         setSuccessMsg("Your registration request was submitted! Once the Super Admin reviews and approves your account, you will be able to sign in.");
       }
@@ -489,6 +491,7 @@ export default function LoginPage() {
                           React.createElement('option', { value: "Other" }, "Other")
                         )
                     )
+                    , category === "Other" && React.createElement('div', { className: "space-y-2", __self: this }, React.createElement(Label, { htmlFor: "biz-custom-category" }, "Enter Business Type"), React.createElement(Input, { id: "biz-custom-category", type: "text", placeholder: "e.g. Gym, Pet Store, etc.", value: customCategory, onChange: (e) => setCustomCategory(e.target.value), required: true, disabled: loading }))
                     , category === "Hotels" && React.createElement('div', { className: "space-y-2", __self: this, __source: { fileName: _jsxFileName } }
                       , React.createElement(Label, { htmlFor: "biz-booking-url", __self: this, __source: { fileName: _jsxFileName } }, "Booking Website URL")
                       , React.createElement(Input, {

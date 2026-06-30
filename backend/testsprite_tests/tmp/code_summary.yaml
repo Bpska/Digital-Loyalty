@@ -1,0 +1,49 @@
+version: "2"
+type: backend
+tech_stack:
+  - Node.js
+  - Express
+  - Prisma
+  - PostgreSQL
+features:
+  - name: Authentication API
+    description: User authentication and management
+    files:
+      - src/modules/auth/auth.routes.js
+      - src/modules/auth/auth.controller.js
+    endpoints:
+      - method: POST
+        path: /api/v1/auth/login
+        description: Login user
+        auth_required: false
+        response_schema:
+          "200": TokenResponse
+  - name: Checkin API
+    description: Geofenced checkin operations
+    files:
+      - src/modules/checkin/checkin.routes.js
+      - src/modules/checkin/checkin.controller.js
+    endpoints:
+      - method: POST
+        path: /api/v1/checkins
+        description: Create a checkin
+        auth_required: true
+        response_schema:
+          "200": Checkin
+    depends_on:
+      - Authentication
+  - name: Business API
+    description: Business and branch management
+    files:
+      - src/modules/business/business.routes.js
+      - src/modules/business/business.controller.js
+    endpoints:
+      - method: GET
+        path: /api/v1/business
+        description: Get business details
+        auth_required: true
+        response_schema:
+          "200": Business
+    depends_on:
+      - Authentication
+known_limitations: []

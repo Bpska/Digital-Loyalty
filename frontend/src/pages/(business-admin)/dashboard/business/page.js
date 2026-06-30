@@ -793,7 +793,7 @@ export default function BusinessDashboard() {
           )
 
           // Google Review Link & QR Code Card
-          , revGoogleUrl && React.createElement(Card, { className: "border-border bg-white shadow-sm rounded-xl" }
+          , revGoogleUrl && React.createElement(Card, { className: "border-border bg-white shadow-sm rounded-xl mt-6" }
             , React.createElement(CardHeader, { className: "p-6 pb-2" }
               , React.createElement(CardTitle, { className: "text-base font-bold text-[#FF6A00] flex items-center gap-2" }
                 , React.createElement(QrCode, { className: "h-4 w-4" })

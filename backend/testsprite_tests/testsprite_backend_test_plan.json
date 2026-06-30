@@ -1,0 +1,42 @@
+[
+  {
+    "id": "TC001",
+    "title": "post api v1 auth login with valid credentials",
+    "description": "Verify that POST /api/v1/auth/login with valid user credentials returns a 200 status and a TokenResponse containing a JWT access token."
+  },
+  {
+    "id": "TC002",
+    "title": "post api v1 auth login with invalid credentials",
+    "description": "Verify that POST /api/v1/auth/login with invalid user credentials returns a 401 Unauthorized status with an appropriate authentication error message."
+  },
+  {
+    "id": "TC003",
+    "title": "post api v1 checkins with valid token and geolocation",
+    "description": "Verify that POST /api/v1/checkins with a valid authentication token and valid geolocation payload returns a 200 status and a Checkin record."
+  },
+  {
+    "id": "TC004",
+    "title": "post api v1 checkins without authentication token",
+    "description": "Verify that POST /api/v1/checkins without an authentication token returns a 401 Unauthorized status."
+  },
+  {
+    "id": "TC005",
+    "title": "post api v1 checkins with invalid or out of range geolocation",
+    "description": "Verify that POST /api/v1/checkins with a valid token but invalid or out-of-range geolocation data returns a 400 or 403 error indicating check-in rejection."
+  },
+  {
+    "id": "TC006",
+    "title": "get api v1 business with valid token",
+    "description": "Verify that GET /api/v1/business with a valid authentication token returns a 200 status and the authenticated business details."
+  },
+  {
+    "id": "TC007",
+    "title": "get api v1 business without authentication token",
+    "description": "Verify that GET /api/v1/business without an authentication token returns a 401 Unauthorized status."
+  },
+  {
+    "id": "TC008",
+    "title": "get api v1 business for unauthorized or inactive tenant",
+    "description": "Verify that GET /api/v1/business with a valid token for an unauthorized or inactive tenant returns a 403 Forbidden or 404 Not Found status."
+  }
+]
