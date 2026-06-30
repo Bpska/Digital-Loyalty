@@ -25,6 +25,8 @@ export default function BusinessApprovalsPage() {
   const [statusFilter, setStatusFilter] = useState("PENDING");
   const [approvingId, setApprovingId] = useState(null);
   const [rejectingId, setRejectingId] = useState(null);
+  const [editingRequestId, setEditingRequestId] = useState(null);
+  const [deletingRequestId, setDeletingRequestId] = useState(null);
 
   // Points-to-stamps purchase amount entry state
   const [selectedAmounts, setSelectedAmounts] = useState({});
@@ -32,7 +34,7 @@ export default function BusinessApprovalsPage() {
   const [showCustomInput, setShowCustomInput] = useState({});
 
   // Fetch analytics
-  const { data: analytics, isLoading: isAnalyticsLoading } = useQuery({
+  const { data: analytics, isLoading: isAnalyticsLoading, isFetching: isAnalyticsFetching } = useQuery({
     queryKey: ["loyaltyApprovalAnalytics", businessId],
     queryFn: () => api.get(`/loyalty-approval/analytics/${businessId}`).then(r => r.data),
     enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
@@ -47,7 +49,7 @@ export default function BusinessApprovalsPage() {
   });
 
   // Fetch requests
-  const { data: requestsData, isLoading, refetch } = useQuery({
+  const { data: requestsData, isLoading, isFetching, refetch } = useQuery({
     queryKey: ["loyaltyRequests", businessId, statusFilter],
     queryFn: () =>
       api.get(`/loyalty-approval/requests/${businessId}?status=${statusFilter}&limit=50`).then(r => r),
@@ -76,6 +78,55 @@ export default function BusinessApprovalsPage() {
     },
     onError: (err) => alert(err.message || "Failed to reject request"),
   });
+
+  const undoApproveMutation = useMutation({
+    mutationFn: (requestId) => api.delete(`/loyalty-approval/approve-wallet/${requestId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["loyaltyRequests", businessId] });
+      queryClient.invalidateQueries({ queryKey: ["loyaltyApprovalAnalytics", businessId] });
+      queryClient.invalidateQueries({ queryKey: ["customerDashboard"] });
+    },
+    onError: (err) => alert(err.message || "Failed to undo approval"),
+  });
+
+  async function handleDeleteApproval(requestId) {
+    if (!window.confirm("Are you sure you want to undo this approval? The customer will lose these points/stamps.")) return;
+    setDeletingRequestId(requestId);
+    try {
+      await undoApproveMutation.mutateAsync(requestId);
+    } finally {
+      setDeletingRequestId(null);
+    }
+  }
+
+  async function handleUpdateApproval(requestId) {
+    const customAmt = customAmounts[requestId];
+    const selectedAmt = selectedAmounts[requestId];
+    const isCustom = showCustomInput[requestId];
+    
+    let purchaseValue = null;
+    if (isCustom) {
+      purchaseValue = parseFloat(customAmt);
+    } else {
+      purchaseValue = selectedAmt;
+    }
+
+    if (!purchaseValue || isNaN(purchaseValue) || purchaseValue <= 0) {
+      alert("Please select or enter a valid purchase amount.");
+      return;
+    }
+
+    setApprovingId(requestId);
+    try {
+      await undoApproveMutation.mutateAsync(requestId);
+      await approveWalletMutation.mutateAsync({ requestId, purchaseValue });
+      setEditingRequestId(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setApprovingId(null);
+    }
+  }
 
   async function handleApproveWallet(requestId) {
     const customAmt = customAmounts[requestId];
@@ -167,8 +218,16 @@ export default function BusinessApprovalsPage() {
               React.createElement(Settings2, { className: "mr-2 h-4 w-4" }), "Settings"
             )
           ),
-          React.createElement(Button, { variant: "outline", size: "sm", onClick: () => refetch() },
-            React.createElement(RefreshCw, { className: "h-4 w-4" })
+          React.createElement(Button, { 
+            variant: "outline", 
+            size: "sm", 
+            onClick: () => {
+              refetch();
+              queryClient.invalidateQueries({ queryKey: ["loyaltyApprovalAnalytics", businessId] });
+            },
+            disabled: isFetching || isAnalyticsFetching
+          },
+            React.createElement(RefreshCw, { className: `h-4 w-4 ${isFetching || isAnalyticsFetching ? "animate-spin" : ""}` })
           )
         )
       ),
@@ -263,7 +322,7 @@ export default function BusinessApprovalsPage() {
                       "bg-red-100 text-red-700"
                     }` }, request.status),
                     React.createElement("p", { className: "text-[10px] text-muted-foreground mt-1" },
-                      formatTime(request.createdAt)
+                      formatTime(request.status === "PENDING" ? request.createdAt : (request.updatedAt || request.createdAt))
                     )
                   )
                 ),
@@ -297,8 +356,8 @@ export default function BusinessApprovalsPage() {
 
                   // Show transaction details for APPROVED requests
                   request.status === "APPROVED" && request.spendAmount !== null && (
-                    React.createElement(React.Fragment, null,
-                      React.createElement("div", { className: "h-4 w-px bg-border" }),
+                    React.createElement("div", { className: "flex flex-wrap items-center gap-3 w-full" },
+                      React.createElement("div", { className: "h-4 w-px bg-border hidden sm:block" }),
                       React.createElement("div", { className: "flex flex-col" },
                         React.createElement("p", { className: "text-muted-foreground" }, "Purchase"),
                         React.createElement("p", { className: "font-bold text-emerald-700" }, `₹${request.spendAmount}`)
@@ -316,14 +375,40 @@ export default function BusinessApprovalsPage() {
                         React.createElement("p", { className: "font-bold text-emerald-700" },
                           `+${Math.floor((request.loyaltyTransaction?.points ?? 0) / (settings?.pointsPerStamp || 50))} stamp(s)`
                         )
+                      ),
+                      // Action buttons for APPROVED
+                      editingRequestId !== request.id && (
+                        React.createElement("div", { className: "flex items-center gap-2 ml-auto" },
+                          React.createElement(Button, {
+                            variant: "outline",
+                            size: "sm",
+                            className: "h-7 text-xs font-medium text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100",
+                            onClick: () => {
+                              setEditingRequestId(request.id);
+                              selectCustom(request.id);
+                              setCustomAmounts(prev => ({ ...prev, [request.id]: request.spendAmount }));
+                            },
+                            disabled: deletingRequestId === request.id
+                          }, "Edit"),
+                          React.createElement(Button, {
+                            variant: "outline",
+                            size: "sm",
+                            className: "h-7 text-xs font-medium text-red-600 bg-red-50 border-red-200 hover:bg-red-100",
+                            onClick: () => handleDeleteApproval(request.id),
+                            disabled: deletingRequestId === request.id
+                          }, 
+                            deletingRequestId === request.id ? React.createElement(Loader2, { className: "h-3 w-3 animate-spin mr-1" }) : null,
+                            "Undo"
+                          )
+                        )
                       )
                     )
                   )
                 ),
 
-                /* Input Entry + Actions (only for PENDING) */
-                request.status === "PENDING" && (
-                  React.createElement("div", { className: "space-y-3" },
+                /* Input Entry + Actions (PENDING or EDITING) */
+                (request.status === "PENDING" || editingRequestId === request.id) && (
+                  React.createElement("div", { className: "space-y-3 pt-2 border-t border-border/50 mt-2" },
                     React.createElement("div", { className: "space-y-3" },
                       React.createElement("p", { className: "text-xs font-semibold text-muted-foreground uppercase tracking-wider" }, "Select Purchase Value:"),
                       
@@ -365,25 +450,26 @@ export default function BusinessApprovalsPage() {
                           const amt = showCustomInput[request.id] ? parseFloat(customAmounts[request.id]) : selectedAmounts[request.id];
                           const ppr = settings?.pointsPerRupee || 0.1;
                           const pps = settings?.pointsPerStamp || 50;
-                          // Use wallet points (points toward next stamp) for accurate preview
-                          const walletPoints = request.customerWalletPoints ?? 0;
+                          const spendPerStamp = Math.max(1, Math.round(pps / ppr));
+
+                          let stampsEarned = 0;
+                          let extraPoints = 0;
+
+                          if (amt < spendPerStamp) {
+                            stampsEarned = 1;
+                            extraPoints = 0;
+                          } else {
+                            stampsEarned = Math.floor(amt / spendPerStamp);
+                            const leftoverRupees = amt % spendPerStamp;
+                            extraPoints = Math.floor(leftoverRupees * ppr);
+                          }
 
                           const pointsEarned = Math.floor(amt * ppr);
-                          const totalPoints = walletPoints + pointsEarned;
-
-                          let stampsEarned = Math.floor(totalPoints / pps);
-                          let pointsRemaining = totalPoints % pps;
-                          if (stampsEarned > 1) {
-                            stampsEarned = 1;
-                            pointsRemaining = totalPoints - pps;
-                          }
 
                           return React.createElement("div", { className: "space-y-1.5" },
                             React.createElement("div", { className: "flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 font-medium" },
                               React.createElement(CheckCircle2, { className: "h-3.5 w-3.5 shrink-0" }),
-                              stampsEarned > 0
-                                ? `This purchase earns +${pointsEarned} pts → +${stampsEarned} Stamp(s). Remaining: ${pointsRemaining} pts`
-                                : `This purchase adds +${pointsEarned} pts. Need ${pps - totalPoints} more pts for next Stamp.`
+                              `This purchase earns +${pointsEarned} total pts → +${stampsEarned} Stamp(s) and +${extraPoints} extra pts.`
                             )
                           );
                         })()
@@ -393,24 +479,24 @@ export default function BusinessApprovalsPage() {
                       React.createElement("div", { className: "flex items-center gap-3 pt-1" },
                         React.createElement(Button, {
                           className: "flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-9 text-xs rounded-xl",
-                          onClick: () => handleApproveWallet(request.id),
+                          onClick: () => editingRequestId === request.id ? handleUpdateApproval(request.id) : handleApproveWallet(request.id),
                           disabled: !(showCustomInput[request.id] ? parseFloat(customAmounts[request.id]) : selectedAmounts[request.id]) || isApproving || isRejecting,
                         },
                           isApproving
                             ? React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin" })
                             : React.createElement(CheckCircle2, { className: "mr-2 h-4 w-4" }),
-                          isApproving ? "Approving..." : "Approve"
+                          isApproving ? (editingRequestId === request.id ? "Updating..." : "Approving...") : (editingRequestId === request.id ? "Update" : "Approve")
                         ),
                         React.createElement(Button, {
                           variant: "outline",
-                          className: "border-red-300 text-red-600 hover:bg-red-50 h-9 text-xs rounded-xl",
-                          onClick: () => handleReject(request.id),
+                          className: "border-red-300 text-red-600 hover:bg-red-50 h-9 text-xs rounded-xl flex-1",
+                          onClick: () => editingRequestId === request.id ? setEditingRequestId(null) : handleReject(request.id),
                           disabled: isApproving || isRejecting,
                         },
-                          isRejecting
+                          isRejecting && editingRequestId !== request.id
                             ? React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin" })
                             : React.createElement(XCircle, { className: "mr-2 h-4 w-4" }),
-                          "Reject"
+                          editingRequestId === request.id ? "Cancel Edit" : "Reject"
                         )
                       )
                     )

@@ -637,8 +637,9 @@ model LoyaltyRequest {
 
 /// Immutable record of points awarded to a customer via manual approval.
 model LoyaltyTransaction {
-  id     String @id @default(cuid())
-  points Int
+  id          String   @id @default(cuid())
+  points      Int
+  extraPoints Int      @default(0) @map("extra_points")
 
   customerId  String
   customer    User            @relation(fields: [customerId], references: [id])

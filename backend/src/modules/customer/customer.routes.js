@@ -1,19 +1,26 @@
 import { Router } from 'express';
 import { authenticate, authorize } from '../../middlewares/auth.middleware.js';
 import { Role } from '@prisma/client';
+import { validate } from '../../middlewares/validate.middleware.js';
 import { sendSuccess } from '../../utils/response.js';
-
 import prisma from '../../config/prisma.js';
+import { z } from 'zod';
 
 const router = Router();
 
-// Get customer's loyalty dashboard (all businesses they've visited)
+const profileSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+});
+
+// Get customer dashboard statistics and programs list
 router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res, next) => {
   try {
     const now = new Date();
     const nowForStart = new Date(Date.now() + 14 * 60 * 60 * 1000); // 14 hours forward for UTC+14 starts
     const nowForEnd = new Date(Date.now() - 30 * 60 * 60 * 1000);   // 30 hours backward for UTC-12 expiry
 
+    // Fetch customer's visited business loyalty cards
     const loyaltyCards = await prisma.customerPoints.findMany({
       where: { customerId: req.user.sub },
       include: {
@@ -138,25 +145,30 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
         ? {
             ...card.business.loyaltyProgramSettings,
             pointsPerRupee: globalPointsPerRupee,
+            pointsPerStamp: card.business.loyaltyProgramSettings.pointsPerStamp ?? globalPointsPerStamp,
           }
-        : null;
-      const loyaltyWallet = card.business.loyaltyWallets?.[0] || null;
-      
-      const businessCopy = { ...card.business };
-      delete businessCopy.userWallets;
-      delete businessCopy.loyaltyProgramSettings;
-      delete businessCopy.loyaltyWallets;
-      
+        : {
+            programName: 'Coffee Rewards',
+            pointsPerRupee: globalPointsPerRupee,
+            pointsPerStamp: globalPointsPerStamp,
+            requiredStamps: 7,
+            rewardName: 'Free Coffee',
+            validityDays: 30,
+            bonusThresholdAmount: 500,
+            pointsPerRupeeAboveThreshold: 0.1,
+          };
+
+      const validCoupons = (card.business.coupons || []).filter(
+        c => c.usageLimit === null || c.totalUsed < c.usageLimit
+      );
+
       return {
         ...card,
         wallet,
         settings,
-        loyaltyWallet,
         business: {
-          ...businessCopy,
-          coupons: card.business.coupons.filter(
-            c => c.usageLimit === null || c.totalUsed < c.usageLimit
-          ),
+          ...card.business,
+          coupons: validCoupons,
         },
       };
     }));
@@ -252,7 +264,7 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
   } catch (err) { next(err); }
 });
 
-// Get customer profile
+// GET /customer/profile — retrieve customer details
 router.get('/profile', authenticate, authorize(Role.CUSTOMER), async (req, res, next) => {
   try {
     const user = await prisma.user.findUniqueOrThrow({
@@ -263,8 +275,8 @@ router.get('/profile', authenticate, authorize(Role.CUSTOMER), async (req, res, 
   } catch (err) { next(err); }
 });
 
-// Update customer profile
-router.patch('/profile', authenticate, authorize(Role.CUSTOMER), async (req, res, next) => {
+// PATCH /customer/profile — update customer details
+router.patch('/profile', authenticate, authorize(Role.CUSTOMER), validate(profileSchema), async (req, res, next) => {
   try {
     const user = await prisma.user.update({
       where: { id: req.user.sub },
@@ -296,7 +308,23 @@ router.get('/rewards', authenticate, authorize(Role.CUSTOMER), async (req, res, 
         reward: { select: { id: true, title: true, description: true } },
       },
     });
-    sendSuccess(res, rewards);
+
+    const customerPointsList = await prisma.customerPoints.findMany({
+      where: { customerId: req.user.sub },
+    });
+
+    const userWalletsList = await prisma.userWallet.findMany({
+      where: { userId: req.user.sub },
+    });
+
+    const totalPointsEarned = customerPointsList.reduce((sum, cp) => sum + cp.totalPoints, 0);
+    const totalExtraPoints = userWalletsList.reduce((sum, w) => sum + w.pointsBalance, 0);
+
+    sendSuccess(res, {
+      rewards,
+      totalPointsEarned,
+      totalExtraPoints,
+    });
   } catch (err) { next(err); }
 });
 

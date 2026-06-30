@@ -563,22 +563,13 @@ export default function LoginPage() {
                 )
               )
             )
-          )
-        )
-        , React.createElement(CardFooter, { className: "flex flex-col text-center space-y-2 pb-6", __self: this, __source: { fileName: _jsxFileName, lineNumber: 497 } }
+           , React.createElement(CardFooter, { className: "flex flex-col text-center space-y-2 pb-6", __self: this, __source: { fileName: _jsxFileName, lineNumber: 497 } }
           , React.createElement('div', { className: "flex items-center justify-center gap-3 text-[11px] text-muted-foreground pb-2" }
             , React.createElement(Link, { to: "/privacy-policy", className: "hover:text-[#FF6A00] hover:underline" }, "Privacy Policy")
             , React.createElement('span', null, "•")
             , React.createElement(Link, { to: "/terms-of-service", className: "hover:text-[#FF6A00] hover:underline" }, "Terms of Service")
           )
-          , React.createElement('div', { className: "text-xs text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 498 } }, "For development seeds try default passwords like:"
-
-          )
-          , React.createElement('div', { className: "text-xs text-slate-600 bg-slate-50 p-3 rounded-lg border border-border space-y-1 font-mono text-left w-full", __self: this, __source: { fileName: _jsxFileName, lineNumber: 501 } }
-            , React.createElement('div', { __self: this, __source: { fileName: _jsxFileName, lineNumber: 502 } }, "SuperAdmin: admin@dlvsaas.com / SuperAdmin@123")
-            , React.createElement('div', { __self: this, __source: { fileName: _jsxFileName, lineNumber: 503 } }, "Biz Owner: ramesh@brewsbypattnaik.com / Business@123")
-            , React.createElement('div', { __self: this, __source: { fileName: _jsxFileName, lineNumber: 504 } }, "Customer: ananya@gmail.com / Customer@123")
-          )
+        )          )
         )
       )
     )

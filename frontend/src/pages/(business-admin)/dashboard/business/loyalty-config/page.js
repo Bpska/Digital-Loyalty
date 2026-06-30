@@ -150,8 +150,9 @@ export default function BusinessLoyaltyConfigPage() {
 
   const simPointsEarned = Math.floor(simAmount * ppr);
   let simStampsFromPurchase = Math.floor(simPointsEarned / pps);
-  if (simStampsFromPurchase > 1) {
-    simStampsFromPurchase = 1;
+  const maxStamps = settingsForm.maxDailyStamps ? parseInt(settingsForm.maxDailyStamps, 10) : 1;
+  if (simStampsFromPurchase > maxStamps) {
+    simStampsFromPurchase = maxStamps;
   }
   const simRupeePerStamp = Math.ceil(pps / ppr);
   const simTotalSpendForReward = simRupeePerStamp * reqStamps;
@@ -890,35 +891,21 @@ export default function BusinessLoyaltyConfigPage() {
               )
             ),
 
-            // Points progress bar
+            // Points preview
             React.createElement(
               "div",
-              { className: "space-y-1.5" },
+              { className: "space-y-1.5 text-xs font-semibold text-slate-700 mt-2" },
               React.createElement(
                 "div",
-                { className: "flex justify-between items-center text-xs" },
-                React.createElement(
-                  "span",
-                  { className: "text-muted-foreground" },
-                  "Points: ",
-                  React.createElement("strong", { className: "text-slate-800" }, "23"),
-                  " / ",
-                  pps
-                ),
-                React.createElement(
-                  "span",
-                  { className: "text-[10px] text-muted-foreground font-semibold" },
-                  `${pps - 23} pts to next stamp`
-                )
+                { className: "flex justify-between items-center" },
+                React.createElement("span", { className: "text-muted-foreground" }, "Total Points Earned:"),
+                React.createElement("span", { className: "text-slate-800 font-bold" }, "230 pts")
               ),
               React.createElement(
                 "div",
-                { className: "w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-border" },
-                React.createElement("div", {
-                  className:
-                    "bg-gradient-to-r from-primary to-indigo-400 h-full rounded-full",
-                  style: { width: `${Math.round((23 / pps) * 100)}%` },
-                })
+                { className: "flex justify-between items-center bg-amber-50/40 px-2 py-0.5 rounded border border-amber-100/50" },
+                React.createElement("span", { className: "text-slate-500 font-semibold flex items-center gap-1" }, "Extra Points Balance:"),
+                React.createElement("span", { className: "font-black text-amber-600" }, "45 pts")
               )
             ),
 

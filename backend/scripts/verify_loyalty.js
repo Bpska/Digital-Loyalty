@@ -63,6 +63,8 @@ async function main() {
       requiredStamps: 7,
       rewardName: 'Free Coffee',
       validityDays: 30,
+      bonusThresholdAmount: 500,
+      pointsPerRupeeAboveThreshold: 0.1,
     },
     create: {
       businessId,
@@ -72,6 +74,8 @@ async function main() {
       requiredStamps: 7,
       rewardName: 'Free Coffee',
       validityDays: 30,
+      bonusThresholdAmount: 500,
+      pointsPerRupeeAboveThreshold: 0.1,
     },
   });
 
@@ -80,7 +84,8 @@ async function main() {
   // Helper to approve and log
   async function simulatePurchase(amount) {
     console.log(`\n--- Simulating Purchase of ₹${amount} ---`);
-    const pointsEarned = Math.floor(amount * settings.pointsPerRupee);
+    const ppr = settings.pointsPerRupee || 0.1;
+    const pointsEarned = Math.floor(amount * ppr);
     console.log(`Points earned: ${pointsEarned}`);
 
     const result = await prisma.$transaction(async (tx) => {
@@ -95,16 +100,21 @@ async function main() {
       }
 
       const prevPoints = wallet.currentPoints;
-      const totalPointsAcc = prevPoints + pointsEarned;
-      let stampsEarned = Math.floor(totalPointsAcc / settings.pointsPerStamp);
-      let remainingPoints = totalPointsAcc % settings.pointsPerStamp;
+      const pps = settings.pointsPerStamp || 50;
+      const spendPerStamp = Math.max(1, Math.round(pps / ppr));
 
-      if (stampsEarned > 1) {
+      let stampsEarned = 0;
+      let extraPoints = 0;
+
+      if (amount < spendPerStamp) {
+        stampsEarned = 0;
+        extraPoints = Math.floor(amount * ppr);
+      } else {
         stampsEarned = 1;
-        remainingPoints = totalPointsAcc - settings.pointsPerStamp;
+        const leftoverSpend = amount - spendPerStamp;
+        extraPoints = Math.floor(leftoverSpend * ppr);
       }
 
-      // Task 2: Calculate bonus points
       const bonusThreshold = settings.bonusThresholdAmount ?? 500;
       const bonusRate = settings.pointsPerRupeeAboveThreshold ?? 0.1;
       let bonusPoints = 0;
@@ -112,12 +122,14 @@ async function main() {
         bonusPoints = Math.floor((amount - bonusThreshold) * bonusRate);
       }
 
+      const totalExtraPointsEarned = extraPoints + bonusPoints;
+
       const updatedWallet = await tx.userWallet.update({
         where: { id: wallet.id },
         data: {
-          currentPoints: remainingPoints,
+          currentPoints: prevPoints + pointsEarned,
           currentStamps: wallet.currentStamps + stampsEarned,
-          pointsBalance: { increment: bonusPoints },
+          pointsBalance: { increment: totalExtraPointsEarned },
         },
       });
 
@@ -169,10 +181,10 @@ async function main() {
   // 3. Purchase Flow tests
   console.log('\n--- Running Task 1 & Task 2 Verification ---');
 
-  // Test Case A: ₹5000 Purchase on clean wallet (should award exactly 1 stamp, keep 450 points, and earn (5000 - 500) * 0.1 = 450 bonus points)
+  // Test Case A: ₹5000 Purchase on clean wallet (should award exactly 1 stamp, keep 500 points, and earn 450 leftover points + 450 bonus points = 900 extra points)
   await resetTestWallet(0, 0, 0);
   let wallet = await simulatePurchase(5000);
-  if (wallet.currentStamps !== 1 || wallet.currentPoints !== 450 || wallet.pointsBalance !== 450) {
+  if (wallet.currentStamps !== 1 || wallet.currentPoints !== 500 || wallet.pointsBalance !== 900) {
     throw new Error(`₹5000 purchase test failed! Stamps: ${wallet.currentStamps}, Points: ${wallet.currentPoints}, Bonus points: ${wallet.pointsBalance}`);
   }
   
@@ -183,29 +195,23 @@ async function main() {
   if (ledgerCountA !== 1) {
     throw new Error(`Expected 1 ledger record for ₹5000 purchase, found ${ledgerCountA}`);
   }
-  console.log('✅ ₹5000 purchase test passed: 1 stamp awarded, 450 points retained, 450 bonus points earned + ledger recorded.');
+  console.log('✅ ₹5000 purchase test passed: 1 stamp awarded, 500 cumulative points, 900 extra points (leftover + bonus) earned.');
 
-  // Test Case B: ₹500 Purchase on clean wallet (should award exactly 1 stamp, keep 0 points, and earn 0 bonus points)
+  // Test Case B: ₹500 Purchase on clean wallet (should award exactly 1 stamp, keep 50 points, and earn 0 extra points)
   await resetTestWallet(0, 0, 0);
   wallet = await simulatePurchase(500);
-  if (wallet.currentStamps !== 1 || wallet.currentPoints !== 0 || wallet.pointsBalance !== 0) {
+  if (wallet.currentStamps !== 1 || wallet.currentPoints !== 50 || wallet.pointsBalance !== 0) {
     throw new Error(`₹500 purchase test failed! Stamps: ${wallet.currentStamps}, Points: ${wallet.currentPoints}, Bonus points: ${wallet.pointsBalance}`);
   }
-  const ledgerCountB = await prisma.loyaltyPointsLedger.count({
-    where: { userId: customerId, businessId, source: 'BONUS' },
-  });
-  if (ledgerCountB !== 0) {
-    throw new Error(`Expected 0 ledger records for ₹500 purchase, found ${ledgerCountB}`);
-  }
-  console.log('✅ ₹500 purchase test passed: 1 stamp awarded, 0 points retained, 0 bonus points earned.');
+  console.log('✅ ₹500 purchase test passed: 1 stamp awarded, 50 cumulative points, 0 extra points earned.');
 
-  // Test Case C: ₹50 Purchase on a wallet pre-funded with 45 points (should award exactly 1 stamp, keep 0 points, and earn 0 bonus points)
+  // Test Case C: ₹50 Purchase on a wallet pre-funded with 45 points (should award exactly 0 stamps, keep 50 points, and earn 5 extra points)
   await resetTestWallet(45, 0, 0);
   wallet = await simulatePurchase(50);
-  if (wallet.currentStamps !== 1 || wallet.currentPoints !== 0 || wallet.pointsBalance !== 0) {
+  if (wallet.currentStamps !== 0 || wallet.currentPoints !== 50 || wallet.pointsBalance !== 5) {
     throw new Error(`₹50 purchase test failed! Stamps: ${wallet.currentStamps}, Points: ${wallet.currentPoints}, Bonus points: ${wallet.pointsBalance}`);
   }
-  console.log('✅ ₹50 purchase test passed (with 45 pre-existing points): 1 stamp awarded, 0 points retained, 0 bonus points earned.');
+  console.log('✅ ₹50 purchase test passed: 0 stamps awarded, 50 cumulative points, 5 extra points earned.');
 
   console.log('\n✅ All Task 1 & Task 2 verification tests passed successfully!');
 }

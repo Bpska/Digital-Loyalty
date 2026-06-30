@@ -591,74 +591,13 @@ export default function BusinessDashboard() {
       )
 
       /* Main Panels Section */
-      , React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-3 gap-6", __self: this, __source: { fileName: _jsxFileName, lineNumber: 204 } }
+      , React.createElement('div', { className: "grid grid-cols-1 lg:grid-cols-2 gap-6 items-start" }
 
-        /* Left Panel: Recent Activity */
-        , React.createElement(Card, { className: "md:col-span-2 flex flex-col glass", glass: true, __self: this, __source: { fileName: _jsxFileName, lineNumber: 207 } }
-          , React.createElement(CardHeader, { className: "p-6", __self: this, __source: { fileName: _jsxFileName, lineNumber: 208 } }
-            , React.createElement(CardTitle, { className: "text-base font-bold text-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 209 } }, "Recent Check-In Activity")
-            , React.createElement(CardDescription, { className: "text-xs text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 210 } }, "Latest location-verified customer check-ins"
-
-            )
-          )
-          , React.createElement(CardContent, { className: "p-6 pt-0 flex-1 overflow-x-auto", __self: this, __source: { fileName: _jsxFileName, lineNumber: 214 } }
-            , checkins.length === 0 ? (
-              React.createElement('div', { className: "h-full flex flex-col items-center justify-center py-12 text-center text-muted-foreground text-sm", __self: this, __source: { fileName: _jsxFileName, lineNumber: 216 } }
-                , React.createElement(Calendar, { className: "h-8 w-8 mb-2 text-muted-foreground/60", __self: this, __source: { fileName: _jsxFileName, lineNumber: 217 } }), "No check-in logs recorded yet today."
-
-              )
-            ) : (
-              React.createElement('table', { className: "w-full text-left border-collapse text-xs", __self: this, __source: { fileName: _jsxFileName, lineNumber: 221 } }
-                , React.createElement('thead', { __self: this, __source: { fileName: _jsxFileName, lineNumber: 222 } }
-                  , React.createElement('tr', { className: "border-b border-border text-muted-foreground font-bold", __self: this, __source: { fileName: _jsxFileName, lineNumber: 223 } }
-                    , React.createElement('th', { className: "pb-3", __self: this, __source: { fileName: _jsxFileName, lineNumber: 224 } }, "Customer")
-                    , React.createElement('th', { className: "pb-3", __self: this, __source: { fileName: _jsxFileName, lineNumber: 225 } }, "Outlet")
-                    , React.createElement('th', { className: "pb-3", __self: this, __source: { fileName: _jsxFileName, lineNumber: 226 } }, "Timestamp")
-                    , React.createElement('th', { className: "pb-3 text-right", __self: this, __source: { fileName: _jsxFileName, lineNumber: 227 } }, "Status")
-                  )
-                )
-                , React.createElement('tbody', { className: "divide-y divide-border", __self: this, __source: { fileName: _jsxFileName, lineNumber: 230 } }
-                  , checkins.map((log) => (
-                    React.createElement('tr', { key: log.id, className: "hover:bg-slate-50/50 transition-colors", __self: this, __source: { fileName: _jsxFileName, lineNumber: 232 } }
-                      , React.createElement('td', { className: "py-3 font-semibold text-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 233 } }
-                        , log.customer.name
-                        , React.createElement('span', { className: "block text-[10px] font-normal text-muted-foreground font-mono mt-0.5", __self: this, __source: { fileName: _jsxFileName, lineNumber: 235 } }, log.customer.phone)
-                      )
-                      , React.createElement('td', { className: "py-3 text-slate-700 font-medium", __self: this, __source: { fileName: _jsxFileName, lineNumber: 237 } }, log.branch.name)
-                      , React.createElement('td', { className: "py-3 text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 238 } }, formatDate(log.createdAt))
-                      , React.createElement('td', { className: "py-3 text-right", __self: this, __source: { fileName: _jsxFileName, lineNumber: 239 } }
-                        , statusLoading[log.id] ? (
-                          React.createElement(Loader2, { className: "h-4 w-4 animate-spin text-muted-foreground ml-auto" })
-                        ) : (
-                          React.createElement('select', {
-                            value: log.status,
-                            onChange: (e) => handleStatusChange(log.id, e.target.value),
-                            className: `text-[10px] font-bold px-2 py-0.5 rounded-full border cursor-pointer outline-none bg-white ${log.status === "VALID"
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                              : log.status === "SUSPICIOUS"
-                                ? "bg-amber-50 text-amber-700 border-amber-200"
-                                : "bg-red-50 text-red-700 border-red-200"
-                              }`
-                          },
-                            React.createElement('option', { value: "VALID" }, "VALID"),
-                            React.createElement('option', { value: "SUSPICIOUS" }, "SUSPICIOUS"),
-                            React.createElement('option', { value: "REJECTED" }, "REJECTED")
-                          )
-                        )
-                      )
-                    )
-                  ))
-                )
-              )
-            )
-          )
-        )
-
-        /* Right Panel Wrapper containing Subscription & Limits AND Business Profile Settings */
+        /* Left Column: Subscription & Limits */
         , React.createElement('div', { className: "space-y-6" }
-          , React.createElement(Card, { className: "glass", glass: true, __self: this, __source: { fileName: _jsxFileName, lineNumber: 257 } }
-            , React.createElement(CardHeader, { className: "p-6", __self: this, __source: { fileName: _jsxFileName, lineNumber: 258 } }
-              , React.createElement(CardTitle, { className: "text-base font-bold text-foreground flex items-center gap-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 259 } }
+          , React.createElement(Card, { className: "glass", glass: true }
+            , React.createElement(CardHeader, { className: "p-6" }
+              , React.createElement(CardTitle, { className: "text-base font-bold text-foreground flex items-center gap-2" }
                 , React.createElement(Zap, { className: "h-4.5 w-4.5 text-primary", __self: this, __source: { fileName: _jsxFileName, lineNumber: 260 } }), " Current Plan Usage"
               )
               , React.createElement(CardDescription, { className: "text-xs text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 262 } }, "Track subscription capacity limits"
@@ -728,6 +667,10 @@ export default function BusinessDashboard() {
               }, "Upgrade / Purchase Plan")
             )
           )
+        )
+
+        /* Right Column: AI Review Settings & QR */
+        , React.createElement('div', { className: "space-y-6" }
           /* AI Review Generator Settings Card */
           , React.createElement(Card, { className: "glass", glass: true }
             , React.createElement(CardHeader, { className: "p-6" }

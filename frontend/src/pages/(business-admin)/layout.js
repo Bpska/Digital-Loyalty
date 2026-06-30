@@ -612,13 +612,7 @@ export default function BusinessAdminLayout({
         /* Top Navbar */
         , React.createElement('header', { className: "h-16 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-30"           , __self: this, __source: {fileName: _jsxFileName, lineNumber: 164}}
           , React.createElement('div', { className: "flex items-center space-x-4"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 165}}
-            , React.createElement('button', { 
-              className: "text-muted-foreground md:hidden p-1 rounded-lg hover:bg-muted"    , 
-              onClick: () => setMobileOpen(true), __self: this, __source: {fileName: _jsxFileName, lineNumber: 166}}
-
-              , React.createElement(Menu, { className: "h-5 w-5" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 170}} )
-            )
-            , React.createElement('h2', { className: "text-sm font-semibold text-muted-foreground hidden sm:block"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 172}}, "Business Portal"
+            , React.createElement('h2', { className: "text-sm font-semibold text-muted-foreground"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 172}}, "Business Portal"
 
             )
           )
@@ -811,7 +805,7 @@ export default function BusinessAdminLayout({
               { label: "Approvals", icon: ClipboardCheck, href: "/dashboard/business/approvals", badge: pendingApprovals },
               { label: "Coupons", icon: Percent, href: "/dashboard/business/coupons" },
               { label: "Analytics", icon: BarChart3, href: "/dashboard/business/analytics" },
-              { label: "Menu", icon: Menu, onClick: () => setMobileOpen(true) }
+              { label: "Settings", icon: Settings, onClick: () => setMobileOpen(true) }
             ].map((item, idx) => {
               const isActive = item.href ? pathname === item.href : false;
               const Icon = item.icon;

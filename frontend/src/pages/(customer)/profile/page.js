@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, Phone, Mail, AlertTriangle, ShieldAlert, ChevronLeft } from "lucide-react";
+import { Loader2, Phone, Mail, AlertTriangle, ShieldAlert, ChevronLeft, Sun, Moon, Monitor } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
 
@@ -36,6 +36,32 @@ export default function ProfilePage() {
   const [message, setMessage] = useState(null);
   const [supportMsg, setSupportMsg] = useState("");
   const [supportLoading, setSupportLoading] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "system");
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove("light", "dark");
+    if (theme === "system") {
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      root.classList.add(systemTheme);
+    } else {
+      root.classList.add(theme);
+    }
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = () => {
+      if (theme === "system") {
+        const root = window.document.documentElement;
+        root.classList.remove("light", "dark");
+        root.classList.add(mediaQuery.matches ? "dark" : "light");
+      }
+    };
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [theme]);
 
   const { data: profile, isLoading, refetch } = useQuery({
     queryKey: ["customerProfile"],
@@ -212,6 +238,30 @@ export default function ProfilePage() {
                 )
               )
             )
+          )
+        )
+      )
+
+      /* Appearance Card */
+      , React.createElement(Card, { className: "glass", glass: true }
+        , React.createElement(CardHeader, { className: "p-4 pb-2" }
+          , React.createElement(CardTitle, { className: "text-base font-bold text-foreground" }, "Appearance")
+          , React.createElement(CardDescription, { className: "text-xs text-muted-foreground" }, "Customize the look and feel of your app.")
+        )
+        , React.createElement(CardContent, { className: "p-4 pt-3" }
+          , React.createElement("div", { className: "flex items-center gap-3 p-1 bg-slate-100/50 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/50" }
+            , React.createElement("button", {
+              onClick: () => setTheme("light"),
+              className: `flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-semibold transition-all ${theme === "light" ? "bg-white dark:bg-slate-700 shadow-sm text-primary border border-slate-200/50 dark:border-slate-600/50" : "text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800"}`
+            }, React.createElement(Sun, { className: "h-4 w-4" }), "Light")
+            , React.createElement("button", {
+              onClick: () => setTheme("dark"),
+              className: `flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-semibold transition-all ${theme === "dark" ? "bg-white dark:bg-slate-700 shadow-sm text-primary border border-slate-200/50 dark:border-slate-600/50" : "text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800"}`
+            }, React.createElement(Moon, { className: "h-4 w-4" }), "Dark")
+            , React.createElement("button", {
+              onClick: () => setTheme("system"),
+              className: `flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-semibold transition-all ${theme === "system" ? "bg-white dark:bg-slate-700 shadow-sm text-primary border border-slate-200/50 dark:border-slate-600/50" : "text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800"}`
+            }, React.createElement(Monitor, { className: "h-4 w-4" }), "System")
           )
         )
       )

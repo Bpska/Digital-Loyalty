@@ -739,7 +739,7 @@ router.post(
         },
       });
 
-      sendSuccess(res, settings, 'Loyalty program settings saved');
+      sendSuccess(res, settings, 'Settings updated successfully');
     } catch (err) { next(err); }
   }
 );
@@ -804,10 +804,11 @@ router.post(
         prisma.systemSetting.findUnique({ where: { key: 'points_per_rupee' } }),
         prisma.systemSetting.findUnique({ where: { key: 'points_per_stamp' } }),
       ]);
+
       const pointsPerRupee = globalRupeeSetting ? parseFloat(globalRupeeSetting.value) : 0.1;
       const pointsPerStamp = settings.pointsPerStamp ?? (globalStampSetting ? parseInt(globalStampSetting.value, 10) : 50);
 
-      const pointsEarned = Math.floor(purchaseValue * pointsPerRupee);
+      let pointsEarned = 0;
 
       // Enforce maxDailyStamps limit by counting stamps already earned by this customer today at this business
       const timezone = request.business.timezone || 'Asia/Kolkata';
@@ -825,24 +826,6 @@ router.post(
       const stampsEarnedToday = walletTransactionsToday.reduce((sum, tx) => sum + tx.stampEarned, 0);
 
       const result = await prisma.$transaction(async (tx) => {
-        // Ensure CustomerPoints exists and increment points so dashboard shows correct balance
-        await tx.customerPoints.upsert({
-          where: {
-            customerId_businessId: {
-              customerId: request.customerId,
-              businessId: request.businessId,
-            },
-          },
-          update: { totalPoints: { increment: pointsEarned } },
-          create: {
-            customerId: request.customerId,
-            businessId: request.businessId,
-            totalPoints: pointsEarned,
-            totalVisits: 0,
-            visitStreak: 0,
-          },
-        });
-
         // 1. Get or create wallet
         let wallet = await tx.userWallet.findUnique({
           where: { userId_businessId: { userId: request.customerId, businessId: request.businessId } },
@@ -889,33 +872,72 @@ router.post(
           });
         }
 
-        // 2. Calculate point accumulation and stamp conversion
-        const totalPointsAcc = currentPoints + pointsEarned;
-        let stampsEarned = Math.floor(totalPointsAcc / pointsPerStamp);
-        let remainingPoints = totalPointsAcc % pointsPerStamp;
+        // Calculate conversion parameters
+        const ppr = settings.pointsPerRupee || 0.1;
+        const pps = settings.pointsPerStamp || 50;
+        const spendPerStamp = Math.max(1, Math.round(pps / ppr)); // usually 500
 
-        if (stampsEarned > 1) {
+        // 1. Calculate stamps earned from this purchase
+        let stampsEarned = 0;
+        let extraPoints = 0;
+        const purchaseNum = Number(purchaseValue);
+
+        if (purchaseNum < spendPerStamp) {
+          // If purchase is less than 500, they get 0 stamps and points accumulate in extra points
+          stampsEarned = 0;
+          extraPoints = Math.floor(purchaseNum * ppr);
+        } else {
+          // If purchase is 500 or more, they get exactly 1 stamp, and the remaining amount above 500 is saved as extra points
           stampsEarned = 1;
-          remainingPoints = totalPointsAcc - pointsPerStamp;
+          const leftoverSpend = purchaseNum - spendPerStamp;
+          extraPoints = Math.floor(leftoverSpend * ppr);
         }
 
-        if (settings.maxDailyStamps && (stampsEarnedToday + stampsEarned) > settings.maxDailyStamps) {
-          throw new AppError(`Approval failed: Exceeds the maximum daily limit of ${settings.maxDailyStamps} stamp(s) per customer.`, 400);
+        // 2. Enforce maxDailyStamps limit
+        const maxStampsAllowedToday = settings.maxDailyStamps ?? 1;
+        const stampsRemainingToday = Math.max(0, maxStampsAllowedToday - stampsEarnedToday);
+
+        if (stampsEarned > stampsRemainingToday) {
+          stampsEarned = stampsRemainingToday; // will be 0
+          // When capped, the entire purchase value converts to extra points
+          extraPoints = Math.floor(purchaseNum * ppr);
         }
+
+        pointsEarned = Math.floor(purchaseNum * ppr);
+
+        await tx.customerPoints.upsert({
+          where: {
+            customerId_businessId: {
+              customerId: request.customerId,
+              businessId: request.businessId,
+            },
+          },
+          update: { totalPoints: { increment: pointsEarned } },
+          create: {
+            customerId: request.customerId,
+            businessId: request.businessId,
+            totalPoints: pointsEarned,
+            totalVisits: 0,
+            visitStreak: 0,
+          },
+        });
 
         const bonusThreshold = settings.bonusThresholdAmount ?? 500;
         const bonusRate = settings.pointsPerRupeeAboveThreshold ?? 0.1;
         let bonusPoints = 0;
-        if (Number(purchaseValue) >= bonusThreshold) {
-          bonusPoints = Math.floor((Number(purchaseValue) - bonusThreshold) * bonusRate);
+
+        if (purchaseNum >= bonusThreshold) {
+          bonusPoints = Math.floor((purchaseNum - bonusThreshold) * bonusRate);
         }
+
+        const totalExtraPointsEarned = extraPoints + bonusPoints;
 
         const updatedWallet = await tx.userWallet.update({
           where: { id: wallet.id },
           data: {
-            currentPoints: remainingPoints,
+            currentPoints: { increment: pointsEarned },
             currentStamps: currentStamps + stampsEarned,
-            pointsBalance: { increment: bonusPoints },
+            pointsBalance: { increment: totalExtraPointsEarned },
             startedAt,
             expiresAt,
           },
@@ -933,7 +955,6 @@ router.post(
           });
         }
 
-        // 3. Create wallet transaction
         const walletTx = await tx.walletTransaction.create({
           data: {
             userId: request.customerId,
@@ -944,18 +965,19 @@ router.post(
           },
         });
 
-        // 3b. Create LoyaltyTransaction so points appear in history and analytics
+        // 5b. Create LoyaltyTransaction so points appear in history and analytics
         await tx.loyaltyTransaction.create({
           data: {
             customerId: request.customerId,
             businessId: request.businessId,
             points: pointsEarned,
+            extraPoints: totalExtraPointsEarned,
             requestId,
             spendAmount: purchaseValue,
           },
         });
 
-        // 4. Update request status to APPROVED
+        // 6. Update request status to APPROVED
         const updatedRequest = await tx.loyaltyRequest.update({
           where: { id: requestId },
           data: {
@@ -966,7 +988,7 @@ router.post(
           },
         });
 
-        // 5. Send notification to the customer
+        // 7. Send notification to the customer
         let notifTitle = 'Points Earned! 💳';
         let notifBody = `You earned ${pointsEarned} points at ${request.business.name}.`;
         if (stampsEarned > 0) {
@@ -984,14 +1006,16 @@ router.post(
             metadata: {
               pointsEarned,
               stampsEarned,
-              currentPoints: remainingPoints,
+              extraPoints: totalExtraPointsEarned,
+              currentPoints: updatedWallet.currentPoints,
               currentStamps: updatedWallet.currentStamps,
+              pointsBalance: updatedWallet.pointsBalance,
               purchaseValue,
             },
           },
         });
 
-        return { updatedWallet, walletTx, updatedRequest };
+        return { updatedWallet, walletTx, updatedRequest, stampsEarned, totalExtraPointsEarned };
       });
 
       sendSuccess(res, {
@@ -999,9 +1023,109 @@ router.post(
         customerId: request.customerId,
         customerName: request.customer.name,
         pointsEarned,
+        extraPoints: result.totalExtraPointsEarned,
+        stampsEarned: result.stampsEarned,
         currentPoints: result.updatedWallet.currentPoints,
         currentStamps: result.updatedWallet.currentStamps,
+        pointsBalance: result.updatedWallet.pointsBalance,
       }, `Approved! ${pointsEarned} points awarded to ${request.customer.name}`);
+    } catch (err) { next(err); }
+  }
+);
+
+// DELETE /loyalty-approval/approve-wallet/:requestId — undo an approval
+router.delete(
+  '/approve-wallet/:requestId',
+  authenticate,
+  authorize(Role.BUSINESS_ADMIN, Role.SUPER_ADMIN),
+  async (req, res, next) => {
+    try {
+      const { requestId } = req.params;
+
+      const request = await prisma.loyaltyRequest.findUnique({
+        where: { id: requestId },
+        include: { business: { select: { ownerId: true } } },
+      });
+
+      if (!request) throw new AppError('Loyalty request not found', 404);
+      if (request.status !== 'APPROVED') throw new AppError('Only APPROVED requests can be undone', 400);
+
+      if (req.user.role === Role.BUSINESS_ADMIN) {
+        await assertBusinessOwner(req.user.sub, request.businessId);
+      }
+
+      await prisma.$transaction(async (tx) => {
+        // Find loyalty transaction
+        const loyaltyTx = await tx.loyaltyTransaction.findFirst({
+          where: { requestId },
+        });
+
+        if (loyaltyTx) {
+          // Find the corresponding wallet transaction by matching timestamp roughly
+          const walletTx = await tx.walletTransaction.findFirst({
+            where: {
+              userId: request.customerId,
+              businessId: request.businessId,
+              purchaseValue: loyaltyTx.spendAmount,
+              createdAt: {
+                gte: new Date(loyaltyTx.createdAt.getTime() - 60000),
+                lte: new Date(loyaltyTx.createdAt.getTime() + 60000),
+              }
+            }
+          });
+
+          const stampsToDeduct = walletTx ? walletTx.stampEarned : 0;
+          const pointsToDeduct = loyaltyTx.points;
+          const extraToDeduct = loyaltyTx.extraPoints || 0;
+
+          // Deduct from UserWallet
+          const wallet = await tx.userWallet.findUnique({
+            where: { userId_businessId: { userId: request.customerId, businessId: request.businessId } },
+          });
+
+          if (wallet) {
+            await tx.userWallet.update({
+              where: { id: wallet.id },
+              data: {
+                currentPoints: Math.max(0, wallet.currentPoints - pointsToDeduct),
+                currentStamps: Math.max(0, wallet.currentStamps - stampsToDeduct),
+                pointsBalance: Math.max(0, wallet.pointsBalance - extraToDeduct),
+              }
+            });
+          }
+
+          // Deduct from CustomerPoints
+          const cp = await tx.customerPoints.findUnique({
+            where: { customerId_businessId: { customerId: request.customerId, businessId: request.businessId } },
+          });
+
+          if (cp) {
+            await tx.customerPoints.update({
+              where: { customerId_businessId: { customerId: request.customerId, businessId: request.businessId } },
+              data: { totalPoints: Math.max(0, cp.totalPoints - pointsToDeduct) },
+            });
+          }
+
+          // Delete the transactions
+          if (walletTx) {
+            await tx.walletTransaction.delete({ where: { id: walletTx.id } });
+          }
+          await tx.loyaltyTransaction.delete({ where: { id: loyaltyTx.id } });
+        }
+
+        // Revert request to PENDING
+        await tx.loyaltyRequest.update({
+          where: { id: requestId },
+          data: {
+            status: 'PENDING',
+            spendAmount: null,
+            approvedById: null,
+            approvedAt: null,
+          }
+        });
+      });
+
+      sendSuccess(res, null, 'Approval undone successfully');
     } catch (err) { next(err); }
   }
 );

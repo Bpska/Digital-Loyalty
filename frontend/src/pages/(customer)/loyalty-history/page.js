@@ -51,6 +51,7 @@ export default function CustomerLoyaltyHistoryPage() {
 
   // Calculate totals
   const totalPoints = transactions.reduce((sum, tx) => sum + tx.points, 0);
+  const totalExtraPoints = transactions.reduce((sum, tx) => sum + (tx.extraPoints || 0), 0);
   const uniqueBusinesses = new Set(transactions.map(tx => tx.businessId)).size;
 
   return (
@@ -64,18 +65,34 @@ export default function CustomerLoyaltyHistoryPage() {
         )
       ),
 
-      /* Summary Card */
-      React.createElement(Card, { className: "bg-gradient-to-br from-primary to-primary/80 border-0 text-white shadow-lg" },
-        React.createElement(CardContent, { className: "p-5 flex items-center justify-between" },
-          React.createElement("div", null,
-            React.createElement("p", { className: "text-xs font-semibold uppercase tracking-wider opacity-80" }, "Total Points Earned"),
-            React.createElement("p", { className: "text-4xl font-black mt-1" }, totalPoints),
-            React.createElement("p", { className: "text-xs opacity-70 mt-0.5" },
-              `From ${uniqueBusinesses} business${uniqueBusinesses !== 1 ? "es" : ""}`
+      /* Summary Cards Grid */
+      React.createElement("div", { className: "grid grid-cols-2 gap-3" },
+        // Card 1: Total Points Earned
+        React.createElement(Card, { className: "bg-gradient-to-br from-primary to-primary/85 border-0 text-white shadow-md rounded-2xl" },
+          React.createElement(CardContent, { className: "p-4 flex items-center justify-between" },
+            React.createElement("div", { className: "space-y-1" },
+              React.createElement("p", { className: "text-[10px] font-bold uppercase tracking-wider opacity-75" }, "Total Points"),
+              React.createElement("p", { className: "text-2xl font-black" }, totalPoints),
+              React.createElement("p", { className: "text-[9px] opacity-70" },
+                `From ${uniqueBusinesses} business${uniqueBusinesses !== 1 ? "es" : ""}`
+              )
+            ),
+            React.createElement("div", { className: "h-10 w-10 bg-white/15 rounded-xl flex items-center justify-center shrink-0" },
+              React.createElement(Award, { className: "h-5 w-5 text-white" })
             )
-          ),
-          React.createElement("div", { className: "h-16 w-16 bg-white/10 rounded-2xl flex items-center justify-center" },
-            React.createElement(Award, { className: "h-8 w-8 text-white" })
+          )
+        ),
+        // Card 2: Extra Points Earned
+        React.createElement(Card, { className: "bg-gradient-to-br from-amber-500 to-orange-600 border-0 text-white shadow-md rounded-2xl" },
+          React.createElement(CardContent, { className: "p-4 flex items-center justify-between" },
+            React.createElement("div", { className: "space-y-1" },
+              React.createElement("p", { className: "text-[10px] font-bold uppercase tracking-wider opacity-75" }, "Extra Points"),
+              React.createElement("p", { className: "text-2xl font-black" }, totalExtraPoints),
+              React.createElement("p", { className: "text-[9px] opacity-70" }, "From leftovers & bonuses")
+            ),
+            React.createElement("div", { className: "h-10 w-10 bg-white/15 rounded-xl flex items-center justify-center shrink-0" },
+              React.createElement(Star, { className: "h-5 w-5 text-white" })
+            )
           )
         )
       ),
@@ -173,11 +190,13 @@ export default function CustomerLoyaltyHistoryPage() {
                         ),
 
                         /* Points */
-                        React.createElement("div", { className: "text-right shrink-0" },
-                          React.createElement("p", { className: "text-xl font-black text-primary" },
-                            `+${tx.points}`
+                        React.createElement("div", { className: "text-right shrink-0 space-y-0.5" },
+                          React.createElement("p", { className: "text-lg font-black text-primary leading-tight" },
+                            `+${tx.points} pts`
                           ),
-                          React.createElement("p", { className: "text-[10px] text-muted-foreground" }, "points")
+                          (tx.extraPoints > 0) && React.createElement("p", { className: "text-xs font-bold text-amber-600 leading-tight" },
+                            `+${tx.extraPoints} extra`
+                          )
                         )
                       )
                     )

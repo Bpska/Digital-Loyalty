@@ -181,30 +181,7 @@ export async function processCheckIn(input) {
   const customerLon = null;
   const distanceMeters = null;
 
-  // ── Step 3: Daily check-in limit check (Per Business, Per Customer, Per Day) ──
-  const timezone = branch.business.timezone || 'Asia/Kolkata';
-  const { start: todayStart, end: todayEnd } = getTodayBoundsInTimezone(timezone);
-
-  const recentCheckIn = await prisma.checkIn.findFirst({
-    where: {
-      customerId,
-      businessId: branch.businessId,
-      status: CheckInStatus.VALID,
-      createdAt: {
-        gte: todayStart,
-        lte: todayEnd,
-      },
-    },
-  });
-
-  if (recentCheckIn) {
-    throw new AppError(
-      "You have already collected today's loyalty stamp.",
-      400
-    );
-  }
-
-  // Retrieve settings
+  // Retrieve settings first to verify daily limit config
   let settings = await prisma.loyaltyProgramSettings.findUnique({
     where: { businessId: branch.businessId },
   });
@@ -219,9 +196,34 @@ export async function processCheckIn(input) {
         requiredStamps: 7,
         rewardName: 'Free Coffee',
         validityDays: 30,
+        maxDailyStamps: 1,
       },
     });
   }
+
+  // ── Step 3: Daily check-in limit check (Per Business, Per Customer, Per Day) ──
+  const timezone = branch.business.timezone || 'Asia/Kolkata';
+  const { start: todayStart, end: todayEnd } = getTodayBoundsInTimezone(timezone);
+
+  const checkInsTodayCount = await prisma.checkIn.count({
+    where: {
+      customerId,
+      businessId: branch.businessId,
+      status: CheckInStatus.VALID,
+      createdAt: {
+        gte: todayStart,
+        lte: todayEnd,
+      },
+    },
+  });
+
+  if (checkInsTodayCount >= settings.maxDailyStamps) {
+    throw new AppError(
+      `You have already reached the maximum limit of ${settings.maxDailyStamps} stamp(s) for today.`,
+      400
+    );
+  }
+
 
   // ── Step 4: Transactional check-in + loyalty wallet processing ──
   const result = await prisma.$transaction(async tx => {
@@ -432,18 +434,36 @@ export async function redeemReward(
   staffId,
   businessId
 ) {
-  const customerReward = await prisma.customerReward.findUnique({
-    where: { redemptionCode },
+  const cleanedCode = redemptionCode.trim();
+
+  const customerReward = await prisma.customerReward.findFirst({
+    where: {
+      OR: [
+        { redemptionCode: { equals: cleanedCode, mode: 'insensitive' } },
+        { redemptionCode: { startsWith: cleanedCode, mode: 'insensitive' } },
+        { redemptionCode: { equals: `rw-${cleanedCode}`, mode: 'insensitive' } },
+        { redemptionCode: { startsWith: `rw-${cleanedCode}`, mode: 'insensitive' } }
+      ]
+    },
     include: {
       reward: { select: { id: true, title: true, businessId: true } },
       customer: { select: { id: true, name: true } },
     },
   });
 
+  let claimedCoupon = null;
+
   if (!customerReward) {
     // Check if it's a ClaimedCoupon
-    const claimedCoupon = await prisma.claimedCoupon.findUnique({
-      where: { redemptionCode },
+    claimedCoupon = await prisma.claimedCoupon.findFirst({
+      where: {
+        OR: [
+          { redemptionCode: { equals: cleanedCode, mode: 'insensitive' } },
+          { redemptionCode: { startsWith: cleanedCode, mode: 'insensitive' } },
+          { redemptionCode: { equals: `rw-${cleanedCode}`, mode: 'insensitive' } },
+          { redemptionCode: { startsWith: `rw-${cleanedCode}`, mode: 'insensitive' } }
+        ]
+      },
       include: {
         coupon: { select: { id: true, title: true, businessId: true, eventDate: true } },
         customer: { select: { id: true, name: true } },
@@ -483,109 +503,83 @@ export async function redeemReward(
         throw new AppError(`This coupon is only valid on the event day: ${eventDate.toLocaleDateString()}`, 400);
       }
     }
-
-    // Mark redeemed
-    await prisma.claimedCoupon.update({
-      where: { id: claimedCoupon.id },
-      data: {
-        status: 'REDEEMED',
-        redeemedAt: new Date(),
-      },
-    });
-
-    // Resolve staff user ID for audit log
-    let auditUserId = null;
-    if (staffId) {
-      const staffMember = await prisma.staff.findUnique({
-        where: { id: staffId },
-        select: { userId: true },
-      });
-      auditUserId = staffMember?.userId || null;
+  } else {
+    if (customerReward.reward.businessId !== businessId) {
+      throw new AppError('This reward does not belong to your business', 403);
     }
 
-    await writeAuditLog({
-      action: 'COUPON_REDEEMED',
-      entityType: 'ClaimedCoupon',
-      entityId: claimedCoupon.id,
-      userId: auditUserId || claimedCoupon.customerId,
-      metadata: {
-        customerId: claimedCoupon.customerId,
-        couponId: claimedCoupon.couponId,
-        redemptionCode,
-      },
-    });
+    if (customerReward.status !== CustomerRewardStatus.UNLOCKED) {
+      const statusMessages = {
+        LOCKED: 'Reward is not yet earned',
+        REDEEMED: 'Reward has already been redeemed',
+        EXPIRED: 'Reward has expired',
+      };
+      throw new AppError(statusMessages[customerReward.status] ?? 'Reward cannot be redeemed', 400);
+    }
 
-    return {
-      message: 'Coupon redeemed successfully',
-      reward: { title: claimedCoupon.coupon.title },
-      customerName: claimedCoupon.customer.name,
-    };
-  }
-
-  if (customerReward.reward.businessId !== businessId) {
-    throw new AppError('This reward does not belong to your business', 403);
-  }
-
-  if (customerReward.status !== CustomerRewardStatus.UNLOCKED) {
-    const statusMessages = {
-      LOCKED: 'Reward is not yet earned',
-      REDEEMED: 'Reward has already been redeemed',
-      EXPIRED: 'Reward has expired',
-    };
-    throw new AppError(statusMessages[customerReward.status] ?? 'Reward cannot be redeemed', 400);
-  }
-
-  if (customerReward.expiresAt && new Date() > customerReward.expiresAt) {
-    await prisma.customerReward.update({
-      where: { id: customerReward.id },
-      data: { status: CustomerRewardStatus.EXPIRED },
-    });
-    throw new AppError('Reward has expired', 400);
+    if (customerReward.expiresAt && new Date() > customerReward.expiresAt) {
+      await prisma.customerReward.update({
+        where: { id: customerReward.id },
+        data: { status: CustomerRewardStatus.EXPIRED },
+      });
+      throw new AppError('Reward has expired', 400);
+    }
   }
 
   // Mark redeemed in a transaction
   await prisma.$transaction(async (tx) => {
-    await tx.customerReward.update({
-      where: { id: customerReward.id },
-      data: {
-        status: CustomerRewardStatus.REDEEMED,
-        redeemedAt: new Date(),
-        redeemedByStaffId: staffId,
-      },
-    });
+    if (customerReward) {
+      await tx.customerReward.update({
+        where: { id: customerReward.id },
+        data: {
+          status: CustomerRewardStatus.REDEEMED,
+          redeemedAt: new Date(),
+          redeemedByStaffId: staffId,
+        },
+      });
 
-    // Update active CustomerLoyaltyWallet for this customer and business to REDEEMED (starts new collection next check-in)
-    await tx.customerLoyaltyWallet.updateMany({
-      where: {
-        userId: customerReward.customerId,
-        businessId: customerReward.reward.businessId,
-        status: 'REWARD_AVAILABLE',
-      },
-      data: {
-        status: 'REDEEMED',
-      },
-    });
-
-    // Reset customer's UserWallet stamps (for hybrid program tracker on dashboard)
-    const settings = await tx.loyaltyProgramSettings.findUnique({
-      where: { businessId: customerReward.reward.businessId },
-    });
-    const requiredStamps = settings?.requiredStamps || 7;
-
-    const wallet = await tx.userWallet.findUnique({
-      where: {
-        userId_businessId: {
+      // Update active CustomerLoyaltyWallet for this customer and business to REDEEMED (starts new collection next check-in)
+      await tx.customerLoyaltyWallet.updateMany({
+        where: {
           userId: customerReward.customerId,
           businessId: customerReward.reward.businessId,
+          status: 'REWARD_AVAILABLE',
         },
-      },
-    });
-
-    if (wallet) {
-      await tx.userWallet.update({
-        where: { id: wallet.id },
         data: {
-          currentStamps: Math.max(0, wallet.currentStamps - requiredStamps),
+          status: 'REDEEMED',
+        },
+      });
+
+      // Reset customer's UserWallet stamps (for hybrid program tracker on dashboard)
+      const settings = await tx.loyaltyProgramSettings.findUnique({
+        where: { businessId: customerReward.reward.businessId },
+      });
+      const requiredStamps = settings?.requiredStamps || 7;
+
+      const wallet = await tx.userWallet.findUnique({
+        where: {
+          userId_businessId: {
+            userId: customerReward.customerId,
+            businessId: customerReward.reward.businessId,
+          },
+        },
+      });
+
+      if (wallet) {
+        await tx.userWallet.update({
+          where: { id: wallet.id },
+          data: {
+            currentStamps: Math.max(0, wallet.currentStamps - requiredStamps),
+          },
+        });
+      }
+    } else if (claimedCoupon) {
+      // Mark redeemed
+      await tx.claimedCoupon.update({
+        where: { id: claimedCoupon.id },
+        data: {
+          status: 'REDEEMED',
+          redeemedAt: new Date(),
         },
       });
     }
@@ -601,30 +595,49 @@ export async function redeemReward(
     auditUserId = staffMember?.userId || null;
   }
 
-  // Audit log
-  await writeAuditLog({
-    action: 'REWARD_REDEEMED',
-    entityType: 'CustomerReward',
-    entityId: customerReward.id,
-    userId: auditUserId,
-    metadata: {
+  if (customerReward) {
+    await writeAuditLog({
+      action: 'REWARD_REDEEMED',
+      entityType: 'CustomerReward',
+      entityId: customerReward.id,
+      userId: auditUserId || customerReward.customerId,
+      metadata: {
+        customerId: customerReward.customerId,
+        rewardId: customerReward.rewardId,
+        redemptionCode: customerReward.redemptionCode,
+      },
+    });
+
+    logger.info('Reward redeemed', {
       customerId: customerReward.customerId,
       rewardId: customerReward.rewardId,
-      redemptionCode,
-    },
-  });
+      redemptionCode: customerReward.redemptionCode,
+    });
 
-  logger.info('Reward redeemed', {
-    customerRewardId: customerReward.id,
-    customerId: customerReward.customerId,
-    staffId,
-  });
+    return {
+      message: 'Reward redeemed successfully',
+      reward: { title: customerReward.reward.title },
+      customerName: customerReward.customer.name,
+    };
+  } else {
+    await writeAuditLog({
+      action: 'COUPON_REDEEMED',
+      entityType: 'ClaimedCoupon',
+      entityId: claimedCoupon.id,
+      userId: auditUserId || claimedCoupon.customerId,
+      metadata: {
+        customerId: claimedCoupon.customerId,
+        couponId: claimedCoupon.couponId,
+        redemptionCode: claimedCoupon.redemptionCode,
+      },
+    });
 
-  return {
-    message: 'Reward redeemed successfully',
-    reward: { title: customerReward.reward.title },
-    customerName: customerReward.customer.name,
-  };
+    return {
+      message: 'Coupon redeemed successfully',
+      reward: { title: claimedCoupon.coupon.title },
+      customerName: claimedCoupon.customer.name,
+    };
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -739,6 +752,19 @@ export async function cancelCheckIn(checkInId, adminUserId, adminBusinessId, adm
       where: { customerId: checkIn.customerId, businessId: checkIn.businessId, totalPoints: { lt: 0 } },
       data: { totalPoints: 0 },
     });
+
+    // Deduct 1 stamp from CustomerLoyaltyWallet
+    const activeWallet = await tx.customerLoyaltyWallet.findFirst({
+      where: { userId: checkIn.customerId, businessId: checkIn.businessId, status: 'ACTIVE' },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (activeWallet && activeWallet.currentStamps > 0) {
+      await tx.customerLoyaltyWallet.update({
+        where: { id: activeWallet.id },
+        data: { currentStamps: activeWallet.currentStamps - 1 },
+      });
+    }
 
     // Notify customer
     await tx.notification.create({
