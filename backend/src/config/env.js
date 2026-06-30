@@ -45,7 +45,7 @@ const envSchema = z.object({
   MAX_UPLOAD_SIZE_MB: z.coerce.number().default(5),
 
   // ── Rate Limiting ─────────────────────────────────────────
-  RATE_LIMIT_AUTH_MAX: z.coerce.number().default(5),
+  RATE_LIMIT_AUTH_MAX: z.coerce.number().default(15),
   RATE_LIMIT_AUTH_WINDOW_MIN: z.coerce.number().default(15),
   RATE_LIMIT_OTP_MAX: z.coerce.number().default(3),
   RATE_LIMIT_OTP_WINDOW_MIN: z.coerce.number().default(10),

@@ -97,11 +97,16 @@ graph TD
 
 ---
 
-### 3.4 Manual Loyalty Level Approval System
+### 3.4 Manual Loyalty Level Approval & CRUD System
 *   **Custom Tiers**: Business admins can create custom loyalty tiers (e.g., Bronze = +1 point, Gold = +5 points, Platinum = +10 points) with custom naming, point values, and sort orders.
 *   **Loyalty Request Queue**: When a customer checks in, a pending `LoyaltyRequest` is created.
 *   **Admin Approval Interface**: Business admins have a dedicated approvals dashboard showing customer names, check-in history, location details, and a level selection dropdown. The admin reviews the request, selects the appropriate loyalty tier, and clicks **Approve** or **Reject**.
 *   **Point Transaction Ledger**: Approved requests trigger an immutable record in the `loyalty_transactions` ledger and award the corresponding points to the customer's wallet balance.
+*   **Interactive Status Timestamps**: Processed approvals (Approved/Rejected) show the exact `updatedAt` timestamp (representing when the request was processed) rather than the generic creation timestamp.
+*   **Approved Request CRUD Operations**: 
+    *   *Undo Approval*: Allows admins to undo an approved request. The system reverses the points, extra points, and stamps on the backend and puts the request back in the `PENDING` tab.
+    *   *Edit Amount*: Allows admins to edit the purchase value of an approved request inline, cleanly recalculating the stamps and points without corrupting the wallet balance.
+*   **Dynamic Reloading**: Features an integrated Refresh button that spins and reloads both the requests list and current analytics stats simultaneously.
 
 ---
 
@@ -119,10 +124,21 @@ graph TD
 
 ---
 
-### 3.7 Paytm-Style Camera Scanner UI
+### 3.7 Paytm-Style Camera Scanner & Stamp Card UI
 *   **Target Frame Viewport**: A centered `192px x 192px` viewport with a dark backdrop shadow overlay (`shadow-[0_0_0_9999px_rgba(7,18,42,0.65)]`) that dims the rest of the camera field.
 *   **Emerald Brackets**: Four thick glowing green corners outlining the scan target window.
 *   **Animated Laser Sweep**: A horizontal glowing green laser line that continuously sweeps vertically inside the scanning frame to emulate high-end professional hardware scanners.
+*   **Visual Layout Optimizations**:
+    *   Stamp grid slots are structured inside large, mobile-friendly cards with glassmorphism backdrop blur styles (`backdrop-blur-2xl`, `bg-white/50`).
+    *   Campaign offers and deals display details strictly inside the card context to prevent redundant info overflow.
+
+### 3.8 Mobile Navigation & Settings UX
+*   **Clean Header View**: The top mobile header removes the redundant 3-line hamburger menu trigger.
+*   **Bottom Navigation Redirection**: Replaces the generic bottom "Menu" button with a "Settings" gear button, triggering the central Profile/Settings drawer.
+*   **Dark & Light Mode Toggle**: Integrated dark/light mode toggle in the Profile/Settings panel that works alongside system-detected theme preferences.
+
+### 3.9 Check-in Cancellation Stamp Revocation
+*   **Revocation Synchronization**: Cancelling points for a customer check-in via the "All Check-ins" log automatically revokes the check-in visit AND decrements `1` stamp from the customer's active `CustomerLoyaltyWallet`, keeping customer panels and business stats fully in sync.
 
 ---
 

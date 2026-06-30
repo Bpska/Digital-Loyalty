@@ -218,4 +218,9 @@ To inspect container log outputs, run:
 ```bash
 docker compose logs -f backend
 docker compose logs -f frontend
+
+
+
 ```
+# 4. Apply any new database migrations (just in case the schema changed)
+  docker compose exec backend npx prisma migrate deploy

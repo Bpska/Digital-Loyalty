@@ -9,7 +9,7 @@ const rateLimitHandler = (req, res) => {
 
 /**
  * General auth rate limiter (login, password reset).
- * 5 requests per 15 minutes per IP.
+ * 15 requests per 15 minutes per real client IP.
  */
 export const authRateLimiter = rateLimit({
   windowMs: env.RATE_LIMIT_AUTH_WINDOW_MIN * 60 * 1000,
@@ -18,6 +18,14 @@ export const authRateLimiter = rateLimit({
   legacyHeaders: false,
   handler: rateLimitHandler,
   skipSuccessfulRequests: false,
+  // Extract real client IP behind Nginx/Docker proxy layers
+  keyGenerator: (req) => {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (forwarded) {
+      return String(forwarded).split(',')[0].trim();
+    }
+    return req.ip || req.socket.remoteAddress || 'unknown';
+  },
   skip: () => env.NODE_ENV === 'development' || env.NODE_ENV === 'test',
 });
 
