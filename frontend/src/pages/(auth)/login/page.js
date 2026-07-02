@@ -91,7 +91,7 @@ export default function LoginPage() {
       if (_optionalChain([(window), 'access', _ => _.google, 'optionalAccess', _2 => _2.accounts, 'optionalAccess', _3 => _3.id])) {
         clearInterval(interval);
         (window).google.accounts.id.initialize({
-          client_id: "240748277924-ds46b01veci1o7k23e7s9hkiuf3khes4.apps.googleusercontent.com",
+          client_id: "1040233021904-bjmc7dg467e60lfachphp39id4urbcgj.apps.googleusercontent.com",
           callback: handleGoogleCredential,
         });
         setGoogleInitialized(true);

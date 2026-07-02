@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Gift, Coffee, Star, Stamp, MapPin, Award, CheckCircle2,
-  ChevronRight, QrCode, Tag, Percent, Banknote, Clock, Zap, CalendarDays, RefreshCcw
+  ChevronRight, QrCode, Tag, Percent, Banknote, Clock, Zap, CalendarDays, RefreshCcw,
+  Scissors, Hotel, Store, Sparkles
 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -25,6 +26,20 @@ function daysLeft(validTo) {
   if (diff <= 0) return "Expires today";
   if (diff === 1) return "1 day left";
   return `${diff} days left`;
+}
+
+function getCategoryIcon(category) {
+  const norm = (category || "").toLowerCase().trim();
+  if (norm.includes("salon") || norm.includes("spa") || norm.includes("beauty") || norm.includes("hair")) {
+    return Scissors;
+  }
+  if (norm.includes("cafe") || norm.includes("coffee") || norm.includes("restaurant") || norm.includes("food") || norm.includes("bakery")) {
+    return Coffee;
+  }
+  if (norm.includes("hotel") || norm.includes("resort") || norm.includes("stay") || norm.includes("hostel")) {
+    return Hotel;
+  }
+  return Store;
 }
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
@@ -549,6 +564,20 @@ function BusinessCard({ card, onClick }) {
       className: "w-[calc(100vw-3rem)] sm:w-[600px] flex-shrink-0 snap-center rounded-3xl border border-white/60 bg-white/50 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 ease-out cursor-pointer overflow-hidden relative flex flex-col justify-between min-h-[420px] p-5"
     },
 
+    // Cover Image header (if present)
+    business.coverUrl && React.createElement("div", {
+      className: "w-[calc(100%+2.5rem)] -mx-5 -mt-5 h-28 relative overflow-hidden mb-4 border-b border-white/40 shrink-0"
+    },
+      React.createElement("img", {
+        src: getImageUrl(business.coverUrl),
+        alt: "Cover",
+        className: "w-full h-full object-cover"
+      }),
+      React.createElement("div", {
+        className: "absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"
+      })
+    ),
+
     // Liquid Glass background elements (glowing gradient blobs behind translucent card content)
     React.createElement("div", { className: "absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-primary/25 via-pink-500/15 to-transparent rounded-full blur-3xl pointer-events-none" }),
     React.createElement("div", { className: "absolute -bottom-10 -left-10 w-32 h-32 bg-gradient-to-tr from-indigo-500/20 via-cyan-500/10 to-transparent rounded-full blur-3xl pointer-events-none" }),
@@ -557,16 +586,26 @@ function BusinessCard({ card, onClick }) {
     React.createElement("div", { className: "relative z-10 flex items-center gap-4" },
       business.logoUrl
         ? React.createElement("img", { src: getImageUrl(business.logoUrl), alt: business.name, className: "h-14 w-14 rounded-2xl object-cover border-2 border-white/80 shadow-md flex-shrink-0" })
-        : React.createElement("div", { className: "h-14 w-14 rounded-2xl bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center font-black text-white text-xl shadow-md border-2 border-white/80 flex-shrink-0" }, business.name[0]),
+        : React.createElement("div", { className: "h-14 w-14 rounded-2xl bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-white shadow-md border-2 border-white/80 flex-shrink-0" }
+            , React.createElement(getCategoryIcon(business.category), { className: "h-6 w-6 stroke-[2.5]" })
+          ),
       React.createElement("div", { className: "min-w-0 flex-1" },
         React.createElement("p", { className: "text-base font-black text-foreground truncate tracking-tight" }, business.name),
         React.createElement("div", { className: "flex items-center gap-1.5 mt-1 flex-wrap" },
           hasHybrid && React.createElement("span", { className: "text-[9px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider" }, "Active"),
-          business.category && React.createElement("span", { className: "text-[9px] bg-slate-500/10 text-slate-700 dark:text-slate-300 border border-slate-500/15 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider" }, business.category),
+          business.category && React.createElement("span", { className: "text-[9px] bg-slate-500/10 text-slate-700 dark:text-slate-300 border border-slate-500/15 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1" }
+            , React.createElement(getCategoryIcon(business.category), { className: "h-2.5 w-2.5" })
+            , business.category
+          ),
           React.createElement("span", { className: "text-[9px] bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider" }, `${card.totalVisits || 0} Visits`)
         )
       )
     ),
+
+    // Business description (limit to 2 lines)
+    business.description && React.createElement("p", {
+      className: "text-[11px] text-muted-foreground mt-2 leading-relaxed line-clamp-2 px-1 relative z-10"
+    }, business.description),
 
     // Content section: progress bars and active deals
     React.createElement("div", { className: "relative z-10 space-y-4 my-3 flex-1 flex flex-col justify-center" },
@@ -631,7 +670,15 @@ function BusinessCard({ card, onClick }) {
     React.createElement("div", { className: "relative z-10 flex items-center justify-between pt-2 border-t border-dashed border-slate-200/60" },
       React.createElement("div", { className: "flex items-center gap-2" },
         hasHybrid && React.createElement("span", { className: "text-[10px] bg-indigo-500/10 text-indigo-700 font-extrabold px-2.5 py-1 rounded-xl border border-indigo-500/5" }, "STAMPS"),
-        activeCoupons.length > 0 && React.createElement("span", { className: "text-[10px] bg-amber-500/10 text-amber-700 font-extrabold px-2.5 py-1 rounded-xl border border-amber-500/5" }, `${activeCoupons.length} DEALS`)
+        activeCoupons.length > 0 && React.createElement("span", { className: "text-[10px] bg-amber-500/10 text-amber-700 font-extrabold px-2.5 py-1 rounded-xl border border-amber-500/5" }, `${activeCoupons.length} DEALS`),
+        React.createElement(Link, {
+          to: `/review?businessId=${business.id}`,
+          onClick: (e) => e.stopPropagation(),
+          className: "text-[10px] bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 font-extrabold px-2.5 py-1 rounded-xl flex items-center gap-1 transition-colors border border-amber-500/10"
+        },
+          React.createElement(Sparkles, { className: "h-3 w-3 text-amber-600 fill-amber-600/30" }),
+          "AI Review"
+        )
       ),
       React.createElement("span", { className: "text-[10px] text-primary font-bold flex items-center gap-1 hover:translate-x-0.5 transition-transform" },
         "Details", React.createElement(ChevronRight, { className: "h-3 w-3" })
@@ -683,17 +730,17 @@ function ShuffleCardStack({ cards, onCardClick }) {
           opacity = 1;
           zIndex = 30;
         } else if (isSecond) {
-          transform = "translate3d(0, 8px, -10px) scale(0.97) rotate(1deg)";
+          transform = "translate3d(0, 12px, -15px) scale(0.96) rotate(1.5deg)";
           opacity = 0.95;
           zIndex = 20;
         } else if (isThird) {
-          transform = "translate3d(0, 16px, -20px) scale(0.94) rotate(-1deg)";
+          transform = "translate3d(0, 24px, -30px) scale(0.92) rotate(-1.5deg)";
           opacity = 0.85;
           zIndex = 10;
-        } else if (offset > 2 && offset < total - 1) {
-          transform = "translate3d(0, 20px, -25px) scale(0.92) rotate(0deg)";
+        } else {
+          transform = "translate3d(0, 36px, -45px) scale(0.88) rotate(0deg)";
           opacity = 0;
-          zIndex = 5;
+          zIndex = 0;
         }
 
         return React.createElement("div", {
@@ -705,7 +752,7 @@ function ShuffleCardStack({ cards, onCardClick }) {
             zIndex,
             perspective: "1000px"
           },
-          className: "absolute top-0 left-0 w-full transition-all duration-500 ease-out cursor-pointer origin-bottom"
+          className: "absolute top-0 left-0 w-full flex justify-center transition-all duration-500 ease-out cursor-pointer origin-bottom"
         },
           React.createElement(BusinessCard, { card, onClick: () => isTop && onCardClick(card) })
         );
@@ -738,14 +785,30 @@ function BusinessDetailsModal({ card, unlockedRewards, setSelectedReward, onClos
     Dialog, { open: true, onOpenChange: (open) => !open && onClose() },
     React.createElement(DialogContent, { className: "max-w-[460px] w-[95vw] max-h-[85vh] overflow-y-auto bg-white border border-border rounded-3xl p-0" },
 
+      // Banner Cover Image (if present)
+      business.coverUrl && React.createElement("div", {
+        className: "w-full h-32 relative overflow-hidden border-b border-white/40 shrink-0"
+      },
+        React.createElement("img", {
+          src: getImageUrl(business.coverUrl),
+          alt: "Cover",
+          className: "w-full h-full object-cover"
+        })
+      ),
+
       // Header
-      React.createElement("div", { className: "bg-gradient-to-br from-primary/10 to-indigo-100 p-6 flex items-center gap-4 rounded-t-3xl" },
+      React.createElement("div", { className: `bg-gradient-to-br from-primary/10 to-indigo-100 p-6 flex items-center gap-4 ${business.coverUrl ? '' : 'rounded-t-3xl'}` },
         business.logoUrl
           ? React.createElement("img", { src: getImageUrl(business.logoUrl), alt: business.name, className: "h-14 w-14 rounded-xl object-cover border-2 border-white shadow-md flex-shrink-0" })
-          : React.createElement("div", { className: "h-14 w-14 rounded-xl bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center font-black text-white text-2xl shadow-md border-2 border-white flex-shrink-0" }, business.name[0]),
+          : React.createElement("div", { className: "h-14 w-14 rounded-xl bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-white shadow-md border-2 border-white flex-shrink-0" }
+              , React.createElement(getCategoryIcon(business.category), { className: "h-6 w-6 stroke-[2.5]" })
+            ),
         React.createElement("div", { className: "min-w-0" },
           React.createElement("h2", { className: "text-lg font-extrabold text-foreground truncate" }, business.name),
-          business.category && React.createElement("span", { className: "text-[10px] text-muted-foreground bg-white/60 border border-border px-2 py-0.5 rounded-full font-medium" }, business.category),
+          business.category && React.createElement("span", { className: "text-[10px] text-muted-foreground bg-white/60 border border-border px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1" }
+            , React.createElement(getCategoryIcon(business.category), { className: "h-3 w-3 text-muted-foreground" })
+            , business.category
+          ),
           React.createElement("p", { className: "text-[11px] text-muted-foreground mt-1 flex items-center gap-1" },
             React.createElement(MapPin, { className: "h-3 w-3" }),
             card.wallet?.expiresAt && new Date() > new Date(card.wallet.expiresAt) ? "Expired" : "Active Loyalty Program"
@@ -763,16 +826,26 @@ function BusinessDetailsModal({ card, unlockedRewards, setSelectedReward, onClos
           businessId: business.id,
         }),
 
-        // Visit stamp block (if applicable)
-        card.visitCard && React.createElement(VisitStampCardBlock, {
-          settings: card.visitCard.settings,
-          wallet: card.visitCard.wallet,
-          businessId: business.id,
-          unlockedRewards,
-          setSelectedReward,
-        }),
 
-        // Divider
+        // Outlets & GPS check-in rules block
+        business.branches && business.branches.length > 0 && React.createElement("div", { className: "space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-100/75" },
+          React.createElement("p", { className: "text-[10px] font-bold uppercase tracking-widest text-[#FF6A00] flex items-center gap-1.5" },
+            React.createElement(MapPin, { className: "h-3.5 w-3.5" }),
+            "Check-in Outlets & GPS Rules"
+          ),
+          React.createElement("div", { className: "space-y-2.5 mt-2" },
+            business.branches.map(branch => 
+              React.createElement("div", { key: branch.id, className: "text-xs border-b border-slate-200/50 pb-2 last:border-0 last:pb-0" },
+                React.createElement("p", { className: "font-bold text-slate-800" }, branch.name),
+                branch.address && React.createElement("p", { className: "text-[10px] text-muted-foreground mt-0.5" }, branch.address),
+                React.createElement("div", { className: "flex justify-between items-center mt-1.5 text-[10px]" },
+                  React.createElement("span", { className: "text-muted-foreground font-semibold" }, "GPS Check-in Radius"),
+                  React.createElement("span", { className: "font-extrabold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full" }, `${branch.radiusMeters} meters`)
+                )
+              )
+            )
+          )
+        ),
         card.settings && activeCoupons.length > 0 &&
           React.createElement("div", { className: "border-t border-dashed border-border" }),
 

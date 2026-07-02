@@ -179,10 +179,6 @@ export default function ProfilePage() {
                   , React.createElement('span', { className: "text-foreground font-semibold" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 153}}, _optionalChain([profile, 'optionalAccess', _12 => _12.email]) || "Not configured")
                 )
               )
-
-              , React.createElement(Button, { variant: "outline", className: "w-full text-xs font-semibold h-10 mt-2 rounded-full"    , onClick: () => setIsEditing(true), __self: this, __source: {fileName: _jsxFileName, lineNumber: 157}}, "Edit Profile Info"
-
-              )
             )
           ) : (
             React.createElement('form', { onSubmit: handleUpdateProfile, className: "space-y-4", __self: this, __source: {fileName: _jsxFileName, lineNumber: 162}}

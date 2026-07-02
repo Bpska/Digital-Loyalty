@@ -138,8 +138,10 @@ model User {
 model Business {
   id        String         @id @default(cuid())
   name      String
-  logoUrl   String?
-  phone     String?
+  logoUrl     String?
+  coverUrl    String?
+  description String?
+  phone       String?
   address   String?
   timezone  String         @default("Asia/Kolkata")
   category  String?

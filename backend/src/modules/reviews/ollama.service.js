@@ -19,23 +19,20 @@ const STAR_LABELS = {
  */
 function buildPrompt(businessType, rating) {
   const stars = STAR_LABELS[rating] || `${rating} Stars`;
-  return `Generate 5 realistic Google review suggestions.
-
+  return `Generate 5 realistic, highly SEO-friendly Google review suggestions for a business.
+  
 Business Type: ${businessType || 'Business'}
 Rating: ${stars}
 
-Requirements:
-- Human sounding
-- Natural language
-- 1-2 sentences only
-- Different wording from each other
-- Not robotic
-- Not repetitive
-- Suitable for Google Reviews
-- Maximum 30 words per review
+SEO Guidelines:
+- Automatically incorporate high-traffic, category-specific local search keywords related to ${businessType || 'Business'} (e.g. service quality, menu/services, hygiene, price, ambience, staff behaviour, location).
+- Maintain 100% organic, natural sounding human language. Do not make keyword placement feel stuffed or spammy.
+- Write 1-2 short, impactful sentences per review.
+- Provide diverse sentence structures and different word choices across all 5 reviews.
+- Maximum 30 words per review. Suitable for Google Maps/Local Business ranking.
 
-Return ONLY a JSON array of 5 strings. No explanation, no markdown, no extra text. Example:
-["Review 1 here.", "Review 2 here.", "Review 3 here.", "Review 4 here.", "Review 5 here."]`;
+Return ONLY a JSON array of 5 strings. No markdown, no explanations, no numbering, no extra text. Example:
+["Review 1 content.", "Review 2 content.", "Review 3 content.", "Review 4 content.", "Review 5 content."]`;
 }
 
 /**

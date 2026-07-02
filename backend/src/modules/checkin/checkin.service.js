@@ -203,21 +203,22 @@ export async function processCheckIn(input) {
 
   // ── Step 3: Daily check-in limit check (Per Business, Per Customer, Per Day) ──
   const timezone = branch.business.timezone || 'Asia/Kolkata';
-  const { start: todayStart, end: todayEnd } = getTodayBoundsInTimezone(timezone);
+  const { start: todayStart } = getTodayBoundsInTimezone(timezone);
 
-  const checkInsTodayCount = await prisma.checkIn.count({
+  const walletTransactionsToday = await prisma.walletTransaction.findMany({
     where: {
-      customerId,
+      userId: customerId,
       businessId: branch.businessId,
-      status: CheckInStatus.VALID,
       createdAt: {
         gte: todayStart,
-        lte: todayEnd,
       },
     },
+    select: { stampEarned: true },
   });
 
-  if (checkInsTodayCount >= settings.maxDailyStamps) {
+  const stampsEarnedToday = walletTransactionsToday.reduce((sum, tx) => sum + tx.stampEarned, 0);
+
+  if (stampsEarnedToday >= settings.maxDailyStamps) {
     throw new AppError(
       `You have already reached the maximum limit of ${settings.maxDailyStamps} stamp(s) for today.`,
       400
@@ -265,121 +266,19 @@ export async function processCheckIn(input) {
       },
     });
 
-    // 4c. Find or process Loyalty Wallet
-    let wallet = await tx.customerLoyaltyWallet.findFirst({
-      where: { userId: customerId, businessId: branch.businessId, status: 'ACTIVE' },
-    });
-
-    let walletAction = 'updated';
-    let newlyUnlockedReward = null;
-    const now = new Date();
-
-    if (wallet && now > wallet.expiresAt) {
-      // Archive expired wallet
-      await tx.customerLoyaltyWallet.update({
-        where: { id: wallet.id },
-        data: { status: 'EXPIRED' },
-      });
-      wallet = null; // Proceed to create a new one below
-    }
-
-    if (!wallet) {
-      // Create new loyalty wallet
-      const startedAt = new Date();
-      const expiresAt = new Date(startedAt.getTime() + settings.validityDays * 24 * 60 * 60 * 1000);
-
-      wallet = await tx.customerLoyaltyWallet.create({
-        data: {
-          userId: customerId,
-          businessId: branch.businessId,
-          currentStamps: 1,
-          status: 'ACTIVE',
-          startedAt,
-          expiresAt,
-        },
-      });
-      walletAction = 'created';
-    } else {
-      // Increment stamps
-      const nextStamps = wallet.currentStamps + 1;
-      const isGoalMet = nextStamps >= settings.requiredStamps;
-
-      if (isGoalMet) {
-        // Unlock Reward!
-        wallet = await tx.customerLoyaltyWallet.update({
-          where: { id: wallet.id },
-          data: {
-            currentStamps: nextStamps,
-            status: 'REWARD_AVAILABLE',
-            rewardUnlockedAt: new Date(),
-          },
-        });
-
-        // Create reward record
-        let reward = await tx.reward.findFirst({
-          where: { businessId: branch.businessId, title: settings.rewardName, isActive: true },
-        });
-        if (!reward) {
-          reward = await tx.reward.create({
-            data: {
-              businessId: branch.businessId,
-              title: settings.rewardName,
-              description: 'Earned by completing stamps',
-              pointsRequired: 0,
-              isActive: true,
-            },
-          });
-        }
-
-        const customerReward = await tx.customerReward.create({
-          data: {
-            customerId,
-            rewardId: reward.id,
-            status: CustomerRewardStatus.UNLOCKED,
-            expiresAt: new Date(Date.now() + settings.validityDays * 24 * 60 * 60 * 1000),
-          },
-        });
-
-        newlyUnlockedReward = {
-          id: customerReward.id,
-          title: reward.title,
-          redemptionCode: customerReward.redemptionCode,
-        };
-      } else {
-        // Just increment stamps
-        wallet = await tx.customerLoyaltyWallet.update({
-          where: { id: wallet.id },
-          data: { currentStamps: nextStamps },
-        });
-      }
-    }
-
-    // 4d. Send Notification & set messages
-    let notifTitle = 'Stamp added successfully.';
-    let notifBody = `Stamp added to your wallet. Progress: ${wallet.currentStamps} / ${settings.requiredStamps}.`;
-    let notifType = NotificationType.GENERAL;
-
-    if (walletAction === 'created') {
-      notifTitle = 'Loyalty program started.';
-      notifBody = `Welcome to ${settings.programName}! You collected 1 / ${settings.requiredStamps} stamps.`;
-    } else if (newlyUnlockedReward) {
-      notifTitle = 'You unlocked a reward.';
-      notifBody = `Congratulations! You unlocked ${settings.rewardName}!`;
-      notifType = NotificationType.REWARD_UNLOCKED;
-    }
-
+    // 4c. Send Notification & set messages
+    const notifTitle = 'Check-in successful! 📍';
+    const notifBody = 'Your check-in has been registered. Awaiting business admin approval to credit points/stamps.';
+    
     await tx.notification.create({
       data: {
         userId: customerId,
         businessId: branch.businessId,
         title: notifTitle,
         body: notifBody,
-        type: notifType,
+        type: NotificationType.GENERAL,
         metadata: {
-          walletId: wallet.id,
-          currentStamps: wallet.currentStamps,
-          requiredStamps: settings.requiredStamps,
-          rewardId: newlyUnlockedReward?.id ?? null,
+          checkInId: checkIn.id,
         },
       },
     });
@@ -388,9 +287,9 @@ export async function processCheckIn(input) {
       checkIn,
       businessName: branch.business.name,
       businessLogo: branch.business.logoUrl,
-      wallet,
+      wallet: null,
       settings,
-      newlyUnlockedReward,
+      newlyUnlockedReward: null,
       notifTitle,
       notifBody,
     };
@@ -399,8 +298,8 @@ export async function processCheckIn(input) {
   logger.info('Check-in processed', {
     customerId,
     branchId: branch.id,
-    walletId: result.wallet.id,
-    stamps: result.wallet.currentStamps,
+    walletId: result.wallet?.id ?? null,
+    stamps: result.wallet?.currentStamps ?? 0,
     rewardUnlocked: !!result.newlyUnlockedReward,
   });
 
@@ -413,7 +312,7 @@ export async function processCheckIn(input) {
     metadata: {
       branchId: branch.id,
       businessId: branch.businessId,
-      currentStamps: result.wallet.currentStamps,
+      currentStamps: result.wallet?.currentStamps ?? 0,
     },
     ipAddress,
   }).catch(() => {});

@@ -301,7 +301,7 @@ export async function loginWithGoogle(
   const payload = (await response.json()) ;
 
   // Verify client ID against configuration or hardcoded fallback
-  const configClientId = env.GOOGLE_CLIENT_ID || '240748277924-ds46b01veci1o7k23e7s9hkiuf3khes4.apps.googleusercontent.com';
+  const configClientId = env.GOOGLE_CLIENT_ID || '1040233021904-bjmc7dg467e60lfachphp39id4urbcgj.apps.googleusercontent.com';
   if (payload.aud !== configClientId && payload.azp !== configClientId) {
     throw new AppError('Google token client ID mismatch', 400);
   }

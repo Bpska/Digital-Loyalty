@@ -387,7 +387,7 @@ export default function CouponsPage() {
       queryClient.invalidateQueries({ queryKey: ["couponUsageHistory", businessId] });
       queryClient.invalidateQueries({ queryKey: ["businessCoupons", businessId] });
     } catch (err) {
-      setApprovalResult({ applied: false, error: err.message || "Coupon not found or expired." });
+      setApprovalResult({ applied: false, error: err.response?.data?.message || err.message || "Coupon not found or expired." });
     } finally {
       setApprovalLoading(false);
     }

@@ -281,7 +281,38 @@ export default function BusinessDashboard() {
   const [facebookUrl, setFacebookUrl] = React.useState("");
   const [whatsappUrl, setWhatsappUrl] = React.useState("");
   const [googleReviewUrl, setGoogleReviewUrl] = React.useState("");
+  const [description, setDescription] = React.useState("");
   const [socialSaving, setSocialSaving] = React.useState(false);
+  const [coverUploading, setCoverUploading] = React.useState(false);
+  const coverInputRef = React.useRef(null);
+
+  const handleCoverUpload = async (e) => {
+    const file = e?.target?.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File size should not exceed 5MB.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("cover", file);
+
+    setCoverUploading(true);
+    try {
+      await api.post(`/businesses/${businessId}/cover`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      await refetchProfile();
+      alert("Cover page image updated successfully!");
+    } catch (err) {
+      alert(err.message || "Failed to upload cover image.");
+    } finally {
+      setCoverUploading(false);
+    }
+  };
 
   const [pricing, setPricing] = React.useState(null);
   const [pricingLoading, setPricingLoading] = React.useState(false);
@@ -314,6 +345,7 @@ export default function BusinessDashboard() {
       setFacebookUrl(business.facebookUrl || "");
       setWhatsappUrl(business.whatsappUrl || "");
       setGoogleReviewUrl(business.googleReviewUrl || "");
+      setDescription(business.description || "");
     }
     setShowSocialModal(true);
   };
@@ -345,12 +377,13 @@ export default function BusinessDashboard() {
         facebookUrl: facebookUrl || null,
         whatsappUrl: whatsappUrl || null,
         googleReviewUrl: googleReviewUrl || null,
+        description: description || null,
       });
       await refetchProfile();
       setShowSocialModal(false);
-      alert("Social links updated successfully!");
+      alert("Business settings updated successfully!");
     } catch (err) {
-      alert(err.message || "Failed to save social links.");
+      alert(err.message || "Failed to save business settings.");
     } finally {
       setSocialSaving(false);
     }
@@ -958,12 +991,48 @@ export default function BusinessDashboard() {
       /* Social Links Modal */
       , showSocialModal && (
         React.createElement(Dialog, { open: showSocialModal, onOpenChange: (open) => !open && setShowSocialModal(false) }
-          , React.createElement(DialogContent, { className: "max-w-[420px] bg-white border border-border" }
+          , React.createElement(DialogContent, { className: "max-w-[420px] bg-white border border-border overflow-y-auto max-h-[90vh]" }
             , React.createElement(DialogHeader, null
-              , React.createElement(DialogTitle, { className: "text-lg font-bold text-foreground" }, "Manage Social Links")
-              , React.createElement(DialogDescription, { className: "text-xs text-muted-foreground" }, "Add social media platform links to display on customer loyalty cards.")
+              , React.createElement(DialogTitle, { className: "text-lg font-bold text-foreground" }, "Business Details & Links")
+              , React.createElement(DialogDescription, { className: "text-xs text-muted-foreground" }, "Manage cover page, description, and social media platform links.")
             )
             , React.createElement('form', { onSubmit: handleSaveSocial, className: "space-y-4 py-2" }
+              /* Cover page image upload section */
+              , React.createElement('div', { className: "space-y-1.5" }
+                , React.createElement(Label, { className: "text-xs font-semibold text-muted-foreground" }, "Cover Page Image")
+                , React.createElement('div', { className: "flex items-center gap-3" }
+                  , React.createElement('div', { className: "w-24 h-12 rounded-lg border border-slate-200 overflow-hidden bg-slate-50 flex items-center justify-center shrink-0" }
+                    , coverUploading ? (
+                        React.createElement(Loader2, { className: "h-4 w-4 animate-spin text-primary" })
+                      ) : (
+                        React.createElement('img', {
+                          src: getImageUrl(business?.coverUrl) || "/new.png",
+                          alt: "Cover",
+                          className: "w-full h-full object-cover"
+                        })
+                      )
+                  )
+                  , React.createElement(Button, {
+                      type: "button",
+                      size: "xs",
+                      variant: "outline",
+                      onClick: () => coverInputRef.current?.click(),
+                      className: "text-[11px] rounded-lg border-primary text-primary hover:bg-orange-50 font-bold"
+                    }, "Upload Cover Page")
+                )
+              )
+              /* Business Description input */
+              , React.createElement('div', { className: "space-y-1.5" }
+                , React.createElement(Label, { htmlFor: "biz-desc", className: "text-xs font-semibold text-muted-foreground" }, "Business Description (Show in Voucher Card)")
+                , React.createElement('textarea', {
+                  id: "biz-desc",
+                  placeholder: "Write 1 or 2 lines describing your business services...",
+                  value: description,
+                  onChange: (e) => setDescription(e.target.value),
+                  rows: 2,
+                  className: "w-full text-xs border border-border rounded-lg p-2.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary text-slate-800"
+                })
+              )
               , React.createElement('div', { className: "space-y-1.5" }
                 , React.createElement(Label, { htmlFor: "inst-url", className: "text-xs font-semibold text-muted-foreground" }, "Instagram URL / Profile")
                 , React.createElement(Input, {
@@ -1004,10 +1073,10 @@ export default function BusinessDashboard() {
                   className: "text-xs border-border bg-white"
                 })
               )
-              , React.createElement(DialogFooter, { className: "pt-4" }
+              , React.createElement(DialogFooter, { className: "pt-4 gap-2" }
                 , React.createElement(Button, { type: "button", variant: "outline", onClick: () => setShowSocialModal(false) }, "Cancel")
                 , React.createElement(Button, { type: "submit", className: "bg-primary text-primary-foreground hover:bg-primary/95", disabled: socialSaving }
-                  , socialSaving ? "Saving..." : "Save Links"
+                  , socialSaving ? "Saving..." : "Save Settings"
                 )
               )
             )
@@ -1357,6 +1426,14 @@ export default function BusinessDashboard() {
           type: "file",
           ref: logoInputRef,
           onChange: handleLogoUpload,
+          accept: "image/jpeg,image/png,image/webp",
+          className: "hidden"
+        })
+      /* Hidden Cover File Input */
+      , React.createElement('input', {
+          type: "file",
+          ref: coverInputRef,
+          onChange: handleCoverUpload,
           accept: "image/jpeg,image/png,image/webp",
           className: "hidden"
         })

@@ -64,6 +64,8 @@ const updateBusinessSchema = z.object({
   googleReviewUrl: z.string().optional().nullable(),
   category: z.string().optional().nullable(),
   bookingUrl: z.string().optional().nullable(),
+  coverUrl: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
 });
 
 // ── Routes ────────────────────────────────────────────────────
@@ -184,6 +186,27 @@ router.post(
         data: { logoUrl },
       });
       sendSuccess(res, { logoUrl }, 'Logo uploaded');
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// Upload cover page image
+router.post(
+  '/:businessId/cover',
+  authenticate,
+  requireSameBusiness,
+  upload.single('cover'),
+  async (req, res, next) => {
+    try {
+      if (!req.file) throw new AppError('No file uploaded', 400);
+      const coverUrl = `/uploads/logos/${req.file.filename}`;
+      await prisma.business.update({
+        where: { id: req.params.businessId },
+        data: { coverUrl },
+      });
+      sendSuccess(res, { coverUrl }, 'Cover image uploaded');
     } catch (err) {
       next(err);
     }

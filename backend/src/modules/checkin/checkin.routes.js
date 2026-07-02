@@ -150,7 +150,7 @@ router.get(
           orderBy: { createdAt: 'desc' },
           include: {
             business: { select: { id: true, name: true, logoUrl: true } },
-            branch: { select: { id: true, name: true, address: true } },
+            branch: { select: { id: true, name: true, address: true, radiusMeters: true } },
           },
         }),
         prisma.checkIn.count({ where: { customerId: req.user.sub, status: 'VALID' } }),

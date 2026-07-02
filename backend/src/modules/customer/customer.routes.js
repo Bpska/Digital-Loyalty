@@ -29,12 +29,25 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
             id: true,
             name: true,
             logoUrl: true,
+            coverUrl: true,
+            description: true,
             instagramUrl: true,
             facebookUrl: true,
             whatsappUrl: true,
             googleReviewUrl: true,
             category: true,
             bookingUrl: true,
+            branches: {
+              where: { isActive: true },
+              select: {
+                id: true,
+                name: true,
+                address: true,
+                latitude: true,
+                longitude: true,
+                radiusMeters: true,
+              }
+            },
             loyaltyProgramSettings: {
               select: {
                 id: true,

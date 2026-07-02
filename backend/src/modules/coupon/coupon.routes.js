@@ -143,39 +143,46 @@ router.post('/admin-apply', authenticate, authorize(Role.BUSINESS_ADMIN, Role.SU
       throw new AppError('Coupon code and businessId are required', 400);
     }
 
-    if (!customerPhone) {
-      throw new AppError('Customer phone number is required', 400);
-    }
-
-    // Verify business ownership
-    if (req.user.role === Role.BUSINESS_ADMIN) {
-      const biz = await prisma.business.findFirst({
-        where: { id: businessId, ownerId: req.user.sub, deletedAt: null },
-      });
-      if (!biz) throw new AppError('Access denied: not your business', 403);
-    }
-
     const now = new Date();
 
-    const coupon = await prisma.coupon.findFirst({
-      where: {
-        code: code.trim().toUpperCase(),
-        businessId,
-        isActive: true,
-        validFrom: { lte: now },
-        validTo: { gte: now },
-      },
+    let coupon = null;
+    let customer = null;
+    let claimedCouponRecord = null;
+
+    // First try: Is this code a ClaimedCoupon.redemptionCode?
+    claimedCouponRecord = await prisma.claimedCoupon.findFirst({
+      where: { redemptionCode: code.trim() },
+      include: { coupon: true },
     });
 
-    if (!coupon) throw new AppError('Coupon not found, expired, or inactive', 404);
+    if (claimedCouponRecord) {
+      if (claimedCouponRecord.status === 'REDEEMED') {
+        throw new AppError('This coupon has already been redeemed/used', 400);
+      }
+      coupon = claimedCouponRecord.coupon;
+      // Retrieve customer from ClaimedCoupon
+      customer = await prisma.user.findUnique({
+        where: { id: claimedCouponRecord.customerId },
+        select: { id: true, name: true, phone: true, email: true, createdAt: true },
+      });
+    } else {
+      // Second try: Look up by general coupon code
+      coupon = await prisma.coupon.findFirst({
+        where: {
+          code: code.trim().toUpperCase(),
+          businessId,
+          isActive: true,
+          validFrom: { lte: now },
+          validTo: { gte: now },
+        },
+      });
+      if (!coupon) throw new AppError('Coupon not found, expired, or inactive', 404);
 
-    if (coupon.usageLimit && coupon.totalUsed >= coupon.usageLimit) {
-      throw new AppError('Coupon usage limit has been reached', 400);
-    }
+      // For general coupons, customerPhone is required to link the user usage
+      if (!customerPhone) {
+        throw new AppError('Customer phone number is required', 400);
+      }
 
-    // Optionally look up customer by phone number
-    let customer = null;
-    if (customerPhone) {
       const normalized = customerPhone.replace(/\D/g, '');
       customer = await prisma.user.findFirst({
         where: {
@@ -184,6 +191,11 @@ router.post('/admin-apply', authenticate, authorize(Role.BUSINESS_ADMIN, Role.SU
         },
         select: { id: true, name: true, phone: true, email: true, createdAt: true },
       });
+      if (!customer) throw new AppError('Customer not found with this phone number', 404);
+    }
+
+    if (coupon.usageLimit && coupon.totalUsed >= coupon.usageLimit) {
+      throw new AppError('Coupon usage limit has been reached', 400);
     }
 
     // Record usage in a transaction
@@ -198,6 +210,17 @@ router.post('/admin-apply', authenticate, authorize(Role.BUSINESS_ADMIN, Role.SU
         await tx.couponUsage.create({
           data: { couponId: coupon.id, customerId: customer.id },
         });
+
+        // ALSO update ClaimedCoupon status to REDEEMED if it exists!
+        const claimed = await tx.claimedCoupon.findFirst({
+          where: { couponId: coupon.id, customerId: customer.id },
+        });
+        if (claimed) {
+          await tx.claimedCoupon.update({
+            where: { id: claimed.id },
+            data: { status: 'REDEEMED', redeemedAt: new Date() },
+          });
+        }
       }
 
       // Increment totalUsed counter on the coupon
