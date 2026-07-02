@@ -27,13 +27,66 @@ import {
   Upload,
   Scan,
   QrCode,
-  Camera
+  Camera,
+  Award,
+  Clock
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 export default function BusinessDashboard() {
   const { user } = useAuthStore();
   const businessId = _optionalChain([user, 'optionalAccess', _ => _.businessId]);
   const [statusLoading, setStatusLoading] = React.useState({});
+
+  // Onboarding tour state
+  const [onboardingStep, setOnboardingStep] = React.useState(0);
+  const [showOnboarding, setShowOnboarding] = React.useState(false);
+
+  const onboardingSteps = [
+    {
+      title: "Welcome to your Digital Loyalty Portal! 🎉",
+      description: "We are thrilled to help you grow your business. Let's take a quick 1-minute tour of your dashboard features.",
+      icon: Gift,
+      color: "from-amber-500 to-orange-500",
+    },
+    {
+      title: "Step 1: Loyalty Stamp Setup & Approvals ⚡",
+      description: "Set up stamp cost guidelines in the Configuration page, then approve customer visits inside the 'Loyalty Approvals' tab to reward them.",
+      icon: Zap,
+      color: "from-violet-500 to-indigo-500",
+    },
+    {
+      title: "Step 2: Scan & Redeem Rewards 🔍",
+      description: "When a customer earns a free reward or discount coupon, click the 'Scan & Redeem' button on your dashboard to instantly scan their QR code.",
+      icon: Scan,
+      color: "from-emerald-500 to-teal-500",
+    },
+    {
+      title: "Step 3: Growth Analytics & Feedback 📈",
+      description: "Track check-in counts, user details, and reviews. Integrate your Google, Instagram, and Facebook profiles below to grow your reach.",
+      icon: Users,
+      color: "from-blue-500 to-cyan-500",
+    }
+  ];
+
+  React.useEffect(() => {
+    const hasSeenOnboarding = localStorage.getItem("has_seen_onboarding_v1");
+    if (!hasSeenOnboarding) {
+      setShowOnboarding(true);
+    }
+  }, []);
+
+  const handleNextOnboarding = () => {
+    if (onboardingStep < onboardingSteps.length - 1) {
+      setOnboardingStep(prev => prev + 1);
+    } else {
+      handleSkipOnboarding();
+    }
+  };
+
+  const handleSkipOnboarding = () => {
+    localStorage.setItem("has_seen_onboarding_v1", "true");
+    setShowOnboarding(false);
+  };
 
   const logoInputRef = React.useRef(null);
   const [logoUploading, setLogoUploading] = React.useState(false);
@@ -94,10 +147,21 @@ export default function BusinessDashboard() {
   };
 
   const handleProcessRedeem = async (code) => {
-    const codeToRedeem = code || redeemCode;
+    let codeToRedeem = code || redeemCode;
     if (!codeToRedeem) {
       setRedeemError("Please enter or scan a valid code");
       return;
+    }
+
+    if (typeof codeToRedeem === "string" && codeToRedeem.trim().startsWith("{")) {
+      try {
+        const parsed = JSON.parse(codeToRedeem);
+        if (parsed.redemptionCode) {
+          codeToRedeem = parsed.redemptionCode;
+        }
+      } catch (e) {
+        // Fallback
+      }
     }
     setRedeemLoading(true);
     setRedeemError("");
@@ -108,7 +172,9 @@ export default function BusinessDashboard() {
       setRedeemCode("");
       queryClient.invalidateQueries(["businessCheckins", businessId]);
       queryClient.invalidateQueries(["businessAnalytics", businessId]);
+      queryClient.invalidateQueries(["businessRedemptions", businessId]);
       refetchCheckins();
+      refetchRedemptions();
     } catch (err) {
       setRedeemError(err.response?.data?.message || err.message || "Failed to redeem reward. Please check the code and try again.");
     } finally {
@@ -153,7 +219,7 @@ export default function BusinessDashboard() {
             }
           );
         } catch (err) {
-          console.error("Failed to start camera scanner:", err);
+          console.warn("Camera access denied or unavailable:", err?.message || err);
           if (isMounted) {
             setScanningRedeem(false);
             setRedeemError("Camera access denied or unavailable. Please enter the redemption code manually.");
@@ -442,6 +508,30 @@ export default function BusinessDashboard() {
 
   const checkins = checkinsData || [];
 
+  const [undoingId, setUndoingId] = React.useState(null);
+  const { data: redemptionsData, isLoading: redemptionsLoading, refetch: refetchRedemptions } = useQuery({
+    queryKey: ["businessRedemptions", businessId],
+    queryFn: () => api.get(`/businesses/${businessId}/redemptions`).then((res) => res.data),
+    enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
+  });
+  const redemptions = redemptionsData || [];
+
+  const handleUndoRedemption = async (id) => {
+    if (!confirm("Are you sure you want to undo this redemption? The customer's voucher will become ready to redeem again.")) return;
+    setUndoingId(id);
+    try {
+      await api.post(`/businesses/${businessId}/redemptions/${id}/undo`);
+      queryClient.invalidateQueries(["customerDashboard"]);
+      queryClient.invalidateQueries(["businessRedemptions", businessId]);
+      refetchRedemptions();
+      alert("Redemption undone successfully!");
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || "Failed to undo redemption");
+    } finally {
+      setUndoingId(null);
+    }
+  };
+
   const loading = bizLoading || analyticsLoading || checkinsLoading;
 
   if (loading) {
@@ -505,7 +595,7 @@ export default function BusinessDashboard() {
             , React.createElement(RefreshCcw, { className: `mr-2 h-4 w-4 ${checkinsFetching ? 'animate-spin' : ''}`, __self: this, __source: { fileName: _jsxFileName, lineNumber: 134 } })
             , checkinsFetching ? "Syncing..." : "Sync Logs"
           )
-          , React.createElement(Link, { to: "/dashboard/business/checkins" },
+          , React.createElement(Link, { to: "/dashboard/business/approvals" },
             React.createElement(Button, { variant: "outline", size: "sm" },
               React.createElement(UserCheck, { className: "mr-2 h-4 w-4" }), " Manage Check-ins"
             )
@@ -528,6 +618,11 @@ export default function BusinessDashboard() {
           , React.createElement(Button, { variant: "outline", size: "sm", onClick: handleOpenSocialModal },
               "🔗 Social Links"
             )
+          , React.createElement(Link, { to: "/dashboard/business/redemptions" }
+              , React.createElement(Button, { variant: "outline", size: "sm" }
+                , React.createElement(Award, { className: "mr-2 h-4 w-4 text-[#FF6A00]" }), "Completed Cycles"
+              )
+            )
         )
       )
 
@@ -546,7 +641,7 @@ export default function BusinessDashboard() {
           )
         )
 
-        , React.createElement(Link, { to: "/dashboard/business/checkins", className: "block cursor-pointer hover:scale-[1.02] transition-transform duration-200" }
+        , React.createElement(Link, { to: "/dashboard/business/approvals", className: "block cursor-pointer hover:scale-[1.02] transition-transform duration-200" }
           , React.createElement(Card, { className: "glass hover:shadow-md transition-shadow h-full", glass: true }
             , React.createElement(CardHeader, { className: "flex flex-row items-center justify-between pb-2" }
               , React.createElement(CardDescription, { className: "text-xs font-bold uppercase tracking-wider text-muted-foreground" }, "Verified Check-Ins")
@@ -665,6 +760,35 @@ export default function BusinessDashboard() {
                 onClick: () => setShowUpgradeModal(true),
                 className: "w-full bg-primary hover:bg-primary/95 text-white shadow-sm font-semibold text-xs mt-2 rounded-full"
               }, "Upgrade / Purchase Plan")
+            )
+          )
+          , React.createElement(Card, { className: "glass mt-6", glass: true }
+            , React.createElement(CardHeader, { className: "p-6" }
+              , React.createElement(CardTitle, { className: "text-base font-bold text-foreground flex items-center gap-2" }
+                , React.createElement(Clock, { className: "h-4.5 w-4.5 text-primary" })
+                , "Recent Check-in Logs"
+              )
+              , React.createElement(CardDescription, { className: "text-xs text-muted-foreground" }, "Latest verified customer visits")
+            )
+            , React.createElement(CardContent, { className: "p-6 pt-0 space-y-4" }
+              , checkins.length === 0 ? (
+                  React.createElement('p', { className: "text-xs text-muted-foreground text-center py-4" }, "No check-ins recorded yet.")
+                ) : (
+                  React.createElement('div', { className: "space-y-3" }
+                    , checkins.map((log) => 
+                        React.createElement('div', { key: log.id, className: "flex justify-between items-center text-xs p-3 rounded-xl border border-slate-100 bg-slate-50/50" }
+                          , React.createElement('div', null
+                            , React.createElement('p', { className: "font-bold text-foreground" }, log.customer?.name || "Unknown")
+                            , React.createElement('p', { className: "text-[10px] text-muted-foreground font-mono mt-0.5" }, log.customer?.phone || "—")
+                          )
+                          , React.createElement('div', { className: "text-right" }
+                            , React.createElement('p', { className: "font-semibold text-slate-700" }, log.branch?.name || "—")
+                            , React.createElement('p', { className: "text-[9px] text-muted-foreground mt-0.5" }, formatDate(log.createdAt))
+                          )
+                        )
+                      )
+                  )
+                )
             )
           )
         )
@@ -1171,6 +1295,63 @@ export default function BusinessDashboard() {
           )
         )
       )
+      /* Onboarding Tour Dialog */
+      , showOnboarding && React.createElement(
+          Dialog, { open: showOnboarding, onOpenChange: (open) => !open && handleSkipOnboarding() },
+          React.createElement(DialogContent, { className: "max-w-[440px] w-[95vw] bg-white border border-border rounded-3xl p-6 shadow-2xl animate-in fade-in zoom-in duration-300" },
+            React.createElement("div", { className: "flex flex-col items-center text-center space-y-4" },
+              /* Dynamic Step Icon with premium background */
+              React.createElement("div", { className: `h-16 w-16 rounded-3xl bg-gradient-to-br ${onboardingSteps[onboardingStep].color} text-white flex items-center justify-center shadow-lg transform rotate-3 hover:rotate-0 transition-transform duration-300` },
+                React.createElement(onboardingSteps[onboardingStep].icon, { className: "h-8 w-8" })
+              ),
+              React.createElement("div", { className: "space-y-1.5" },
+                React.createElement(DialogTitle, { className: "text-xl font-black text-slate-800" },
+                  onboardingSteps[onboardingStep].title
+                ),
+                React.createElement(DialogDescription, { className: "text-sm text-muted-foreground leading-relaxed px-2" },
+                  onboardingSteps[onboardingStep].description
+                )
+              ),
+              /* Progress indicators */
+              React.createElement("div", { className: "flex items-center gap-1.5 py-2" },
+                onboardingSteps.map((_, idx) =>
+                  React.createElement("div", {
+                    key: idx,
+                    className: `h-1.5 rounded-full transition-all duration-300 ${
+                      idx === onboardingStep ? "w-6 bg-primary" : "w-1.5 bg-slate-200"
+                    }`
+                  })
+                )
+              ),
+              /* Action Buttons */
+              React.createElement("div", { className: "flex items-center justify-between w-full pt-2 gap-3" },
+                React.createElement(Button, {
+                  type: "button",
+                  variant: "ghost",
+                  onClick: handleSkipOnboarding,
+                  className: "text-xs font-bold text-muted-foreground hover:text-foreground rounded-xl"
+                }, "Skip"),
+                
+                React.createElement("div", { className: "flex items-center gap-2" },
+                  React.createElement("a", {
+                    href: "https://github.com/Bpska/Digital-Loyalty/blob/main/README.md",
+                    target: "_blank",
+                    rel: "noopener noreferrer",
+                    className: "inline-flex items-center justify-center px-4 h-9 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all"
+                  }, "Read Docs"),
+                  
+                  React.createElement(Button, {
+                    type: "button",
+                    onClick: handleNextOnboarding,
+                    className: "bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-700 text-white text-xs font-bold px-5 h-9 rounded-xl shadow-md transition-all duration-300"
+                  },
+                    onboardingStep === onboardingSteps.length - 1 ? "Finish" : "Next"
+                  )
+                )
+              )
+            )
+          )
+        )
       /* Hidden Logo File Input */
       , React.createElement('input', {
           type: "file",

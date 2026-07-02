@@ -25,6 +25,21 @@ export default function ClientProviders({
     setMounted(true);
     checkSession();
 
+    // Global Theme Application
+    const applyTheme = () => {
+      const theme = localStorage.getItem("theme") || "system";
+      const root = window.document.documentElement;
+      root.classList.remove("light", "dark");
+      if (theme === "system") {
+        const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        root.classList.add(systemTheme);
+      } else {
+        root.classList.add(theme);
+      }
+    };
+
+    applyTheme();
+
     // Listen for storage changes to sync tabs and logout states
     const handleAuthChanged = () => {
       const rawUser = localStorage.getItem("user");
@@ -37,9 +52,17 @@ export default function ClientProviders({
 
     window.addEventListener("auth-changed", handleAuthChanged);
     window.addEventListener("storage", handleAuthChanged);
+    window.addEventListener("theme-changed", applyTheme);
+    
+    // Listen for matchMedia changes for system theme
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    mediaQuery.addEventListener("change", applyTheme);
+
     return () => {
       window.removeEventListener("auth-changed", handleAuthChanged);
       window.removeEventListener("storage", handleAuthChanged);
+      window.removeEventListener("theme-changed", applyTheme);
+      mediaQuery.removeEventListener("change", applyTheme);
     };
   }, [checkSession]);
 

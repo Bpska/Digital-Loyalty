@@ -162,10 +162,29 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
         c => c.usageLimit === null || c.totalUsed < c.usageLimit
       );
 
+      const visitWallet = card.business.loyaltyWallets?.[0] || null;
+      const visitProgram = card.business.loyaltyPrograms?.find(p => p.type === 'VISIT_BASED') || null;
+      let visitCard = null;
+      if (visitProgram || visitWallet) {
+        visitCard = {
+          settings: {
+            programName: visitProgram ? 'Stamp Program' : 'Visit Rewards',
+            rewardName: visitProgram?.reward?.title || 'Free Reward',
+            requiredStamps: visitProgram?.threshold || 7,
+            validityDays: 30,
+          },
+          wallet: visitWallet || {
+            currentStamps: 0,
+            status: 'ACTIVE',
+          }
+        };
+      }
+
       return {
         ...card,
         wallet,
         settings,
+        visitCard,
         business: {
           ...card.business,
           coupons: validCoupons,
@@ -173,7 +192,7 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
       };
     }));
 
-    const [unlockedRewards, activeCampaigns, activeEventCoupons, claimedCoupons] = await Promise.all([
+    const [unlockedRewards, activeCampaigns, activeEventCoupons, claimedCoupons, redeemedRewards, redeemedCoupons] = await Promise.all([
       prisma.customerReward.findMany({
         where: {
           customerId: req.user.sub,
@@ -249,6 +268,49 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
           }
         },
         orderBy: { claimedAt: 'desc' }
+      }),
+      prisma.customerReward.findMany({
+        where: {
+          customerId: req.user.sub,
+          status: 'REDEEMED',
+          reward: { isActive: true },
+        },
+        include: {
+          reward: {
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              businessId: true,
+              isActive: true,
+              business: {
+                select: {
+                  id: true,
+                  name: true,
+                  logoUrl: true,
+                }
+              }
+            }
+          },
+        },
+        orderBy: { redeemedAt: 'desc' }
+      }),
+      prisma.claimedCoupon.findMany({
+        where: {
+          customerId: req.user.sub,
+          status: 'REDEEMED',
+          coupon: { isActive: true }
+        },
+        include: {
+          coupon: {
+            include: {
+              business: {
+                select: { id: true, name: true, logoUrl: true }
+              }
+            }
+          }
+        },
+        orderBy: { redeemedAt: 'desc' }
       })
     ]);
 
@@ -259,7 +321,9 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
       unlockedRewards,
       activeCampaigns: filteredCampaigns,
       activeEventCoupons,
-      claimedCoupons
+      claimedCoupons,
+      redeemedRewards,
+      redeemedCoupons
     });
   } catch (err) { next(err); }
 });

@@ -264,7 +264,7 @@ export async function registerBusiness(
     await tx.branch.create({
       data: {
         id: branchId,
-        name: `${b.name} Main Branch`,
+        name: b.name,
         address: b.address || 'Main Address',
         latitude: 20.2961, // default Bhubaneswar lat
         longitude: 85.8245, // default Bhubaneswar lng

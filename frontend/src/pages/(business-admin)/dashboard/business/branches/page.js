@@ -135,6 +135,10 @@ export default function BranchesPage() {
     });
   };
 
+  const handleAddBranchClick = () => {
+    alert("You cannot create a new branch. Your plan is limited to a single branch.");
+  };
+
   const handleDownloadQr = () => {
     if (!selectedQrImage || !selectedBranch) return;
     const link = document.createElement("a");
@@ -229,7 +233,7 @@ export default function BranchesPage() {
 
           )
         )
-        , React.createElement(Button, { onClick: () => setShowAddModal(true), className: "bg-primary hover:bg-primary/90 text-primary-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 213 } }
+        , React.createElement(Button, { onClick: handleAddBranchClick, className: "bg-primary hover:bg-primary/90 text-primary-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 213 } }
           , React.createElement(Plus, { className: "mr-2 h-4 w-4", __self: this, __source: { fileName: _jsxFileName, lineNumber: 214 } }), " Add Branch"
         )
       )
@@ -244,7 +248,7 @@ export default function BranchesPage() {
               , React.createElement('p', { className: "text-xs text-muted-foreground max-w-sm", __self: this, __source: { fileName: _jsxFileName, lineNumber: 225 } }, "Add your first physical outlet to generate the counter check-in QR code!"
 
               )
-              , React.createElement(Button, { size: "sm", onClick: () => setShowAddModal(true), className: "mt-2 text-primary-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 228 } }, "Create Outlet"
+              , React.createElement(Button, { size: "sm", onClick: handleAddBranchClick, className: "mt-2 text-primary-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 228 } }, "Create Outlet"
 
               )
             )
@@ -256,7 +260,7 @@ export default function BranchesPage() {
               , React.createElement(Card, { className: "glass overflow-hidden border border-border shadow-lg relative bg-gradient-to-tr from-white to-amber-50/5", glass: true }
                 , React.createElement('div', { className: "absolute top-0 right-0 w-32 h-32 bg-[#FF6A00]/5 rounded-full blur-2xl pointer-events-none" })
                 , React.createElement(CardHeader, { className: "p-8 pb-4" }
-                  , React.createElement('div', { className: "flex flex-wrap items-start justify-between gap-4" }
+                  , React.createElement('div', { className: "flex flex-wrap items-start justify-between gap-4 w-full" }
                     , React.createElement('div', { className: "space-y-1" }
                       , React.createElement('span', { className: "text-[10px] font-black text-[#FF6A00] uppercase tracking-widest block" }, "Primary Location")
                       , React.createElement(CardTitle, { className: "text-2xl font-black text-foreground flex items-center gap-2.5" }
@@ -275,6 +279,14 @@ export default function BranchesPage() {
                         , React.createElement(MapPin, { className: "h-3.5 w-3.5 text-primary shrink-0" })
                         , branches[0].address || "No address configured"
                       )
+                    )
+                    , React.createElement(Button, {
+                        variant: "outline",
+                        size: "sm",
+                        className: "rounded-full border-primary/20 text-primary hover:bg-primary/5 font-semibold text-xs",
+                        onClick: () => handleOpenEditModal(branches[0])
+                      }
+                      , "Edit Settings"
                     )
                   )
                 )
@@ -320,7 +332,7 @@ export default function BranchesPage() {
                     )
                   )
 
-                  /* Subtle secondary action footer for Delete & Edit settings */
+                  /* Subtle secondary action footer for Delete settings */
                   , React.createElement('div', { className: "flex justify-start gap-3 border-t border-dashed border-border/50 pt-4" }
                     , React.createElement(Button, {
                         variant: "ghost",
@@ -328,13 +340,6 @@ export default function BranchesPage() {
                         onClick: () => setShowDeleteModal(true)
                       }
                       , "Delete Outlet"
-                    )
-                    , React.createElement(Button, {
-                        variant: "ghost",
-                        className: "h-6 px-2 text-[9px] text-muted-foreground hover:text-foreground hover:bg-slate-100 rounded-md font-medium",
-                        onClick: () => handleOpenEditModal(branches[0])
-                      }
-                      , "Edit Settings"
                     )
                   )
                 )
@@ -420,14 +425,21 @@ export default function BranchesPage() {
                       , branch.address || "No address configured"
                     )
                   )
-                  , React.createElement(Button, {
-                    variant: "outline",
-                    size: "icon",
-                    className: "h-10 w-10 border-border text-muted-foreground hover:text-foreground",
-                    onClick: () => handleShowQr(branch), __self: this, __source: { fileName: _jsxFileName, lineNumber: 251 }
-                  }
-
-                    , React.createElement(QrCode, { className: "h-5 w-5", __self: this, __source: { fileName: _jsxFileName, lineNumber: 257 } })
+                  , React.createElement('div', { className: "flex items-center gap-2" }
+                    , React.createElement(Button, {
+                        variant: "outline",
+                        size: "sm",
+                        className: "h-8 px-3 rounded-full text-xs font-semibold text-primary border-primary/20 hover:bg-primary/5",
+                        onClick: () => handleOpenEditModal(branch)
+                      }, "Edit")
+                    , React.createElement(Button, {
+                      variant: "outline",
+                      size: "icon",
+                      className: "h-8 w-8 border-border text-muted-foreground hover:text-foreground",
+                      onClick: () => handleShowQr(branch), __self: this, __source: { fileName: _jsxFileName, lineNumber: 251 }
+                    }
+                      , React.createElement(QrCode, { className: "h-4 w-4", __self: this, __source: { fileName: _jsxFileName, lineNumber: 257 } })
+                    )
                   )
                 )
 
@@ -462,13 +474,6 @@ export default function BranchesPage() {
                         onClick: () => setShowDeleteModal(true)
                       }
                         , "Delete"
-                      )
-                      , React.createElement(Button, {
-                        variant: "ghost",
-                        className: "h-6 px-1.5 text-[9px] text-muted-foreground hover:text-foreground hover:bg-slate-100 rounded-md font-medium",
-                        onClick: () => handleOpenEditModal(branch)
-                      }
-                        , "Edit Details"
                       )
                     )
                     , React.createElement(Button, {

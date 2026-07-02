@@ -90,7 +90,7 @@ router.post(
         await tx.branch.create({
           data: {
             id: branchId,
-            name: `${b.name} Main Branch`,
+            name: b.name,
             address: b.address || 'Main Address',
             latitude: 20.2961, // default Bhubaneswar lat
             longitude: 85.8245, // default Bhubaneswar lng
@@ -146,10 +146,21 @@ router.patch(
   auditLog('BUSINESS_UPDATED', 'Business'),
   async (req, res, next) => {
     try {
-      const business = await prisma.business.update({
-        where: { id: req.params.businessId, deletedAt: null },
-        data: req.body,
-        include: { plan: true },
+      const { name } = req.body;
+      const business = await prisma.$transaction(async (tx) => {
+        const b = await tx.business.update({
+          where: { id: req.params.businessId, deletedAt: null },
+          data: req.body,
+          include: { plan: true },
+        });
+
+        if (name) {
+          await tx.branch.updateMany({
+            where: { businessId: b.id },
+            data: { name },
+          });
+        }
+        return b;
       });
       sendSuccess(res, business, 'Business updated');
     } catch (err) {
@@ -216,6 +227,113 @@ router.get(
       ]);
 
       sendSuccess(res, points, 'Customers retrieved', 200, buildPaginationMeta(page, limit, total));
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// List completed cycles / redeemed rewards & coupons
+router.get(
+  '/:businessId/redemptions',
+  authenticate,
+  authorize(Role.SUPER_ADMIN, Role.BUSINESS_ADMIN),
+  requireSameBusiness,
+  async (req, res, next) => {
+    try {
+      const { businessId } = req.params;
+
+      const [rewards, coupons] = await Promise.all([
+        prisma.customerReward.findMany({
+          where: {
+            reward: { businessId },
+            status: 'REDEEMED',
+          },
+          include: {
+            customer: { select: { id: true, name: true, phone: true } },
+            reward: { select: { id: true, title: true } },
+          },
+          orderBy: { redeemedAt: 'desc' },
+        }),
+        prisma.claimedCoupon.findMany({
+          where: {
+            coupon: { businessId },
+            status: 'REDEEMED',
+          },
+          include: {
+            customer: { select: { id: true, name: true, phone: true } },
+            coupon: { select: { id: true, title: true } },
+          },
+          orderBy: { redeemedAt: 'desc' },
+        }),
+      ]);
+
+      const unified = [
+        ...rewards.map(r => ({
+          id: r.id,
+          type: 'REWARD',
+          title: r.reward.title,
+          customerName: r.customer.name,
+          customerPhone: r.customer.phone,
+          redeemedAt: r.redeemedAt,
+          code: r.redemptionCode,
+        })),
+        ...coupons.map(c => ({
+          id: c.id,
+          type: 'COUPON',
+          title: c.coupon.title,
+          customerName: c.customer.name,
+          customerPhone: c.customer.phone,
+          redeemedAt: c.redeemedAt,
+          code: c.redemptionCode,
+        })),
+      ].sort((a, b) => new Date(b.redeemedAt) - new Date(a.redeemedAt));
+
+      sendSuccess(res, unified, 'Redemptions retrieved');
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// Undo a redemption (returns it to ready/unlocked state)
+router.post(
+  '/:businessId/redemptions/:id/undo',
+  authenticate,
+  authorize(Role.SUPER_ADMIN, Role.BUSINESS_ADMIN),
+  requireSameBusiness,
+  async (req, res, next) => {
+    try {
+      const { id } = req.params;
+
+      const reward = await prisma.customerReward.findUnique({ where: { id } });
+      if (reward) {
+        await prisma.customerReward.update({
+          where: { id },
+          data: {
+            status: 'UNLOCKED',
+            redeemedAt: null,
+            redeemedByStaffId: null,
+          },
+        });
+        sendSuccess(res, null, 'Reward redemption undone');
+        return;
+      }
+
+      const coupon = await prisma.claimedCoupon.findUnique({ where: { id } });
+      if (coupon) {
+        await prisma.claimedCoupon.update({
+          where: { id },
+          data: {
+            status: 'CLAIMED',
+            redeemedAt: null,
+          },
+        });
+        sendSuccess(res, null, 'Coupon redemption undone');
+        return;
+      }
+
+      throw new AppError('Redemption record not found', 404);
     } catch (err) {
       next(err);
     }

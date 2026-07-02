@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Gift, Coffee, Star, Stamp, MapPin, Award, CheckCircle2,
-  ChevronRight, QrCode, Tag, Percent, Banknote, Clock, Zap, CalendarDays
+  ChevronRight, QrCode, Tag, Percent, Banknote, Clock, Zap, CalendarDays, RefreshCcw
 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -90,10 +90,13 @@ function SocialLinks({ business }) {
 }
 
 // ─── Coupon chip ──────────────────────────────────────────────────────────────
-function CouponChip({ coupon }) {
+function CouponChip({ coupon, onClick }) {
   const isPercent = coupon.discountType === "PERCENTAGE";
   return React.createElement(
-    "div", { className: "flex items-center justify-between rounded-xl border border-dashed border-amber-300 bg-gradient-to-r from-amber-50 to-yellow-50 px-3 py-2.5 gap-3" },
+    "div", { 
+      onClick: onClick,
+      className: "flex items-center justify-between rounded-xl border border-dashed border-amber-300 bg-gradient-to-r from-amber-50 to-yellow-50 px-3 py-2.5 gap-3 cursor-pointer hover:bg-amber-100/60 active:scale-[0.99] transition-all" 
+    },
     React.createElement("div", { className: "flex items-center gap-2.5 min-w-0" },
       React.createElement("div", { className: "flex-shrink-0 h-9 w-9 rounded-full bg-amber-100 border border-amber-200 flex items-center justify-center" },
         isPercent
@@ -104,7 +107,7 @@ function CouponChip({ coupon }) {
         React.createElement("p", { className: "text-xs font-bold text-amber-900 truncate" }, coupon.title),
         coupon.description && React.createElement("p", { className: "text-[10px] text-amber-700/70 truncate" }, coupon.description),
         React.createElement("div", { className: "flex items-center gap-1.5 mt-1" },
-          React.createElement("code", { className: "text-[10px] font-mono font-bold bg-white border border-amber-200 text-amber-800 px-1.5 py-0.5 rounded" }, coupon.code),
+          React.createElement("code", { className: "text-[10px] font-mono font-bold bg-white border border-amber-200 text-amber-800 px-1.5 py-0.5 rounded animate-pulse" }, coupon.code),
           React.createElement("span", { className: "text-[10px] text-amber-600 flex items-center gap-0.5" },
             React.createElement(Clock, { className: "h-2.5 w-2.5" }),
             daysLeft(coupon.validTo)
@@ -439,7 +442,7 @@ function HybridProgramBlock({ settings, wallet, businessId }) {
 function VisitStampCardBlock({ settings, wallet, businessId, unlockedRewards, setSelectedReward }) {
   const requiredStamps = settings.requiredStamps || 7;
   const currentStamps = wallet.currentStamps || 0;
-  const isRedeemable = wallet.status === "REWARD_AVAILABLE" || currentStamps >= requiredStamps;
+  const isRedeemable = wallet.status === "REWARD_AVAILABLE";
 
   const startDateStr = wallet.startedAt ? new Date(wallet.startedAt).toLocaleDateString('en-IN', {
     day: 'numeric',
@@ -559,7 +562,8 @@ function BusinessCard({ card, onClick }) {
         React.createElement("p", { className: "text-base font-black text-foreground truncate tracking-tight" }, business.name),
         React.createElement("div", { className: "flex items-center gap-1.5 mt-1 flex-wrap" },
           hasHybrid && React.createElement("span", { className: "text-[9px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider" }, "Active"),
-          business.category && React.createElement("span", { className: "text-[9px] bg-slate-500/10 text-slate-700 dark:text-slate-300 border border-slate-500/15 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider" }, business.category)
+          business.category && React.createElement("span", { className: "text-[9px] bg-slate-500/10 text-slate-700 dark:text-slate-300 border border-slate-500/15 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider" }, business.category),
+          React.createElement("span", { className: "text-[9px] bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider" }, `${card.totalVisits || 0} Visits`)
         )
       )
     ),
@@ -604,7 +608,17 @@ function BusinessCard({ card, onClick }) {
         ),
         React.createElement("div", { className: "space-y-2 max-h-[120px] overflow-y-auto pr-1 scrollbar-thin" },
           activeCoupons.slice(0, 2).map(coupon =>
-            React.createElement(CouponChip, { key: coupon.id, coupon })
+            React.createElement(CouponChip, { 
+              key: coupon.id, 
+              coupon,
+              onClick: (e) => {
+                e.stopPropagation();
+                setSelectedReward({
+                  coupon: coupon,
+                  redemptionCode: coupon.code,
+                });
+              }
+            })
           ),
           activeCoupons.length > 2 && React.createElement("p", { className: "text-[10px] text-muted-foreground text-center font-semibold" },
             `+ ${activeCoupons.length - 2} more deal${activeCoupons.length > 3 ? "s" : ""} available`
@@ -621,6 +635,95 @@ function BusinessCard({ card, onClick }) {
       ),
       React.createElement("span", { className: "text-[10px] text-primary font-bold flex items-center gap-1 hover:translate-x-0.5 transition-transform" },
         "Details", React.createElement(ChevronRight, { className: "h-3 w-3" })
+      )
+    )
+  );
+}
+
+// ─── Shuffle Card Stack (Smooth 3D stacked layout with swipe/shuffle animation) ──
+function ShuffleCardStack({ cards, onCardClick }) {
+  const [currentIndex, setCurrentIndex] = React.useState(0);
+  const [shufflingId, setShufflingId] = React.useState(null);
+
+  const handleShuffle = (e) => {
+    e.stopPropagation();
+    if (cards.length <= 1 || shufflingId !== null) return;
+    
+    // Set shuffling state to animate fly-out
+    setShufflingId(cards[currentIndex].id);
+    
+    setTimeout(() => {
+      setCurrentIndex((prev) => (prev + 1) % cards.length);
+      setShufflingId(null);
+    }, 450); // Match CSS transition duration
+  };
+
+  if (!cards || cards.length === 0) return null;
+
+  return React.createElement("div", { className: "relative w-full max-w-[600px] h-[480px] mx-auto flex flex-col items-center justify-start mt-4 select-none" },
+    React.createElement("div", { className: "relative w-full h-[420px]" },
+      cards.map((card, idx) => {
+        const total = cards.length;
+        const offset = (idx - currentIndex + total) % total;
+        const isTop = offset === 0;
+        const isSecond = offset === 1;
+        const isThird = offset === 2;
+        const isFlyOut = shufflingId === card.id;
+
+        let transform = "translate3d(0, 24px, -30px) scale(0.92) rotate(-1deg)";
+        let opacity = 0;
+        let zIndex = 0;
+
+        if (isFlyOut) {
+          transform = "translate3d(120%, -10px, 0) scale(0.95) rotate(12deg)";
+          opacity = 0;
+          zIndex = 40;
+        } else if (isTop) {
+          transform = "translate3d(0, 0, 0) scale(1) rotate(0deg)";
+          opacity = 1;
+          zIndex = 30;
+        } else if (isSecond) {
+          transform = "translate3d(0, 8px, -10px) scale(0.97) rotate(1deg)";
+          opacity = 0.95;
+          zIndex = 20;
+        } else if (isThird) {
+          transform = "translate3d(0, 16px, -20px) scale(0.94) rotate(-1deg)";
+          opacity = 0.85;
+          zIndex = 10;
+        } else if (offset > 2 && offset < total - 1) {
+          transform = "translate3d(0, 20px, -25px) scale(0.92) rotate(0deg)";
+          opacity = 0;
+          zIndex = 5;
+        }
+
+        return React.createElement("div", {
+          key: card.id,
+          onClick: () => isTop && onCardClick(card),
+          style: {
+            transform,
+            opacity,
+            zIndex,
+            perspective: "1000px"
+          },
+          className: "absolute top-0 left-0 w-full transition-all duration-500 ease-out cursor-pointer origin-bottom"
+        },
+          React.createElement(BusinessCard, { card, onClick: () => isTop && onCardClick(card) })
+        );
+      })
+    ),
+    /* Shuffle control buttons */
+    cards.length > 1 && React.createElement("div", { className: "flex items-center gap-4 mt-2 z-50" },
+      React.createElement(Button, {
+        size: "sm",
+        variant: "outline",
+        onClick: handleShuffle,
+        className: "rounded-full px-5 py-2.5 border-amber-200 text-amber-800 bg-amber-50 hover:bg-amber-100 font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition-transform active:scale-95"
+      },
+        React.createElement(RefreshCcw, { className: "h-3.5 w-3.5" }),
+        "Shuffle Card"
+      ),
+      React.createElement("span", { className: "text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-slate-100/80 px-2.5 py-1 rounded-full border border-slate-200/50" },
+        `${currentIndex + 1} / ${cards.length}`
       )
     )
   );
@@ -680,7 +783,17 @@ function BusinessDetailsModal({ card, unlockedRewards, setSelectedReward, onClos
             "Active Discount Coupons"
           ),
           activeCoupons.map(coupon =>
-            React.createElement(CouponChip, { key: coupon.id, coupon })
+            React.createElement(CouponChip, { 
+              key: coupon.id, 
+              coupon,
+              onClick: (e) => {
+                e.stopPropagation();
+                setSelectedReward({
+                  coupon: coupon,
+                  redemptionCode: coupon.code,
+                });
+              }
+            })
           )
         ),
 
@@ -718,9 +831,10 @@ export default function CustomerDashboard() {
   const [redemptionSuccessPlace, setRedemptionSuccessPlace] = useState(null);
 
   useEffect(() => {
-    const id = setInterval(refetch, 15000);
+    const intervalTime = selectedReward ? 2000 : 15000;
+    const id = setInterval(refetch, intervalTime);
     return () => clearInterval(id);
-  }, [refetch]);
+  }, [refetch, selectedReward]);
 
   useEffect(() => {
     if (data && lastData && selectedReward) {
@@ -764,7 +878,9 @@ export default function CustomerDashboard() {
     unlockedRewards = [],
     activeCampaigns = [],
     activeEventCoupons = [],
-    claimedCoupons = []
+    claimedCoupons = [],
+    redeemedRewards = [],
+    redeemedCoupons = []
   } = data || {};
 
   // Only cards with active coupon OR hybrid settings
@@ -877,15 +993,84 @@ export default function CustomerDashboard() {
             )
           )
         )
-        : React.createElement("div", { className: "flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scroll-smooth scrollbar-none -mx-4 px-6" },
-          visibleCards.map(card =>
-            React.createElement(BusinessCard, {
-              key: card.id,
-              card,
-              onClick: () => setSelectedBusiness(card)
-            })
+        : React.createElement(ShuffleCardStack, {
+            cards: visibleCards,
+            onCardClick: (card) => setSelectedBusiness(card)
+          })
+    ),
+
+    // Completed / Redeemed Vouchers Section
+    (redeemedRewards.length > 0 || redeemedCoupons.length > 0) && React.createElement("div", { className: "space-y-3" },
+      React.createElement("h3", { className: "text-sm font-semibold tracking-wider text-muted-foreground uppercase flex items-center" },
+        React.createElement(CheckCircle2, { className: "mr-2 h-4 w-4 text-emerald-600" }),
+        `Completed Vouchers (${redeemedRewards.length + redeemedCoupons.length})`
+      ),
+      React.createElement("div", { className: "flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scroll-smooth scrollbar-none -mx-4 px-6" },
+        redeemedRewards.map(reward =>
+          React.createElement(Card, {
+            key: reward.id,
+            className: "w-[calc(100vw-4rem)] sm:w-72 shrink-0 snap-center border-emerald-100 bg-emerald-50/20 hover:bg-emerald-50/30 transition-all shadow-sm rounded-xl",
+          },
+            React.createElement(CardHeader, { className: "p-4 pb-2" },
+              React.createElement("div", { className: "flex justify-between items-start" },
+                React.createElement("span", { className: "text-[10px] bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full uppercase" }, "Redeemed"),
+                React.createElement(CheckCircle2, { className: "h-5 w-5 text-emerald-600" })
+              ),
+              React.createElement(CardTitle, { className: "text-base mt-2 text-foreground font-bold line-through text-muted-foreground" }, reward.reward.title),
+              React.createElement(CardDescription, { className: "text-xs text-muted-foreground line-clamp-1" },
+                reward.reward.description || "Reward completed"
+              ),
+              reward.reward?.business?.name && React.createElement("p", { className: "text-[10px] font-semibold text-emerald-800 mt-1 flex items-center gap-1" },
+                React.createElement(MapPin, { className: "h-2.5 w-2.5" }),
+                reward.reward.business.name
+              )
+            ),
+            React.createElement(CardContent, { className: "p-4 pt-0 flex justify-between items-center gap-2" },
+              React.createElement("div", { className: "flex items-center gap-1 min-w-0" },
+                React.createElement("span", { className: "text-[10px] text-muted-foreground uppercase font-bold shrink-0" }, "Code: "),
+                React.createElement("span", { className: "text-xs font-mono font-bold text-slate-500 bg-slate-100 border border-slate-200/50 px-2 py-0.5 rounded truncate" },
+                  reward.redemptionCode.length > 12 ? `${reward.redemptionCode.slice(0, 8).toUpperCase()}...` : reward.redemptionCode.toUpperCase()
+                )
+              ),
+              reward.redeemedAt && React.createElement("span", { className: "text-[10px] text-muted-foreground font-medium" },
+                new Date(reward.redeemedAt).toLocaleDateString('en-IN')
+              )
+            )
+          )
+        ),
+        redeemedCoupons.map(claim =>
+          React.createElement(Card, {
+            key: claim.id,
+            className: "w-[calc(100vw-4rem)] sm:w-72 shrink-0 snap-center border-emerald-100 bg-emerald-50/20 hover:bg-emerald-50/30 transition-all shadow-sm rounded-xl",
+          },
+            React.createElement(CardHeader, { className: "p-4 pb-2" },
+              React.createElement("div", { className: "flex justify-between items-start" },
+                React.createElement("span", { className: "text-[10px] bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full uppercase" }, "Redeemed"),
+                React.createElement(CheckCircle2, { className: "h-5 w-5 text-emerald-600" })
+              ),
+              React.createElement(CardTitle, { className: "text-base mt-2 text-foreground font-bold line-through text-muted-foreground" }, claim.coupon.offerTitle || claim.coupon.title),
+              React.createElement(CardDescription, { className: "text-xs text-muted-foreground line-clamp-1" },
+                claim.coupon.offerDescription || claim.coupon.description || "Coupon redeemed"
+              ),
+              claim.coupon?.business?.name && React.createElement("p", { className: "text-[10px] font-semibold text-emerald-800 mt-1 flex items-center gap-1" },
+                React.createElement(MapPin, { className: "h-2.5 w-2.5" }),
+                claim.coupon.business.name
+              )
+            ),
+            React.createElement(CardContent, { className: "p-4 pt-0 flex justify-between items-center gap-2" },
+              React.createElement("div", { className: "flex items-center gap-1 min-w-0" },
+                React.createElement("span", { className: "text-[10px] text-muted-foreground uppercase font-bold shrink-0" }, "Code: "),
+                React.createElement("span", { className: "text-xs font-mono font-bold text-slate-500 bg-slate-100 border border-slate-200/50 px-2 py-0.5 rounded truncate" },
+                  claim.redemptionCode.length > 12 ? `${claim.redemptionCode.slice(0, 8).toUpperCase()}...` : claim.redemptionCode.toUpperCase()
+                )
+              ),
+              claim.redeemedAt && React.createElement("span", { className: "text-[10px] text-muted-foreground font-medium" },
+                new Date(claim.redeemedAt).toLocaleDateString('en-IN')
+              )
+            )
           )
         )
+      )
     ),
 
     // Business Details Modal
@@ -909,7 +1094,13 @@ export default function CustomerDashboard() {
         React.createElement("div", { className: "flex flex-col items-center justify-center py-2 space-y-4 w-full" },
           React.createElement("div", { className: "rounded-xl border border-border bg-white p-3 shadow-md" },
             React.createElement("img", {
-              src: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=0f172a&data=${selectedReward.redemptionCode}`,
+              src: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=0f172a&data=${encodeURIComponent(
+                JSON.stringify({
+                  redemptionCode: selectedReward.redemptionCode,
+                  customerName: user?.name || "Customer",
+                  customerPhone: user?.phone || ""
+                })
+              )}`,
               alt: "Redemption QR Code",
               className: "h-44 w-44"
             })

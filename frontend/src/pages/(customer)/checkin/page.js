@@ -21,6 +21,10 @@ export default function CheckinPage() {
   const [checkInDetails, setCheckInDetails] = useState(null);
   const [loyaltyRequestSent, setLoyaltyRequestSent] = useState(false);
 
+  const [zoomRange, setZoomRange] = useState({ min: 1, max: 1, step: 0.1 });
+  const [currentZoom, setCurrentZoom] = useState(1);
+  const [hasZoom, setHasZoom] = useState(false);
+
   const scannerRef = useRef(null);
   const html5QrCodeRef = useRef(null);
 
@@ -60,7 +64,7 @@ export default function CheckinPage() {
           await qrScanner.start(
             { facingMode: "environment" },
             {
-              fps: 10,
+              fps: 30,
               qrbox: { width: 250, height: 250 },
             },
             (decodedText) => {
@@ -72,8 +76,25 @@ export default function CheckinPage() {
               // ignore scan errors
             }
           );
+
+          // Retrieve zoom capability
+          try {
+            const videoTrack = qrScanner.getVideoTrack();
+            const capabilities = videoTrack.getCapabilities();
+            if (capabilities.zoom) {
+              setZoomRange({
+                min: capabilities.zoom.min || 1,
+                max: capabilities.zoom.max || 1,
+                step: capabilities.zoom.step || 0.1,
+              });
+              setCurrentZoom(videoTrack.getSettings().zoom || 1);
+              setHasZoom(true);
+            }
+          } catch (zoomErr) {
+            console.warn("Zoom not supported by active camera:", zoomErr);
+          }
         } catch (err) {
-          console.error("Failed to start camera scanner:", err);
+          console.warn("Camera access denied or unavailable:", err?.message || err);
           if (isMounted) {
             setStatus("idle");
             setErrorMsg("Camera access denied or unavailable. You can upload an image of the QR code instead.");
@@ -105,7 +126,36 @@ export default function CheckinPage() {
         console.error("Failed to stop scanner:", err);
       }
     }
+    setHasZoom(false);
     setStatus("idle");
+  };
+
+  const handleZoomChange = async (val) => {
+    const minZoom = zoomRange.min || 1;
+    const maxZoom = zoomRange.max > 1 ? zoomRange.max : 3;
+    const clampedVal = Math.min(maxZoom, Math.max(minZoom, val));
+    setCurrentZoom(clampedVal);
+
+    // Apply digital zoom via CSS transform as a universal fallback
+    const video = document.querySelector("#reader video");
+    if (video) {
+      video.style.transform = `scale(${clampedVal})`;
+      video.style.transformOrigin = "center";
+      video.style.transition = "transform 0.2s ease-out";
+    }
+
+    if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+      try {
+        const videoTrack = html5QrCodeRef.current.getVideoTrack();
+        if (videoTrack) {
+          await videoTrack.applyConstraints({
+            advanced: [{ zoom: clampedVal }]
+          });
+        }
+      } catch (err) {
+        // Ignore constraint errors, digital zoom is already active
+      }
+    }
   };
 
   const handleFileChange = async (e) => {
@@ -425,7 +475,26 @@ export default function CheckinPage() {
                   React.createElement(Camera, { className: "mr-2 h-4 w-4" }), " Open Camera Scanner"
                 )
               ) : (
-                React.createElement(Button, { variant: "outline", className: "w-full rounded-full", onClick: stopScanner }, "Close Camera")
+                React.createElement('div', { className: "w-full space-y-3" }
+                  , status === "scanning" && React.createElement('div', { className: "w-full flex items-center justify-between gap-3 text-xs bg-slate-50 border border-border px-3 py-1.5 rounded-full" }
+                      , React.createElement(Button, {
+                          type: "button",
+                          variant: "ghost",
+                          size: "icon",
+                          className: "h-7 w-7 rounded-full font-extrabold text-sm border-0",
+                          onClick: () => handleZoomChange(currentZoom - 0.5)
+                        }, "-")
+                      , React.createElement('span', { className: "text-muted-foreground font-black text-[10px] uppercase tracking-wider" }, `Zoom: ${currentZoom.toFixed(1)}x`)
+                      , React.createElement(Button, {
+                          type: "button",
+                          variant: "ghost",
+                          size: "icon",
+                          className: "h-7 w-7 rounded-full font-extrabold text-sm border-0",
+                          onClick: () => handleZoomChange(currentZoom + 0.5)
+                        }, "+")
+                    )
+                  , React.createElement(Button, { variant: "outline", className: "w-full rounded-full", onClick: stopScanner }, "Close Camera")
+                )
               ),
 
               React.createElement('div', { className: "relative flex py-2 items-center w-full" },

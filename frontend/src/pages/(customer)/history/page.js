@@ -41,31 +41,7 @@ export default function HistoryPage() {
         )
       )
 
-      /* Points Summary cards */
-      , React.createElement('div', { className: "grid grid-cols-2 gap-4" }
-        , React.createElement(Card, { className: "glass border border-slate-100 bg-gradient-to-br from-indigo-50/30 to-white/70 shadow-sm relative overflow-hidden" }
-          , React.createElement(CardContent, { className: "p-4 flex items-center space-x-3" }
-            , React.createElement('div', { className: "p-2 bg-indigo-50 text-indigo-600 rounded-xl" }
-              , React.createElement(Award, { className: "h-5 w-5" })
-            )
-            , React.createElement('div', null,
-              React.createElement('p', { className: "text-[10px] font-semibold text-slate-500 uppercase tracking-wider" }, "Total Points Earned"),
-              React.createElement('h3', { className: "text-lg font-extrabold text-indigo-900 mt-0.5" }, `${totalPointsEarned} pts`)
-            )
-          )
-        )
-        , React.createElement(Card, { className: "glass border border-slate-100 bg-gradient-to-br from-amber-50/30 to-white/70 shadow-sm relative overflow-hidden" }
-          , React.createElement(CardContent, { className: "p-4 flex items-center space-x-3" }
-            , React.createElement('div', { className: "p-2 bg-amber-50 text-amber-600 rounded-xl" }
-              , React.createElement(Award, { className: "h-5 w-5" })
-            )
-            , React.createElement('div', null,
-              React.createElement('p', { className: "text-[10px] font-semibold text-slate-500 uppercase tracking-wider" }, "Extra Points"),
-              React.createElement('h3', { className: "text-lg font-extrabold text-amber-700 mt-0.5" }, `${totalExtraPoints} pts`)
-            )
-          )
-        )
-      )
+
 
       , React.createElement(Tabs, { defaultValue: "visits", className: "w-full", onValueChange: setActiveTab }
         , React.createElement(TabsList, { className: "grid w-full grid-cols-2 mb-4" }

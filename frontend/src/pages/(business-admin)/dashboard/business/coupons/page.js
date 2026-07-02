@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import {
   Percent, Plus, Loader2, Tag, ToggleLeft, ToggleRight, MoreVertical,
   Pencil, Trash2, CheckCircle2, XCircle, BadgePercent, User,
-  Phone, Mail, Clock, Stamp, Star, History
+  Phone, Mail, Clock, Stamp, Star, History, Scan, Camera, Upload
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
@@ -153,6 +153,122 @@ export default function CouponsPage() {
   const [approvalPhone, setApprovalPhone] = useState("");
   const [approvalResult, setApprovalResult] = useState(null);
   const [approvalLoading, setApprovalLoading] = useState(false);
+  const [scanningApply, setScanningApply] = useState(false);
+  const [scanUploadLoading, setScanUploadLoading] = useState(false);
+  const html5QrCodeApplyRef = useRef(null);
+  const couponFileInputRef = useRef(null);
+
+  const handleScanSuccess = (decodedText) => {
+    let codeToApply = decodedText;
+    let phoneToApply = "";
+    if (typeof decodedText === "string" && decodedText.trim().startsWith("{")) {
+      try {
+        const parsed = JSON.parse(decodedText);
+        if (parsed.redemptionCode) {
+          codeToApply = parsed.redemptionCode;
+        }
+        if (parsed.customerPhone) {
+          phoneToApply = parsed.customerPhone;
+        }
+      } catch (e) {
+        // Fallback
+      }
+    }
+    setApprovalCode(codeToApply.toUpperCase());
+    setApprovalPhone(phoneToApply);
+    
+    // Automatically submit:
+    setApprovalLoading(true);
+    setApprovalResult(null);
+    api.post("/coupons/admin-apply", {
+      code: codeToApply.trim().toUpperCase(),
+      businessId,
+      customerPhone: phoneToApply.trim() || undefined,
+    }).then(res => {
+      setApprovalResult({ applied: true, coupon: res.data.coupon, customer: res.data.customer });
+      queryClient.invalidateQueries({ queryKey: ["couponUsageHistory", businessId] });
+      queryClient.invalidateQueries({ queryKey: ["businessCoupons", businessId] });
+    }).catch(err => {
+      setApprovalResult({ applied: false, error: err.response?.data?.message || err.message || "Coupon not found or expired." });
+    }).finally(() => {
+      setApprovalLoading(false);
+    });
+  };
+
+  // Upload QR image file scanner (works without camera permission)
+  const handleCouponFileUpload = async (e) => {
+    const file = e?.target?.files?.[0];
+    if (!file) return;
+    setScanUploadLoading(true);
+    setApprovalResult(null);
+    try {
+      const { Html5Qrcode } = await import("html5-qrcode");
+      const html5QrCode = new Html5Qrcode("reader-coupon-hidden");
+      const decodedText = await html5QrCode.scanFile(file, true);
+      handleScanSuccess(decodedText);
+    } catch (err) {
+      console.warn("Failed to parse QR from uploaded image:", err?.message || err);
+      setApprovalResult({ applied: false, error: "Could not read a valid QR code from the image. Please try a clearer photo or enter the code manually." });
+    } finally {
+      setScanUploadLoading(false);
+      if (couponFileInputRef.current) couponFileInputRef.current.value = "";
+    }
+  };
+
+  // Camera scanner (optional — only works when camera permission is granted)
+  useEffect(() => {
+    let qrScanner = null;
+    let isMounted = true;
+
+    if (scanningApply) {
+      const initScanner = async () => {
+        try {
+          const { Html5Qrcode } = await import("html5-qrcode");
+          if (!isMounted) return;
+
+          const scannerId = "reader-coupon-apply";
+          qrScanner = new Html5Qrcode(scannerId);
+          html5QrCodeApplyRef.current = qrScanner;
+
+          await qrScanner.start(
+            { facingMode: "environment" },
+            {
+              fps: 10,
+              qrbox: { width: 250, height: 250 },
+            },
+            (decodedText) => {
+              if (isMounted) {
+                qrScanner.stop().then(() => {
+                  setScanningApply(false);
+                  handleScanSuccess(decodedText);
+                }).catch(err => {
+                  setScanningApply(false);
+                  handleScanSuccess(decodedText);
+                });
+              }
+            },
+            (_errorMessage) => {
+              // ignore scan errors
+            }
+          );
+        } catch (err) {
+          console.warn("Camera unavailable, use image upload instead:", err?.message || err);
+          if (isMounted) {
+            setScanningApply(false);
+          }
+        }
+      };
+
+      const timer = setTimeout(initScanner, 100);
+      return () => {
+        clearTimeout(timer);
+        isMounted = false;
+        if (qrScanner && qrScanner.isScanning) {
+          qrScanner.stop().catch(() => {});
+        }
+      };
+    }
+  }, [scanningApply]);
 
   // Form states
   const [code, setCode] = useState("");
@@ -318,12 +434,77 @@ export default function CouponsPage() {
 
         React.createElement(CardContent, { className: "p-4 pt-3" },
 
-          /* ── Apply tab ── */
           approvalTab === "apply" && React.createElement('div', {},
+
+            /* Hidden element for file-based QR scanning */
+            React.createElement('div', {
+              id: "reader-coupon-hidden",
+              style: { position: 'absolute', left: '-9999px', top: '-9999px', width: '1px', height: '1px', overflow: 'hidden' },
+            }),
+
             React.createElement('p', { className: "text-xs text-muted-foreground mb-3" },
-              "Customer verbally tells their code → enter it + phone → click Apply."
+              "Upload a photo of customer's coupon QR code, use camera, or enter the code manually."
             ),
-            React.createElement('form', { onSubmit: handleApplyCoupon, className: "space-y-3" },
+
+            scanningApply ? (
+              React.createElement('div', { className: "space-y-3 mb-4" },
+                React.createElement('div', { className: "relative w-full aspect-square max-w-[280px] mx-auto rounded-2xl overflow-hidden border-2 border-primary/40 bg-black flex items-center justify-center" },
+                  React.createElement('div', { id: "reader-coupon-apply", className: "absolute inset-0 w-full h-full" }),
+                  React.createElement('div', { className: "absolute inset-x-4 top-1/2 h-[2px] bg-primary animate-pulse z-10" })
+                ),
+                React.createElement(Button, {
+                  type: "button",
+                  variant: "outline",
+                  onClick: () => setScanningApply(false),
+                  className: "w-full text-xs rounded-xl"
+                }, "Cancel Scanning")
+              )
+            ) : (
+              React.createElement('div', { className: "mb-4 space-y-2" },
+
+                /* Primary: Upload QR Image (works everywhere, no camera needed) */
+                React.createElement('div', {},
+                  React.createElement('input', {
+                    ref: couponFileInputRef,
+                    type: "file",
+                    accept: "image/*",
+                    capture: "environment",
+                    onChange: handleCouponFileUpload,
+                    className: "hidden",
+                    id: "coupon-qr-file-input"
+                  }),
+                  React.createElement(Button, {
+                    type: "button",
+                    variant: "outline",
+                    disabled: scanUploadLoading,
+                    onClick: () => { if (couponFileInputRef.current) couponFileInputRef.current.click(); },
+                    className: "w-full text-xs py-5 rounded-2xl border-2 border-dashed border-primary/40 hover:bg-primary/5 flex items-center justify-center gap-2"
+                  },
+                    scanUploadLoading
+                      ? React.createElement(React.Fragment, null, React.createElement(Loader2, { className: "h-5 w-5 animate-spin text-primary" }), React.createElement('span', { className: "font-bold text-muted-foreground" }, "Reading QR..."))
+                      : React.createElement(React.Fragment, null,
+                          React.createElement(Upload, { className: "h-5 w-5 text-primary" }),
+                          React.createElement('span', { className: "font-bold text-[#FF6A00]" }, "Upload / Take Photo of Coupon QR")
+                        )
+                  )
+                ),
+
+                /* Secondary: Open live camera scanner */
+                React.createElement(Button, {
+                  type: "button",
+                  variant: "ghost",
+                  onClick: () => {
+                    setApprovalResult(null);
+                    setScanningApply(true);
+                  },
+                  className: "w-full text-[11px] py-2 text-muted-foreground hover:text-foreground flex items-center justify-center gap-1.5"
+                },
+                  React.createElement(Camera, { className: "h-3.5 w-3.5" }),
+                  "Or use live camera scanner"
+                )
+              )
+            ),
+            !scanningApply && React.createElement('form', { onSubmit: handleApplyCoupon, className: "space-y-3" },
               React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-3" },
                 React.createElement('div', { className: "space-y-1" },
                   React.createElement(Label, { htmlFor: "approval-code", className: "text-xs font-semibold" }, "Coupon Code *"),
