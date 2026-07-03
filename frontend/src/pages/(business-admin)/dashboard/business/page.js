@@ -839,68 +839,6 @@ export default function BusinessDashboard() {
             , React.createElement(CardContent, { className: "p-6 pt-0 space-y-4" }
               , React.createElement('form', { onSubmit: handleSaveReviewSettings, className: "space-y-4" }
                 
-                // Google Places Integrator Search Panel
-                , React.createElement('div', { className: "bg-indigo-50/50 p-4 rounded-xl border border-indigo-100/60 space-y-3 mb-2" }
-                  , React.createElement('div', { className: "flex justify-between items-center" }
-                    , React.createElement('h4', { className: "text-xs font-bold text-indigo-900" }, "🔍 Google Place Finder")
-                    , React.createElement('span', { className: "text-[9px] text-indigo-600 bg-indigo-100 font-semibold px-2 py-0.5 rounded-full" }, "Auto Review Link")
-                  )
-                  , React.createElement('p', { className: "text-[10px] text-indigo-700 leading-normal" }, "Enter your shop/brand name to locate your Google listing and automatically generate a direct review link.")
-                  , React.createElement('div', { className: "flex gap-2" }
-                    , React.createElement(Input, {
-                        value: googleSearchQuery,
-                        onChange: (e) => setGoogleSearchQuery(e.target.value),
-                        placeholder: "e.g. Starbucks Cafe",
-                        className: "text-xs border-indigo-200 bg-white flex-1"
-                      })
-                    , React.createElement(Button, {
-                        type: "button",
-                        onClick: handleSearchPlaces,
-                        disabled: searchingPlaces,
-                        className: "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-lg px-3"
-                      }
-                      , searchingPlaces ? "Searching..." : "Search"
-                    )
-                  )
-                  , searchResults.length > 0 && React.createElement('div', { className: "space-y-1.5 bg-white border border-indigo-100 p-2 rounded-lg max-h-[160px] overflow-y-auto" }
-                    , React.createElement('p', { className: "text-[9px] font-bold text-indigo-500 uppercase tracking-wider mb-1" }, "Search results:")
-                    , searchResults.map((place) =>
-                        React.createElement('div', {
-                          key: place.placeId,
-                          className: "flex justify-between items-center p-2 rounded hover:bg-indigo-50 transition-colors text-left text-xs border-b border-slate-50 last:border-b-0 gap-2"
-                        }
-                          , React.createElement('div', { className: "min-w-0" }
-                            , React.createElement('p', { className: "font-bold text-slate-800 truncate text-[11px]" }, place.name)
-                            , React.createElement('p', { className: "text-[9px] text-slate-500 truncate" }, place.formattedAddress)
-                          )
-                          , React.createElement(Button, {
-                              type: "button",
-                              size: "xs",
-                              onClick: () => {
-                                setGooglePlaceId(place.placeId);
-                                setGoogleBusinessName(place.name);
-                                setRevGoogleUrl(`https://search.google.com/local/writereview?placeid=${place.placeId}`);
-                                setSearchResults([]);
-                                alert(`Listing verified! Google Place ID set to "${place.placeId}". Click Save below to apply.`);
-                              },
-                              className: "bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold h-6 rounded-md px-2 shrink-0"
-                            }, "Confirm")
-                        )
-                      )
-                    )
-                  , googlePlaceId && React.createElement('div', { className: "text-[10px] text-emerald-700 font-semibold bg-emerald-50 border border-emerald-100 p-2 rounded-lg flex items-center justify-between" }
-                      , React.createElement('span', { className: "truncate flex-1 mr-2" }, `✓ Matched: ${googleBusinessName}`)
-                      , React.createElement('button', {
-                          type: "button",
-                          onClick: () => {
-                            setGooglePlaceId("");
-                            setGoogleBusinessName("");
-                          },
-                          className: "text-[9px] text-red-500 hover:underline font-bold shrink-0"
-                        }, "Clear")
-                    )
-                )
-
                 , React.createElement('div', { className: "space-y-1.5" }
                   , React.createElement(Label, { htmlFor: "review-biz-type", className: "text-xs font-semibold text-muted-foreground" }, "Business Type")
                   , React.createElement(Input, {

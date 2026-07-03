@@ -19,7 +19,7 @@ const STAR_LABELS = {
  */
 function buildPrompt(businessType, rating) {
   const stars = STAR_LABELS[rating] || `${rating} Stars`;
-  return `Generate 5 realistic, highly SEO-friendly Google review suggestions for a business.
+  return `Generate 3 realistic, highly SEO-friendly Google review suggestions for a business.
   
 Business Type: ${businessType || 'Business'}
 Rating: ${stars}
@@ -28,11 +28,11 @@ SEO Guidelines:
 - Automatically incorporate high-traffic, category-specific local search keywords related to ${businessType || 'Business'} (e.g. service quality, menu/services, hygiene, price, ambience, staff behaviour, location).
 - Maintain 100% organic, natural sounding human language. Do not make keyword placement feel stuffed or spammy.
 - Write 1-2 short, impactful sentences per review.
-- Provide diverse sentence structures and different word choices across all 5 reviews.
+- Provide diverse sentence structures and different word choices across all 3 reviews.
 - Maximum 30 words per review. Suitable for Google Maps/Local Business ranking.
 
-Return ONLY a JSON array of 5 strings. No markdown, no explanations, no numbering, no extra text. Example:
-["Review 1 content.", "Review 2 content.", "Review 3 content.", "Review 4 content.", "Review 5 content."]`;
+Return ONLY a JSON array of 3 strings. No markdown, no explanations, no numbering, no extra text. Example:
+["Review 1 content.", "Review 2 content.", "Review 3 content."]`;
 }
 
 /**
@@ -84,7 +84,7 @@ function getFallbackReviews(rating) {
  */
 async function callOllama(prompt) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
+  const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout
 
   const response = await fetch(`${env.OLLAMA_URL}/api/generate`, {
     method: 'POST',
@@ -129,7 +129,7 @@ function parseReviewsFromResponse(text) {
       return parsed
         .map((r) => String(r).trim())
         .filter(Boolean)
-        .slice(0, 5);
+        .slice(0, 3);
     }
   }
 
@@ -151,8 +151,8 @@ export async function generateReviews(businessType, rating) {
     const raw = await callOllama(prompt);
     const reviews = parseReviewsFromResponse(raw);
 
-    // Pad to 5 if model returned fewer
-    while (reviews.length < 5) {
+    // Pad to 3 if model returned fewer
+    while (reviews.length < 3) {
       const fallbacks = getFallbackReviews(rating);
       reviews.push(fallbacks[reviews.length] || fallbacks[0]);
     }
@@ -160,6 +160,6 @@ export async function generateReviews(businessType, rating) {
     return reviews;
   } catch (err) {
     console.warn('[OllamaService] Falling back to preset reviews. Reason:', err.message);
-    return getFallbackReviews(rating);
+    return getFallbackReviews(rating).slice(0, 3);
   }
 }

@@ -23,7 +23,10 @@ export default function ClientProviders({
 
   useEffect(() => {
     setMounted(true);
-    checkSession();
+    const state = useAuthStore.getState();
+    if (!state.initialized && !state.loading) {
+      checkSession();
+    }
 
     // Global Theme Application
     const applyTheme = () => {
