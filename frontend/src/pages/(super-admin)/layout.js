@@ -56,14 +56,14 @@ export default function SuperAdminLayout({
   return (
     React.createElement('div', { className: "min-h-screen bg-background flex text-foreground"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 55}}
       /* Desktop Sidebar */
-      , React.createElement('aside', { className: "w-64 border-r border-border bg-card hidden md:flex flex-col h-screen sticky top-0"         , __self: this, __source: {fileName: _jsxFileName, lineNumber: 57}}
-        , React.createElement('div', { className: "p-6 border-b border-border flex items-center space-x-2"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 58}}
-          , React.createElement('div', { className: "h-8 w-8 rounded-lg bg-gradient-to-tr from-primary to-indigo-400 flex items-center justify-center shadow-sm"         , __self: this, __source: {fileName: _jsxFileName, lineNumber: 59}}
+      , React.createElement('aside', { className: "group/sidebar w-16 hover:w-64 border-r border-border bg-card hidden md:flex flex-col h-screen sticky top-0 transition-all duration-300 ease-in-out overflow-hidden"         , __self: this, __source: {fileName: _jsxFileName, lineNumber: 57}}
+        , React.createElement('div', { className: "p-4 border-b border-border flex items-center space-x-2 min-w-[256px]"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 58}}
+          , React.createElement('div', { className: "h-8 w-8 rounded-lg bg-gradient-to-tr from-primary to-indigo-400 flex items-center justify-center shadow-sm shrink-0"         , __self: this, __source: {fileName: _jsxFileName, lineNumber: 59}}
             , React.createElement('span', { className: "text-sm font-bold text-white"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 60}}, "SA")
           )
-          , React.createElement('span', { className: "text-base font-bold text-foreground tracking-tight"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 62}}, "Super Control" )
+          , React.createElement('span', { className: "text-base font-bold text-foreground tracking-tight whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 62}}, "Super Control" )
         )
-        , React.createElement('nav', { className: "flex-1 p-4 space-y-1 overflow-y-auto"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 64}}
+        , React.createElement('nav', { className: "flex-1 p-2 space-y-1 overflow-y-auto"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 64}}
           , menuItems.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
@@ -71,26 +71,28 @@ export default function SuperAdminLayout({
               React.createElement(Link, {
                 key: item.href,
                 to: item.href,
+                title: item.label,
                 className: cn(
-                  "flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200",
+                  "flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 min-w-[240px]",
                   isActive 
                     ? "bg-primary text-primary-foreground font-medium shadow-sm" 
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 ), __self: this, __source: {fileName: _jsxFileName, lineNumber: 69}}
 
-                , React.createElement(Icon, { className: "h-4.5 w-4.5" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 79}} )
-                , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 80}}, item.label)
+                , React.createElement(Icon, { className: "h-4.5 w-4.5 shrink-0" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 79}} )
+                , React.createElement('span', { className: "whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200", __self: this, __source: {fileName: _jsxFileName, lineNumber: 80}}, item.label)
               )
             );
           })
         )
-        , React.createElement('div', { className: "p-4 border-t border-border"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 85}}
+        , React.createElement('div', { className: "p-2 border-t border-border"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 85}}
           , React.createElement('button', {
             onClick: logout,
-            className: "flex items-center space-x-3 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"           , __self: this, __source: {fileName: _jsxFileName, lineNumber: 86}}
+            title: "Sign Out",
+            className: "flex items-center space-x-3 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors min-w-[240px]"           , __self: this, __source: {fileName: _jsxFileName, lineNumber: 86}}
 
-            , React.createElement(LogOut, { className: "h-4.5 w-4.5" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 90}} )
-            , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 91}}, "Sign Out" )
+            , React.createElement(LogOut, { className: "h-4.5 w-4.5 shrink-0" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 90}} )
+            , React.createElement('span', { className: "whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200", __self: this, __source: {fileName: _jsxFileName, lineNumber: 91}}, "Sign Out" )
           )
         )
       )

@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building2, Plus, Loader2, ToggleLeft, ToggleRight, } from "lucide-react";
+import { Building2, Plus, Loader2, ToggleLeft, ToggleRight, Star, ExternalLink, MessageSquareText, BarChart3, Settings2, CheckCircle2, XCircle } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 export default function BusinessesManagementPage() {
   const queryClient = useQueryClient();
@@ -52,6 +52,142 @@ export default function BusinessesManagementPage() {
   const [editingPointsBusiness, setEditingPointsBusiness] = useState(null);
   const [editPointsVal, setEditPointsVal] = useState("");
 
+  // Editing business description state
+  const [editingDescriptionBusiness, setEditingDescriptionBusiness] = useState(null);
+  const [editDescriptionVal, setEditDescriptionVal] = useState("");
+
+  // AI Review settings editor state
+  const [editingReviewBusiness, setEditingReviewBusiness] = useState(null);
+  const [reviewSettingsForm, setReviewSettingsForm] = useState({
+    businessType: "",
+    googleReviewUrl: "",
+    instagramUrl: "",
+    facebookUrl: "",
+    googleBusinessName: "",
+    googlePlaceId: "",
+  });
+  const [reviewSettingsLoading, setReviewSettingsLoading] = useState(false);
+  const [reviewSettingsFetchLoading, setReviewSettingsFetchLoading] = useState(false);
+
+  // Business Create/Edit modal state
+  const [showBusinessModal, setShowBusinessModal] = useState(false);
+  const [editingBusiness, setEditingBusiness_state] = useState(null);
+  const [businessForm, setBusinessForm] = useState({
+    name: "",
+    phone: "",
+    address: "",
+    timezone: "Asia/Kolkata",
+    category: "",
+    bookingUrl: "",
+    description: "",
+    planId: "",
+    ownerId: "",
+    instagramUrl: "",
+    facebookUrl: "",
+    whatsappUrl: "",
+    googleReviewUrl: "",
+  });
+
+  // Fetch users list (for owner selection)
+  const { data: users = [] } = useQuery({
+    queryKey: ["adminUsersList"],
+    queryFn: () => api.get("/admin/users").then((res) => res.data || []),
+  });
+
+  // Create business mutation
+  const createBusinessMutation = useMutation({
+    mutationFn: (data) => api.post("/businesses", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["superBusinessesList"] });
+      setShowBusinessModal(false);
+      alert("Merchant registered successfully!");
+    },
+    onError: (err) => {
+      alert(err.message || "Failed to register merchant.");
+    }
+  });
+
+  // Update business mutation
+  const updateBusinessMutation = useMutation({
+    mutationFn: ({ id, data }) => api.patch(`/businesses/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["superBusinessesList"] });
+      setShowBusinessModal(false);
+      alert("Merchant details updated successfully!");
+    },
+    onError: (err) => {
+      alert(err.message || "Failed to update merchant.");
+    }
+  });
+
+  const openCreateBusinessModal = () => {
+    setEditingBusiness_state(null);
+    setBusinessForm({
+      name: "",
+      phone: "",
+      address: "",
+      timezone: "Asia/Kolkata",
+      category: "",
+      bookingUrl: "",
+      description: "",
+      planId: "",
+      ownerId: "",
+      instagramUrl: "",
+      facebookUrl: "",
+      whatsappUrl: "",
+      googleReviewUrl: "",
+    });
+    setShowBusinessModal(true);
+  };
+
+  const openEditBusinessModal = (business) => {
+    setEditingBusiness_state(business);
+    setBusinessForm({
+      name: business.name || "",
+      phone: business.phone || "",
+      address: business.address || "",
+      timezone: business.timezone || "Asia/Kolkata",
+      category: business.category || "",
+      bookingUrl: business.bookingUrl || "",
+      description: business.description || "",
+      planId: business.planId || "",
+      ownerId: business.ownerId || "",
+      instagramUrl: business.instagramUrl || "",
+      facebookUrl: business.facebookUrl || "",
+      whatsappUrl: business.whatsappUrl || "",
+      googleReviewUrl: business.googleReviewUrl || "",
+    });
+    setShowBusinessModal(true);
+  };
+
+  const handleSubmitBusiness = (e) => {
+    e.preventDefault();
+    const payload = {
+      name: businessForm.name,
+      phone: businessForm.phone || undefined,
+      address: businessForm.address || undefined,
+      timezone: businessForm.timezone,
+      category: businessForm.category || null,
+      bookingUrl: businessForm.bookingUrl || null,
+      description: businessForm.description || null,
+      planId: businessForm.planId || undefined,
+      instagramUrl: businessForm.instagramUrl || null,
+      facebookUrl: businessForm.facebookUrl || null,
+      whatsappUrl: businessForm.whatsappUrl || null,
+      googleReviewUrl: businessForm.googleReviewUrl || null,
+    };
+
+    if (editingBusiness) {
+      updateBusinessMutation.mutate({ id: editingBusiness.id, data: payload });
+    } else {
+      if (!businessForm.ownerId) {
+        alert("Please select an owner user.");
+        return;
+      }
+      createBusinessMutation.mutate({ ...payload, ownerId: businessForm.ownerId });
+    }
+  };
+
   // Platform pricing settings state
   const [platformFee, setPlatformFee] = useState("");
   const [gstPercent, setGstPercent] = useState("");
@@ -71,6 +207,50 @@ export default function BusinessesManagementPage() {
     queryFn: () => api.get("/admin/settings").then((res) => res.data),
     enabled: activeTab === "settings",
   });
+
+  // Fetch AI review analytics
+  const { data: reviewAnalytics, isLoading: reviewAnalyticsLoading, refetch: refetchReviewAnalytics } = useQuery({
+    queryKey: ["superReviewAnalytics"],
+    queryFn: () => api.get("/admin/reviews/analytics").then((res) => res.data),
+    enabled: activeTab === "ai-reviews",
+  });
+
+  const openReviewSettings = async (business) => {
+    setEditingReviewBusiness(business);
+    setReviewSettingsFetchLoading(true);
+    try {
+      const res = await api.get(`/admin/reviews/settings/${business.id}`);
+      const d = res.data;
+      setReviewSettingsForm({
+        businessType: d.businessType || "",
+        googleReviewUrl: d.googleReviewUrl || "",
+        instagramUrl: d.instagramUrl || "",
+        facebookUrl: d.facebookUrl || "",
+        googleBusinessName: d.googleBusinessName || "",
+        googlePlaceId: d.googlePlaceId || "",
+      });
+    } catch {
+      setReviewSettingsForm({ businessType: "", googleReviewUrl: "", instagramUrl: "", facebookUrl: "", googleBusinessName: "", googlePlaceId: "" });
+    } finally {
+      setReviewSettingsFetchLoading(false);
+    }
+  };
+
+  const handleSaveReviewSettings = async (e) => {
+    e.preventDefault();
+    if (!editingReviewBusiness) return;
+    setReviewSettingsLoading(true);
+    try {
+      await api.patch(`/admin/reviews/settings/${editingReviewBusiness.id}`, reviewSettingsForm);
+      setEditingReviewBusiness(null);
+      refetchReviewAnalytics();
+      alert("AI Review settings saved successfully!");
+    } catch (err) {
+      alert(err.message || "Failed to save review settings.");
+    } finally {
+      setReviewSettingsLoading(false);
+    }
+  };
 
   // Sync settings when loaded
   React.useEffect(() => {
@@ -157,6 +337,20 @@ export default function BusinessesManagementPage() {
     },
     onError: (err) => {
       alert(err.message || "Failed to update point rate");
+    }
+  });
+
+  // Update business description mutation
+  const updateDescriptionMutation = useMutation({
+    mutationFn: ({ id, description }) =>
+      api.patch(`/admin/businesses/${id}/description`, { description }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["superBusinessesList"] });
+      setEditingDescriptionBusiness(null);
+      alert("Business description updated successfully!");
+    },
+    onError: (err) => {
+      alert(err.message || "Failed to update description");
     }
   });
 
@@ -295,6 +489,11 @@ export default function BusinessesManagementPage() {
 
           )
         )
+        , activeTab === "businesses" && (
+          React.createElement(Button, { onClick: () => openCreateBusinessModal(), className: "bg-primary hover:bg-primary/90 text-primary-foreground" }
+            , React.createElement(Plus, { className: "mr-2 h-4 w-4" }), " Register Merchant"
+          )
+        )
         , activeTab === "plans" && (
           React.createElement(Button, { onClick: () => { setShowAddPlanModal(true); resetPlanForm(); }, className: "bg-primary hover:bg-primary/90 text-primary-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 154 } }
             , React.createElement(Plus, { className: "mr-2 h-4 w-4", __self: this, __source: { fileName: _jsxFileName, lineNumber: 155 } }), " Create Plan"
@@ -303,11 +502,15 @@ export default function BusinessesManagementPage() {
       )
 
       , React.createElement(Tabs, { defaultValue: "businesses", className: "w-full", onValueChange: (val) => { setActiveTab(val); resetPlanForm(); setNotifSuccess(null); setNotifError(null); setSettingsSuccess(null); setSettingsError(null); }, __self: this, __source: { fileName: _jsxFileName, lineNumber: 160 } }
-        , React.createElement(TabsList, { className: "grid w-[520px] grid-cols-4 mb-6", __self: this, __source: { fileName: _jsxFileName, lineNumber: 161 } }
-          , React.createElement(TabsTrigger, { value: "businesses", __self: this, __source: { fileName: _jsxFileName, lineNumber: 162 } }, "Tenants")
-          , React.createElement(TabsTrigger, { value: "plans", __self: this, __source: { fileName: _jsxFileName, lineNumber: 163 } }, "Pricing Plans")
-          , React.createElement(TabsTrigger, { value: "notifications", __self: this, __source: { fileName: _jsxFileName, lineNumber: 163 } }, "Send Alerts")
-          , React.createElement(TabsTrigger, { value: "settings", __self: this, __source: { fileName: _jsxFileName, lineNumber: 163 } }, "Platform Settings")
+        , React.createElement(TabsList, { className: "grid w-full grid-cols-5 mb-6" }
+          , React.createElement(TabsTrigger, { value: "businesses" }, "Tenants")
+          , React.createElement(TabsTrigger, { value: "plans" }, "Pricing Plans")
+          , React.createElement(TabsTrigger, { value: "notifications" }, "Send Alerts")
+          , React.createElement(TabsTrigger, { value: "ai-reviews" }
+            , React.createElement(MessageSquareText, { className: "h-3.5 w-3.5 mr-1.5" })
+            , "AI Reviews"
+          )
+          , React.createElement(TabsTrigger, { value: "settings" }, "Platform Settings")
         )
 
         /* Tenants Tab */
@@ -413,6 +616,28 @@ export default function BusinessesManagementPage() {
                       , React.createElement('p', { className: "text-[10px] text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 199 } }, "ID: ", business.id)
                       , business.address && React.createElement('p', { className: "text-[10px] text-muted-foreground italic truncate max-w-[200px] mt-0.5" }, "Address: ", business.address)
                       , React.createElement('p', { className: "text-[9px] text-muted-foreground/80 mt-0.5" }, "Timezone: ", business.timezone)
+                      , React.createElement('p', { className: "text-[10px] text-slate-700 mt-1 line-clamp-2 italic max-w-[200px]" }
+                          , "Description: ", business.description || "No description set"
+                        )
+                      , React.createElement('div', { className: "flex gap-3 items-center mt-1" }
+                        , React.createElement('button', {
+                            type: "button",
+                            onClick: () => openEditBusinessModal(business),
+                            className: "text-[10px] text-[#FF6A00] hover:underline font-bold"
+                          }
+                            , "Edit Profile"
+                          )
+                        , React.createElement('button', {
+                            type: "button",
+                            onClick: () => {
+                              setEditingDescriptionBusiness(business);
+                              setEditDescriptionVal(business.description || "");
+                            },
+                            className: "text-[9px] text-slate-500 hover:underline font-semibold"
+                          }
+                            , "Edit Description"
+                          )
+                      )
                       , business.category?.toLowerCase() === "hotels" && business.bookingUrl && React.createElement('p', { className: "text-[10px] text-indigo-700 font-bold mt-1" }
                           , "Booking: "
                           , React.createElement('a', { href: business.bookingUrl.startsWith("http") ? business.bookingUrl : `https://${business.bookingUrl}`, target: "_blank", rel: "noopener noreferrer", className: "underline hover:text-indigo-900" }, "Link ↗")
@@ -686,6 +911,194 @@ export default function BusinessesManagementPage() {
             )
           )
         )
+        /* ── AI Reviews Tab ─────────────────────────────────── */
+        , React.createElement(TabsContent, { value: "ai-reviews", className: "space-y-6" }
+
+          /* Platform KPI row */
+          , reviewAnalyticsLoading ? (
+            React.createElement('div', { className: "flex justify-center py-16" }
+              , React.createElement(Loader2, { className: "h-8 w-8 animate-spin text-primary" })
+            )
+          ) : (
+            React.createElement(React.Fragment, null
+
+              /* KPI Cards */
+              , React.createElement('div', { className: "grid grid-cols-2 sm:grid-cols-4 gap-4" }
+                , React.createElement(Card, { className: "bg-indigo-50/40 border border-indigo-100" }
+                  , React.createElement(CardContent, { className: "p-4" }
+                    , React.createElement('p', { className: "text-[10px] font-bold text-indigo-700 uppercase tracking-wider mb-1" }, "Total Generations")
+                    , React.createElement('h3', { className: "text-2xl font-black text-indigo-950" }, reviewAnalytics?.totalGenerations ?? 0)
+                    , React.createElement('p', { className: "text-[9px] text-indigo-500 mt-0.5" }, "AI review sessions")
+                  )
+                )
+                , React.createElement(Card, { className: "bg-emerald-50/40 border border-emerald-100" }
+                  , React.createElement(CardContent, { className: "p-4" }
+                    , React.createElement('p', { className: "text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1" }, "Selection Rate")
+                    , React.createElement('h3', { className: "text-2xl font-black text-emerald-950" }, reviewAnalytics?.selectionRate ?? 0, "%")
+                    , React.createElement('p', { className: "text-[9px] text-emerald-500 mt-0.5" }, "customers picked a review")
+                  )
+                )
+                , React.createElement(Card, { className: "bg-amber-50/40 border border-amber-100" }
+                  , React.createElement(CardContent, { className: "p-4" }
+                    , React.createElement('p', { className: "text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-1" }, "Click-Through Rate")
+                    , React.createElement('h3', { className: "text-2xl font-black text-amber-950" }, reviewAnalytics?.clickThroughRate ?? 0, "%")
+                    , React.createElement('p', { className: "text-[9px] text-amber-500 mt-0.5" }, "opened Google review link")
+                  )
+                )
+                , React.createElement(Card, { className: "bg-purple-50/40 border border-purple-100" }
+                  , React.createElement(CardContent, { className: "p-4" }
+                    , React.createElement('p', { className: "text-[10px] font-bold text-purple-700 uppercase tracking-wider mb-1" }, "With Selection")
+                    , React.createElement('h3', { className: "text-2xl font-black text-purple-950" }, reviewAnalytics?.totalWithSelection ?? 0)
+                    , React.createElement('p', { className: "text-[9px] text-purple-500 mt-0.5" }, "reviews copied by customers")
+                  )
+                )
+              )
+
+              /* Rating Breakdown + Per-Business Activity */
+              , React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-6" }
+
+                /* Rating Distribution */
+                , React.createElement(Card, { className: "glass" }
+                  , React.createElement(CardHeader, { className: "pb-2" }
+                    , React.createElement(CardTitle, { className: "text-sm font-bold flex items-center gap-2" }
+                      , React.createElement(BarChart3, { className: "h-4 w-4 text-primary" })
+                      , "Rating Distribution"
+                    )
+                    , React.createElement(CardDescription, { className: "text-[10px]" }, "How customers are rating businesses before generating reviews")
+                  )
+                  , React.createElement(CardContent, { className: "space-y-2" }
+                    , [5, 4, 3, 2, 1].map((star) => {
+                      const entry = (reviewAnalytics?.ratingBreakdown || []).find(r => r.rating === star);
+                      const count = entry?._count?.id ?? 0;
+                      const total = reviewAnalytics?.totalGenerations || 1;
+                      const pct = Math.round((count / total) * 100);
+                      return React.createElement('div', { key: star, className: "flex items-center gap-3" }
+                        , React.createElement('div', { className: "flex items-center gap-0.5 w-14 shrink-0" }
+                          , React.createElement('span', { className: "text-xs font-bold text-slate-700" }, star)
+                          , React.createElement(Star, { className: "h-3 w-3 text-amber-400 fill-amber-400" })
+                        )
+                        , React.createElement('div', { className: "flex-1 h-2 rounded-full bg-slate-100 overflow-hidden" }
+                          , React.createElement('div', {
+                            className: "h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-500",
+                            style: { width: `${pct}%` }
+                          })
+                        )
+                        , React.createElement('span', { className: "text-[10px] font-semibold text-slate-500 w-12 text-right" }, count, " (" , pct, "%)")
+                      );
+                    })
+                  )
+                )
+
+                /* Recent 10 Generations */
+                , React.createElement(Card, { className: "glass" }
+                  , React.createElement(CardHeader, { className: "pb-2" }
+                    , React.createElement(CardTitle, { className: "text-sm font-bold flex items-center gap-2" }
+                      , React.createElement(MessageSquareText, { className: "h-4 w-4 text-primary" })
+                      , "Recent AI Generations"
+                    )
+                    , React.createElement(CardDescription, { className: "text-[10px]" }, "Latest 10 review generation sessions across all tenants")
+                  )
+                  , React.createElement(CardContent, { className: "space-y-2 max-h-72 overflow-y-auto pr-1" }
+                    , (reviewAnalytics?.recentGenerations || []).length === 0 ? (
+                      React.createElement('p', { className: "text-xs text-muted-foreground text-center py-6" }, "No review generations yet")
+                    ) : (
+                      (reviewAnalytics?.recentGenerations || []).map((gen) =>
+                        React.createElement('div', { key: gen.id, className: "flex items-start justify-between gap-2 py-2 border-b border-border/40 last:border-0" }
+                          , React.createElement('div', { className: "flex-1 min-w-0" }
+                            , React.createElement('p', { className: "text-[10px] font-bold text-foreground truncate" }, gen.business?.name || "Unknown Business")
+                            , React.createElement('p', { className: "text-[9px] text-muted-foreground truncate" }, gen.user?.name || "Anonymous", " • ", gen.user?.phone || "")
+                            , gen.selectedReview && React.createElement('p', { className: "text-[9px] text-slate-600 italic line-clamp-1 mt-0.5" }, "\"" , gen.selectedReview, "\"")
+                          )
+                          , React.createElement('div', { className: "flex flex-col items-end gap-1 shrink-0" }
+                            , React.createElement('div', { className: "flex items-center gap-0.5" }
+                              , Array.from({ length: gen.rating }).map((_, i) => React.createElement(Star, { key: i, className: "h-2.5 w-2.5 text-amber-400 fill-amber-400" }))
+                            )
+                            , React.createElement('div', { className: "flex items-center gap-1" }
+                              , gen.selectedReview
+                                ? React.createElement(CheckCircle2, { className: "h-3 w-3 text-emerald-500" })
+                                : React.createElement(XCircle, { className: "h-3 w-3 text-slate-300" })
+                              , gen.reviewLinkClicked
+                                ? React.createElement(ExternalLink, { className: "h-3 w-3 text-indigo-500" })
+                                : React.createElement(ExternalLink, { className: "h-3 w-3 text-slate-200" })
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+
+              /* Per-Business Activity Table */
+              , React.createElement(Card, { className: "glass" }
+                , React.createElement(CardHeader, { className: "pb-3" }
+                  , React.createElement(CardTitle, { className: "text-sm font-bold flex items-center gap-2" }
+                    , React.createElement(Settings2, { className: "h-4 w-4 text-primary" })
+                    , "Business Review Setup & Activity"
+                  )
+                  , React.createElement(CardDescription, { className: "text-[10px]" }, "Manage AI review settings per merchant — Google Review URL, business type, and generation counts")
+                )
+                , React.createElement(CardContent, null
+                  , (reviewAnalytics?.businessBreakdown || []).length === 0 ? (
+                    React.createElement('div', { className: "text-center py-12 text-muted-foreground" }
+                      , React.createElement(MessageSquareText, { className: "h-10 w-10 mx-auto mb-2 text-muted-foreground/30" })
+                      , React.createElement('p', { className: "text-xs" }, "No review activity yet across any merchants")
+                    )
+                  ) : (
+                    React.createElement('div', { className: "space-y-2" }
+                      , (reviewAnalytics?.businessBreakdown || []).map((entry) =>
+                        React.createElement('div', {
+                          key: entry.businessId,
+                          className: "flex flex-col sm:flex-row sm:items-center gap-3 py-3 px-3 rounded-xl border border-border/50 bg-slate-50/50 hover:bg-slate-50 transition-colors"
+                        }
+                          , React.createElement('div', { className: "flex-1 min-w-0" }
+                            , React.createElement('div', { className: "flex items-center gap-2 flex-wrap" }
+                              , React.createElement('p', { className: "text-xs font-bold text-foreground" }, entry.business?.name || entry.businessId)
+                              , entry.business?.category && React.createElement('span', { className: "text-[8px] font-extrabold bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded-full uppercase" }, entry.business.category)
+                              , entry.business?.reviewSettings?.businessType && React.createElement('span', { className: "text-[8px] font-semibold bg-indigo-50 text-indigo-600 border border-indigo-100 px-1.5 py-0.5 rounded-full" }, entry.business.reviewSettings.businessType)
+                            )
+                            , React.createElement('div', { className: "flex items-center gap-3 mt-1" }
+                              , React.createElement('span', { className: "text-[10px] text-muted-foreground" }
+                                , React.createElement('strong', { className: "text-primary" }, entry.count)
+                                , " review generations"
+                              )
+                              , entry.business?.reviewSettings?.googleReviewUrl ? (
+                                React.createElement('a', {
+                                  href: entry.business.reviewSettings.googleReviewUrl,
+                                  target: "_blank",
+                                  rel: "noopener noreferrer",
+                                  className: "text-[9px] text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5 font-semibold"
+                                }
+                                  , React.createElement(ExternalLink, { className: "h-2.5 w-2.5" })
+                                  , "Google Review Link"
+                                )
+                              ) : (
+                                React.createElement('span', { className: "text-[9px] text-red-400 font-semibold" }, "⚠ No Google Review URL")
+                              )
+                              , entry.business?.reviewSettings?.googlePlaceId ? (
+                                React.createElement('span', { className: "text-[9px] text-emerald-600 font-semibold" }, "✓ Place ID set")
+                              ) : null
+                            )
+                          )
+                          , React.createElement(Button, {
+                            size: "sm",
+                            variant: "outline",
+                            className: "text-[10px] h-7 px-2.5 border-indigo-200 text-indigo-700 hover:bg-indigo-50 shrink-0",
+                            onClick: () => openReviewSettings({ id: entry.businessId, name: entry.business?.name || entry.businessId })
+                          }
+                            , React.createElement(Settings2, { className: "h-3 w-3 mr-1" })
+                            , "Edit AI Settings"
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+
         , activeTab === "settings" && (
           React.createElement(TabsContent, { value: "settings", className: "space-y-4" }
             , React.createElement(Card, { className: "glass max-w-md mx-auto", glass: true }
@@ -992,7 +1405,389 @@ export default function BusinessesManagementPage() {
           )
         )
       )
-    )
+      /* Edit Description Dialog */
+      , !!editingDescriptionBusiness && (
+        React.createElement(Dialog, {
+          open: !!editingDescriptionBusiness,
+          onOpenChange: (open) => !open && setEditingDescriptionBusiness(null),
+        }
+          , React.createElement(DialogContent, { className: "max-w-[420px] bg-white border border-border" }
+            , React.createElement(DialogHeader, null
+              , React.createElement(DialogTitle, null, "Edit Business Description")
+              , React.createElement(DialogDescription, { className: "text-xs text-muted-foreground" }
+                , `Modify the business description for "${editingDescriptionBusiness.name}". This will be shown on voucher cards and used in AI review generation.`
+              )
+            )
+            , React.createElement('form', {
+                onSubmit: (e) => {
+                  e.preventDefault();
+                  updateDescriptionMutation.mutate({ id: editingDescriptionBusiness.id, description: editDescriptionVal });
+                },
+                className: "space-y-4 py-2"
+              }
+              , React.createElement('div', { className: "space-y-1.5" }
+                , React.createElement(Label, { htmlFor: "business-description-input" }, "Business Description")
+                , React.createElement('textarea', {
+                    id: "business-description-input",
+                    value: editDescriptionVal,
+                    onChange: (e) => setEditDescriptionVal(e.target.value),
+                    placeholder: "Enter details about the business...",
+                    className: "w-full min-h-[100px] text-xs border border-border rounded-md p-3 focus:outline-none focus:ring-1 focus:ring-primary bg-background text-foreground"
+                  })
+              )
+              , React.createElement(DialogFooter, { className: "pt-2" }
+                , React.createElement(Button, {
+                    type: "button",
+                    variant: "outline",
+                    onClick: () => setEditingDescriptionBusiness(null)
+                  }
+                  , "Cancel"
+                )
+                , React.createElement(Button, {
+                    type: "submit",
+                    className: "bg-primary text-primary-foreground font-bold",
+                    disabled: updateDescriptionMutation.isPending
+                  }
+                  , updateDescriptionMutation.isPending
+                    ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin" })
+                    : "Save Description"
+                )
+              )
+            )
+          )
+        )
+      )
+
+      /* AI Review Settings Dialog */
+      , !!editingReviewBusiness && (
+        React.createElement(Dialog, {
+          open: !!editingReviewBusiness,
+          onOpenChange: (open) => !open && setEditingReviewBusiness(null),
+        }
+          , React.createElement(DialogContent, { className: "max-w-[500px] bg-white border border-border" }
+            , React.createElement(DialogHeader, null
+              , React.createElement(DialogTitle, { className: "flex items-center gap-2" }
+                , React.createElement(Settings2, { className: "h-4 w-4 text-primary" })
+                , "AI Review Settings"
+              )
+              , React.createElement(DialogDescription, { className: "text-xs text-muted-foreground" }
+                , `Configure AI review generation for "${editingReviewBusiness.name}". The Google Review URL and business type directly affect the quality of AI-generated reviews.`
+              )
+            )
+            , reviewSettingsFetchLoading ? (
+              React.createElement('div', { className: "flex justify-center py-8" }
+                , React.createElement(Loader2, { className: "h-6 w-6 animate-spin text-primary" })
+              )
+            ) : (
+              React.createElement('form', { onSubmit: handleSaveReviewSettings, className: "space-y-4 py-2" }
+
+                , React.createElement('div', { className: "grid grid-cols-2 gap-3" }
+                  , React.createElement('div', { className: "space-y-1.5" }
+                    , React.createElement(Label, { htmlFor: "rs-type", className: "text-xs font-semibold" }, "Business Type / Category")
+                    , React.createElement(Input, {
+                      id: "rs-type",
+                      placeholder: "e.g. Cafe, Restaurant, Salon",
+                      value: reviewSettingsForm.businessType,
+                      onChange: (e) => setReviewSettingsForm(f => ({ ...f, businessType: e.target.value })),
+                      className: "text-xs border-border bg-white h-9"
+                    })
+                  )
+                  , React.createElement('div', { className: "space-y-1.5" }
+                    , React.createElement(Label, { htmlFor: "rs-bname", className: "text-xs font-semibold" }, "Google Business Name")
+                    , React.createElement(Input, {
+                      id: "rs-bname",
+                      placeholder: "e.g. Cyber Bakery - Baneswar",
+                      value: reviewSettingsForm.googleBusinessName,
+                      onChange: (e) => setReviewSettingsForm(f => ({ ...f, googleBusinessName: e.target.value })),
+                      className: "text-xs border-border bg-white h-9"
+                    })
+                  )
+                )
+
+                , React.createElement('div', { className: "space-y-1.5" }
+                  , React.createElement(Label, { htmlFor: "rs-placeid", className: "text-xs font-semibold" }, "Google Place ID")
+                  , React.createElement(Input, {
+                    id: "rs-placeid",
+                    placeholder: "e.g. ChIJN1t_tDeuEmsRUsoyG83frY4 (auto-fills Review URL)",
+                    value: reviewSettingsForm.googlePlaceId,
+                    onChange: (e) => setReviewSettingsForm(f => ({ ...f, googlePlaceId: e.target.value })),
+                    className: "text-xs border-border bg-white h-9"
+                  })
+                  , React.createElement('p', { className: "text-[9px] text-muted-foreground" }, "If set, Google Review URL is auto-generated from Place ID")
+                )
+
+                , React.createElement('div', { className: "space-y-1.5" }
+                  , React.createElement(Label, { htmlFor: "rs-gurl", className: "text-xs font-semibold" }, "Google Review URL")
+                  , React.createElement(Input, {
+                    id: "rs-gurl",
+                    type: "url",
+                    placeholder: "https://search.google.com/local/writereview?placeid=...",
+                    value: reviewSettingsForm.googleReviewUrl,
+                    onChange: (e) => setReviewSettingsForm(f => ({ ...f, googleReviewUrl: e.target.value })),
+                    className: "text-xs border-border bg-white h-9"
+                  })
+                )
+
+                , React.createElement('div', { className: "grid grid-cols-2 gap-3" }
+                  , React.createElement('div', { className: "space-y-1.5" }
+                    , React.createElement(Label, { htmlFor: "rs-insta", className: "text-xs font-semibold" }, "Instagram URL")
+                    , React.createElement(Input, {
+                      id: "rs-insta",
+                      type: "url",
+                      placeholder: "https://instagram.com/...",
+                      value: reviewSettingsForm.instagramUrl,
+                      onChange: (e) => setReviewSettingsForm(f => ({ ...f, instagramUrl: e.target.value })),
+                      className: "text-xs border-border bg-white h-9"
+                    })
+                  )
+                  , React.createElement('div', { className: "space-y-1.5" }
+                    , React.createElement(Label, { htmlFor: "rs-fb", className: "text-xs font-semibold" }, "Facebook URL")
+                    , React.createElement(Input, {
+                      id: "rs-fb",
+                      type: "url",
+                      placeholder: "https://facebook.com/...",
+                      value: reviewSettingsForm.facebookUrl,
+                      onChange: (e) => setReviewSettingsForm(f => ({ ...f, facebookUrl: e.target.value })),
+                      className: "text-xs border-border bg-white h-9"
+                    })
+                  )
+                )
+
+                , React.createElement('div', { className: "bg-amber-50 border border-amber-200 rounded-lg p-3 text-[10px] text-amber-800" }
+                  , React.createElement('strong', { className: "block mb-1" }, "ℹ How AI Reviews Work")
+                  , "The AI (Ollama) uses the business name, category, description, and locality to generate realistic Google reviews. Setting a proper business type and description improves AI output quality significantly."
+                )
+
+                , React.createElement(DialogFooter, { className: "pt-2" }
+                  , React.createElement(Button, {
+                    type: "button",
+                    variant: "outline",
+                    onClick: () => setEditingReviewBusiness(null)
+                  }, "Cancel")
+                  , React.createElement(Button, {
+                    type: "submit",
+                    className: "bg-primary text-primary-foreground font-bold",
+                    disabled: reviewSettingsLoading
+                  }
+                    , reviewSettingsLoading
+                      ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin" })
+                      : "Save AI Settings"
+                  )
+                )
+              )
+            )
+            )
+          )
+        )
+      )
+      /* Create / Edit Business Dialog */
+      , showBusinessModal && (
+        React.createElement(Dialog, {
+          open: showBusinessModal,
+          onOpenChange: (open) => !open && setShowBusinessModal(false),
+        }
+          , React.createElement(DialogContent, { className: "max-w-[550px] bg-white border border-border max-h-[90vh] overflow-y-auto" }
+            , React.createElement(DialogHeader, null
+              , React.createElement(DialogTitle, null, editingBusiness ? "Edit Merchant Details" : "Register New Merchant")
+              , React.createElement(DialogDescription, { className: "text-xs text-muted-foreground" }
+                , editingBusiness ? `Modify properties for "${editingBusiness.name}".` : "Configure details to register a new tenant storefront."
+              )
+            )
+            , React.createElement('form', { onSubmit: handleSubmitBusiness, className: "space-y-4 py-2" }
+              
+              /* Name & Category */
+              , React.createElement('div', { className: "grid grid-cols-2 gap-3" }
+                , React.createElement('div', { className: "space-y-1.5" }
+                  , React.createElement(Label, { htmlFor: "biz-name", className: "text-xs font-semibold" }, "Business Name")
+                  , React.createElement(Input, {
+                      id: "biz-name",
+                      placeholder: "e.g. Cyber Bakery",
+                      value: businessForm.name,
+                      onChange: (e) => setBusinessForm(f => ({ ...f, name: e.target.value })),
+                      required: true,
+                      className: "text-xs border-border bg-white h-9"
+                    })
+                )
+                , React.createElement('div', { className: "space-y-1.5" }
+                  , React.createElement(Label, { htmlFor: "biz-category", className: "text-xs font-semibold" }, "Category")
+                  , React.createElement(Input, {
+                      id: "biz-category",
+                      placeholder: "e.g. Bakery, Cafe, Hotels",
+                      value: businessForm.category,
+                      onChange: (e) => setBusinessForm(f => ({ ...f, category: e.target.value })),
+                      className: "text-xs border-border bg-white h-9"
+                    })
+                )
+              )
+
+              /* Contact Phone & Timezone */
+              , React.createElement('div', { className: "grid grid-cols-2 gap-3" }
+                , React.createElement('div', { className: "space-y-1.5" }
+                  , React.createElement(Label, { htmlFor: "biz-phone", className: "text-xs font-semibold" }, "Business Phone")
+                  , React.createElement(Input, {
+                      id: "biz-phone",
+                      placeholder: "e.g. +91XXXXXXXXXX",
+                      value: businessForm.phone,
+                      onChange: (e) => setBusinessForm(f => ({ ...f, phone: e.target.value })),
+                      className: "text-xs border-border bg-white h-9"
+                    })
+                )
+                , React.createElement('div', { className: "space-y-1.5" }
+                  , React.createElement(Label, { htmlFor: "biz-timezone", className: "text-xs font-semibold" }, "Timezone")
+                  , React.createElement(Input, {
+                      id: "biz-timezone",
+                      placeholder: "e.g. Asia/Kolkata",
+                      value: businessForm.timezone,
+                      onChange: (e) => setBusinessForm(f => ({ ...f, timezone: e.target.value })),
+                      required: true,
+                      className: "text-xs border-border bg-white h-9"
+                    })
+                )
+              )
+
+              /* Address & Booking URL */
+              , React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-3" }
+                , React.createElement('div', { className: "space-y-1.5" }
+                  , React.createElement(Label, { htmlFor: "biz-address", className: "text-xs font-semibold" }, "Address")
+                  , React.createElement(Input, {
+                      id: "biz-address",
+                      placeholder: "e.g. Baneswar",
+                      value: businessForm.address,
+                      onChange: (e) => setBusinessForm(f => ({ ...f, address: e.target.value })),
+                      className: "text-xs border-border bg-white h-9"
+                    })
+                )
+                , React.createElement('div', { className: "space-y-1.5" }
+                  , React.createElement(Label, { htmlFor: "biz-booking", className: "text-xs font-semibold" }, "Booking URL (Hotels only)")
+                  , React.createElement(Input, {
+                      id: "biz-booking",
+                      placeholder: "e.g. booking.com/example",
+                      value: businessForm.bookingUrl,
+                      onChange: (e) => setBusinessForm(f => ({ ...f, bookingUrl: e.target.value })),
+                      className: "text-xs border-border bg-white h-9"
+                    })
+                )
+              )
+
+              /* Plan & Owner Select (Disabled on Edit) */
+              , React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-3" }
+                , React.createElement('div', { className: "space-y-1.5" }
+                  , React.createElement(Label, { htmlFor: "biz-plan", className: "text-xs font-semibold" }, "SaaS Subscription Plan")
+                  , React.createElement('select', {
+                      id: "biz-plan",
+                      value: businessForm.planId,
+                      onChange: (e) => setBusinessForm(f => ({ ...f, planId: e.target.value })),
+                      className: "w-full h-9 border border-zinc-200 rounded-md bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6A00] text-slate-800"
+                    },
+                      React.createElement('option', { value: "" }, "No Plan (Trial)"),
+                      plans.map(p =>
+                        React.createElement('option', { key: p.id, value: p.id }, `${p.name} (₹${parseInt(p.priceMonthly).toLocaleString("en-IN")}/mo)`)
+                      )
+                    )
+                )
+                , React.createElement('div', { className: "space-y-1.5" }
+                  , React.createElement(Label, { htmlFor: "biz-owner", className: "text-xs font-semibold" }, "Owner User")
+                  , React.createElement('select', {
+                      id: "biz-owner",
+                      value: businessForm.ownerId,
+                      onChange: (e) => setBusinessForm(f => ({ ...f, ownerId: e.target.value })),
+                      className: "w-full h-9 border border-zinc-200 rounded-md bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6A00] text-slate-800",
+                      required: !editingBusiness,
+                      disabled: !!editingBusiness
+                    },
+                      React.createElement('option', { value: "" }, "Select Owner..."),
+                      users.map(u =>
+                        React.createElement('option', { key: u.id, value: u.id }, `${u.name} [${u.role}] (${u.phone || u.email || "No Contact"})`)
+                      )
+                    )
+                )
+              )
+
+              /* Description */
+              , React.createElement('div', { className: "space-y-1.5" }
+                , React.createElement(Label, { htmlFor: "biz-desc", className: "text-xs font-semibold" }, "Description")
+                , React.createElement('textarea', {
+                    id: "biz-desc",
+                    value: businessForm.description,
+                    onChange: (e) => setBusinessForm(f => ({ ...f, description: e.target.value })),
+                    placeholder: "Business details and review context...",
+                    className: "w-full min-h-[60px] text-xs border border-border rounded-md p-3 focus:outline-none focus:ring-1 focus:ring-primary bg-background text-foreground"
+                  })
+              )
+
+              /* Social Links Group */
+              , React.createElement('div', { className: "space-y-2 border border-border rounded-xl bg-slate-50 p-4" }
+                , React.createElement('span', { className: "text-[10px] text-muted-foreground uppercase tracking-widest block font-bold" }, "Social URLs")
+                , React.createElement('div', { className: "grid grid-cols-2 gap-3" }
+                  , React.createElement('div', { className: "space-y-1" }
+                    , React.createElement(Label, { htmlFor: "biz-insta-url", className: "text-[10px] font-bold text-muted-foreground" }, "Instagram URL")
+                    , React.createElement(Input, {
+                        id: "biz-insta-url",
+                        type: "url",
+                        placeholder: "https://instagram.com/...",
+                        value: businessForm.instagramUrl,
+                        onChange: (e) => setBusinessForm(f => ({ ...f, instagramUrl: e.target.value })),
+                        className: "text-xs h-8"
+                      })
+                  )
+                  , React.createElement('div', { className: "space-y-1" }
+                    , React.createElement(Label, { htmlFor: "biz-fb-url", className: "text-[10px] font-bold text-muted-foreground" }, "Facebook URL")
+                    , React.createElement(Input, {
+                        id: "biz-fb-url",
+                        type: "url",
+                        placeholder: "https://facebook.com/...",
+                        value: businessForm.facebookUrl,
+                        onChange: (e) => setBusinessForm(f => ({ ...f, facebookUrl: e.target.value })),
+                        className: "text-xs h-8"
+                      })
+                  )
+                )
+                , React.createElement('div', { className: "grid grid-cols-2 gap-3 mt-2" }
+                  , React.createElement('div', { className: "space-y-1" }
+                    , React.createElement(Label, { htmlFor: "biz-wa-url", className: "text-[10px] font-bold text-muted-foreground" }, "WhatsApp URL")
+                    , React.createElement(Input, {
+                        id: "biz-wa-url",
+                        type: "url",
+                        placeholder: "https://wa.me/...",
+                        value: businessForm.whatsappUrl,
+                        onChange: (e) => setBusinessForm(f => ({ ...f, whatsappUrl: e.target.value })),
+                        className: "text-xs h-8"
+                      })
+                  )
+                  , React.createElement('div', { className: "space-y-1" }
+                    , React.createElement(Label, { htmlFor: "biz-review-url", className: "text-[10px] font-bold text-muted-foreground" }, "Google Review URL")
+                    , React.createElement(Input, {
+                        id: "biz-review-url",
+                        type: "url",
+                        placeholder: "https://search.google.com/...",
+                        value: businessForm.googleReviewUrl,
+                        onChange: (e) => setBusinessForm(f => ({ ...f, googleReviewUrl: e.target.value })),
+                        className: "text-xs h-8"
+                      })
+                  )
+                )
+              )
+
+              , React.createElement(DialogFooter, { className: "pt-2" }
+                , React.createElement(Button, {
+                    type: "button",
+                    variant: "outline",
+                    onClick: () => setShowBusinessModal(false)
+                  }, "Cancel")
+                , React.createElement(Button, {
+                    type: "submit",
+                    className: "bg-primary text-primary-foreground font-bold",
+                    disabled: createBusinessMutation.isPending || updateBusinessMutation.isPending
+                  }
+                    , (createBusinessMutation.isPending || updateBusinessMutation.isPending)
+                      ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin" })
+                      : "Save Merchant"
+                  )
+              )
+            )
+          )
+        )
+      )
     )
   );
 }

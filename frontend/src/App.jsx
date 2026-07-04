@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 
 // Layouts
@@ -40,6 +40,15 @@ import SuperBusinesses from './pages/(super-admin)/dashboard/super/businesses/pa
 import SuperFraud from './pages/(super-admin)/dashboard/super/fraud/page.js';
 import SuperSupport from './pages/(super-admin)/dashboard/super/support/page.js';
 
+// Scroll to top on every route change (fixes back-navigation landing at footer)
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
 function LandingGuard() {
   const user = useAuthStore((state) => state.user);
 
@@ -71,6 +80,7 @@ function LandingGuard() {
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         {/* Root Layout */}
         <Route element={<RootLayout />}>

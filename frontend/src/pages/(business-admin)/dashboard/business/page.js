@@ -91,6 +91,7 @@ export default function BusinessDashboard() {
   const logoInputRef = React.useRef(null);
   const [logoUploading, setLogoUploading] = React.useState(false);
 
+  const [isEditingReview, setIsEditingReview] = React.useState(false);
   const [bizType, setBizType] = React.useState("");
   const [revGoogleUrl, setRevGoogleUrl] = React.useState("");
   const [revInstagramUrl, setRevInstagramUrl] = React.useState("");
@@ -400,10 +401,17 @@ export default function BusinessDashboard() {
             setRevFacebookUrl(res.data.facebookUrl || "");
             setGoogleBusinessName(res.data.googleBusinessName || "");
             setGooglePlaceId(res.data.googlePlaceId || "");
+            
+            // Set editing to false if already configured
+            const isConfig = !!(res.data.businessType || res.data.googleReviewUrl);
+            setIsEditingReview(!isConfig);
+          } else {
+            setIsEditingReview(true);
           }
         })
         .catch((err) => {
           console.error("Failed to fetch review settings:", err);
+          setIsEditingReview(true);
         });
     }
   }, [businessId]);
@@ -428,6 +436,7 @@ export default function BusinessDashboard() {
         setRevFacebookUrl(updated.facebookUrl || "");
         setGoogleBusinessName(updated.googleBusinessName || "");
         setGooglePlaceId(updated.googlePlaceId || "");
+        setIsEditingReview(false);
       }
       await refetchProfile();
       alert("AI Review settings saved successfully!");
@@ -624,20 +633,6 @@ export default function BusinessDashboard() {
           )
         )
         , React.createElement('div', { className: "flex flex-wrap gap-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 132 } }
-          , React.createElement(Button, { variant: "outline", size: "sm", onClick: () => refetchCheckins(), disabled: checkinsFetching, __self: this, __source: { fileName: _jsxFileName, lineNumber: 133 } }
-            , React.createElement(RefreshCcw, { className: `mr-2 h-4 w-4 ${checkinsFetching ? 'animate-spin' : ''}`, __self: this, __source: { fileName: _jsxFileName, lineNumber: 134 } })
-            , checkinsFetching ? "Syncing..." : "Sync Logs"
-          )
-          , React.createElement(Link, { to: "/dashboard/business/approvals" },
-            React.createElement(Button, { variant: "outline", size: "sm" },
-              React.createElement(UserCheck, { className: "mr-2 h-4 w-4" }), " Manage Check-ins"
-            )
-          )
-          , React.createElement(Link, { to: "/dashboard/business/branches", __self: this, __source: { fileName: _jsxFileName, lineNumber: 136 } },
-            React.createElement(Button, { size: "sm", className: "bg-primary hover:bg-primary/90 text-primary-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 137 } },
-              React.createElement(MapPin, { className: "mr-2 h-4 w-4", __self: this, __source: { fileName: _jsxFileName, lineNumber: 138 } }), " Manage Outlets"
-            )
-          )
           , React.createElement(Button, {
               onClick: () => {
                 setShowRedeemModal(true);
@@ -830,61 +825,101 @@ export default function BusinessDashboard() {
         , React.createElement('div', { className: "space-y-6" }
           /* AI Review Generator Settings Card */
           , React.createElement(Card, { className: "glass", glass: true }
-            , React.createElement(CardHeader, { className: "p-6" }
-              , React.createElement(CardTitle, { className: "text-base font-bold text-foreground flex items-center gap-2" }
-                , "⭐ AI Review Settings"
-              )
-              , React.createElement(CardDescription, { className: "text-xs text-muted-foreground" }, "Configure options for AI review generation and customer social links")
-            )
-            , React.createElement(CardContent, { className: "p-6 pt-0 space-y-4" }
-              , React.createElement('form', { onSubmit: handleSaveReviewSettings, className: "space-y-4" }
-                
-                , React.createElement('div', { className: "space-y-1.5" }
-                  , React.createElement(Label, { htmlFor: "review-biz-type", className: "text-xs font-semibold text-muted-foreground" }, "Business Type")
-                  , React.createElement(Input, {
-                      id: "review-biz-type",
-                      value: bizType,
-                      onChange: (e) => setBizType(e.target.value),
-                      placeholder: "e.g. Cafe, Restaurant, Salon",
-                      className: "text-xs border-border bg-white"
-                    })
+            , !isEditingReview && (bizType || revGoogleUrl || revInstagramUrl || revFacebookUrl)
+              ? React.createElement(React.Fragment, null
+                  , React.createElement(CardHeader, { className: "pb-4 border-b border-slate-100/50 flex flex-row items-center justify-between space-y-0" }
+                      , React.createElement('div', null
+                          , React.createElement(CardTitle, { className: "text-base font-bold text-foreground flex items-center gap-2" }, "⭐ AI Review Settings")
+                          , React.createElement(CardDescription, { className: "text-[10px] text-muted-foreground mt-0.5" }, "Currently active AI review generation settings")
+                        )
+                      , React.createElement(Button, {
+                          size: "xs",
+                          variant: "outline",
+                          onClick: () => setIsEditingReview(true),
+                          className: "border-primary/20 text-primary hover:bg-primary/5 font-bold h-7 rounded-md px-2.5"
+                        }, "Edit Settings")
+                    )
+                  , React.createElement(CardContent, { className: "p-6 grid grid-cols-2 gap-4 text-xs" }
+                      , React.createElement('div', { className: "bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 space-y-1" }
+                          , React.createElement('span', { className: "text-slate-400 block uppercase tracking-wider text-[8px] font-bold" }, "Business Type")
+                          , React.createElement('span', { className: "text-slate-800 font-extrabold text-xs" }, bizType || "—")
+                        )
+                      , React.createElement('div', { className: "bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 space-y-1" }
+                          , React.createElement('span', { className: "text-slate-400 block uppercase tracking-wider text-[8px] font-bold" }, "Google Review Link")
+                          , React.createElement('span', { className: "text-slate-800 font-extrabold text-xs truncate block" }, revGoogleUrl || "—")
+                        )
+                      , React.createElement('div', { className: "bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 space-y-1" }
+                          , React.createElement('span', { className: "text-slate-400 block uppercase tracking-wider text-[8px] font-bold" }, "Instagram Link")
+                          , React.createElement('span', { className: "text-slate-800 font-extrabold text-xs truncate block" }, revInstagramUrl || "—")
+                        )
+                      , React.createElement('div', { className: "bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 space-y-1" }
+                          , React.createElement('span', { className: "text-slate-400 block uppercase tracking-wider text-[8px] font-bold" }, "Facebook Link")
+                          , React.createElement('span', { className: "text-slate-800 font-extrabold text-xs truncate block" }, revFacebookUrl || "—")
+                        )
+                    )
                 )
-                , React.createElement('div', { className: "space-y-1.5" }
-                  , React.createElement(Label, { htmlFor: "review-google-url", className: "text-xs font-semibold text-muted-foreground" }, "Google Review Link")
-                  , React.createElement(Input, {
-                      id: "review-google-url",
-                      value: revGoogleUrl,
-                      onChange: (e) => setRevGoogleUrl(e.target.value),
-                      placeholder: "https://g.page/r/...",
-                      className: "text-xs border-border bg-white"
-                    })
+              : React.createElement(React.Fragment, null
+                  , React.createElement(CardHeader, { className: "p-6" }
+                      , React.createElement(CardTitle, { className: "text-base font-bold text-foreground flex items-center gap-2" }, "⭐ AI Review Settings")
+                      , React.createElement(CardDescription, { className: "text-xs text-muted-foreground" }, "Configure options for AI review generation and customer social links")
+                    )
+                  , React.createElement(CardContent, { className: "p-6 pt-0 space-y-4" }
+                      , React.createElement('form', { onSubmit: handleSaveReviewSettings, className: "space-y-4" }
+                          , React.createElement('div', { className: "space-y-1.5" }
+                              , React.createElement(Label, { htmlFor: "review-biz-type", className: "text-xs font-semibold text-muted-foreground" }, "Business Type")
+                              , React.createElement(Input, {
+                                  id: "review-biz-type",
+                                  value: bizType,
+                                  onChange: (e) => setBizType(e.target.value),
+                                  placeholder: "e.g. Cafe, Restaurant, Salon",
+                                  className: "text-xs border-border bg-white"
+                                })
+                            )
+                          , React.createElement('div', { className: "space-y-1.5" }
+                              , React.createElement(Label, { htmlFor: "review-google-url", className: "text-xs font-semibold text-muted-foreground" }, "Google Review Link")
+                              , React.createElement(Input, {
+                                  id: "review-google-url",
+                                  value: revGoogleUrl,
+                                  onChange: (e) => setRevGoogleUrl(e.target.value),
+                                  placeholder: "https://g.page/r/...",
+                                  className: "text-xs border-border bg-white"
+                                })
+                            )
+                          , React.createElement('div', { className: "space-y-1.5" }
+                              , React.createElement(Label, { htmlFor: "review-instagram-url", className: "text-xs font-semibold text-muted-foreground" }, "Instagram Link")
+                              , React.createElement(Input, {
+                                  id: "review-instagram-url",
+                                  value: revInstagramUrl,
+                                  onChange: (e) => setRevInstagramUrl(e.target.value),
+                                  placeholder: "https://instagram.com/...",
+                                  className: "text-xs border-border bg-white"
+                                })
+                            )
+                          , React.createElement('div', { className: "space-y-1.5" }
+                              , React.createElement(Label, { htmlFor: "review-facebook-url", className: "text-xs font-semibold text-muted-foreground" }, "Facebook Link")
+                              , React.createElement(Input, {
+                                  id: "review-facebook-url",
+                                  value: revFacebookUrl,
+                                  onChange: (e) => setRevFacebookUrl(e.target.value),
+                                  placeholder: "https://facebook.com/...",
+                                  className: "text-xs border-border bg-white"
+                                })
+                            )
+                          , React.createElement('div', { className: "flex gap-2" }
+                              , (bizType || revGoogleUrl || revInstagramUrl || revFacebookUrl) && React.createElement(Button, {
+                                  type: "button",
+                                  variant: "outline",
+                                  onClick: () => setIsEditingReview(false),
+                                  className: "flex-1 rounded-full border-border text-muted-foreground font-semibold text-xs mt-2"
+                                }, "Cancel")
+                              , React.createElement(Button, { type: "submit", className: "flex-1 rounded-full bg-primary hover:bg-primary/95 text-white font-semibold text-xs mt-2", disabled: revSaving }
+                                  , revSaving ? React.createElement(Loader2, { className: "h-3.5 w-3.5 animate-spin mr-1.5" }) : null
+                                  , "Save Review Settings"
+                                )
+                            )
+                        )
+                    )
                 )
-                , React.createElement('div', { className: "space-y-1.5" }
-                  , React.createElement(Label, { htmlFor: "review-instagram-url", className: "text-xs font-semibold text-muted-foreground" }, "Instagram Link")
-                  , React.createElement(Input, {
-                      id: "review-instagram-url",
-                      value: revInstagramUrl,
-                      onChange: (e) => setRevInstagramUrl(e.target.value),
-                      placeholder: "https://instagram.com/...",
-                      className: "text-xs border-border bg-white"
-                    })
-                )
-                , React.createElement('div', { className: "space-y-1.5" }
-                  , React.createElement(Label, { htmlFor: "review-facebook-url", className: "text-xs font-semibold text-muted-foreground" }, "Facebook Link")
-                  , React.createElement(Input, {
-                      id: "review-facebook-url",
-                      value: revFacebookUrl,
-                      onChange: (e) => setRevFacebookUrl(e.target.value),
-                      placeholder: "https://facebook.com/...",
-                      className: "text-xs border-border bg-white"
-                    })
-                )
-                , React.createElement(Button, { type: "submit", className: "w-full rounded-full bg-primary hover:bg-primary/95 text-white font-semibold text-xs mt-2", disabled: revSaving }
-                  , revSaving ? React.createElement(Loader2, { className: "h-3.5 w-3.5 animate-spin mr-1.5" }) : null
-                  , "Save Review Settings"
-                )
-              )
-            )
           )
 
           // Google Review Link & QR Code Card

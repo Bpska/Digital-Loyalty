@@ -17,7 +17,10 @@ import {
   ShieldAlert,
   Bell,
   Loader2,
-  ArrowRight 
+  ArrowRight,
+  Tag,
+  Trash2,
+  Plus
 } from "lucide-react";
 
 
@@ -41,12 +44,77 @@ export default function SuperDashboard() {
     queryFn: () => api.get("/admin/users").then((res) => res.data || []),
   });
 
-  const [recipientRole, setRecipientRole] = React.useState("CUSTOMER"); // "CUSTOMER" or "BUSINESS_ADMIN"
+  const [recipientRole, setRecipientRole] = React.useState("CUSTOMER");
   const [selectedUserId, setSelectedUserId] = React.useState("");
   const [alertTitle, setAlertTitle] = React.useState("");
   const [alertBody, setAlertBody] = React.useState("");
   const [sendingAlert, setSendingAlert] = React.useState(false);
   const [alertStatus, setAlertStatus] = React.useState(null);
+
+  // ── Coupon State ──────────────────────────────────────────────
+  const [coupons, setCoupons] = React.useState([]);
+  const [couponsLoading, setCouponsLoading] = React.useState(false);
+  const [couponCode, setCouponCode] = React.useState("");
+  const [couponDiscountType, setCouponDiscountType] = React.useState("PERCENTAGE");
+  const [couponDiscountValue, setCouponDiscountValue] = React.useState("");
+  const [couponDescription, setCouponDescription] = React.useState("");
+  const [couponSaving, setCouponSaving] = React.useState(false);
+  const [couponStatus, setCouponStatus] = React.useState(null);
+
+  const fetchCoupons = React.useCallback(async () => {
+    setCouponsLoading(true);
+    try {
+      const res = await api.get("/admin/coupons");
+      setCoupons(res.data || []);
+    } catch (_) {}
+    finally { setCouponsLoading(false); }
+  }, []);
+
+  React.useEffect(() => { fetchCoupons(); }, [fetchCoupons]);
+
+  const handleCreateCoupon = async (e) => {
+    e.preventDefault();
+    const code = couponCode.trim().toUpperCase();
+    const value = parseFloat(couponDiscountValue);
+    if (!code || isNaN(value) || value <= 0) {
+      setCouponStatus({ success: false, message: "Please fill in all coupon fields correctly." });
+      return;
+    }
+    if (couponDiscountType === "PERCENTAGE" && value > 100) {
+      setCouponStatus({ success: false, message: "Percentage discount cannot exceed 100%." });
+      return;
+    }
+    setCouponSaving(true);
+    setCouponStatus(null);
+    try {
+      await api.post("/admin/coupons", {
+        code,
+        discountType: couponDiscountType,
+        discountValue: value,
+        description: couponDescription.trim(),
+      });
+      setCouponStatus({ success: true, message: `Coupon "${code}" created successfully!` });
+      setCouponCode("");
+      setCouponDiscountValue("");
+      setCouponDescription("");
+      fetchCoupons();
+    } catch (err) {
+      setCouponStatus({
+        success: false,
+        message: err.response?.data?.message || err.message || "Failed to create coupon.",
+      });
+    } finally { setCouponSaving(false); }
+  };
+
+  const handleDeleteCoupon = async (code) => {
+    if (!window.confirm(`Delete coupon "${code}"? This cannot be undone.`)) return;
+    try {
+      await api.delete(`/admin/coupons/${code}`);
+      fetchCoupons();
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to delete coupon.");
+    }
+  };
 
   const handleSendAlert = async (e) => {
     e.preventDefault();
@@ -227,6 +295,145 @@ export default function SuperDashboard() {
           )
         )
 
+      )
+
+      /* Coupon Code Management Section */
+      , React.createElement(Card, { className: "glass border-emerald-500/20 bg-gradient-to-tr from-white to-emerald-50/20" }
+        , React.createElement(CardHeader, null
+          , React.createElement(CardTitle, { className: "text-base flex items-center gap-2" }
+            , React.createElement(Tag, { className: "h-4.5 w-4.5 text-emerald-600" })
+            , "Subscription Coupon Codes"
+          )
+          , React.createElement(CardDescription, { className: "text-xs" }
+            , "Create discount coupon codes that business owners can apply at checkout to reduce their subscription price."
+          )
+        )
+        , React.createElement(CardContent, { className: "space-y-5" }
+          /* Create Form */
+          , React.createElement('form', { onSubmit: handleCreateCoupon, className: "space-y-4" }
+            , React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-4 gap-4" }
+              /* Code */
+              , React.createElement('div', { className: "space-y-1.5" }
+                , React.createElement(Label, { htmlFor: "coupon-code", className: "text-xs font-bold text-muted-foreground" }, "Coupon Code")
+                , React.createElement(Input, {
+                    id: "coupon-code",
+                    value: couponCode,
+                    onChange: (e) => setCouponCode(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, "")),
+                    placeholder: "e.g. LAUNCH50",
+                    className: "text-xs border-border bg-white h-9 font-mono uppercase",
+                    required: true,
+                    maxLength: 32
+                  })
+              )
+              /* Discount Type */
+              , React.createElement('div', { className: "space-y-1.5" }
+                , React.createElement(Label, { htmlFor: "coupon-type", className: "text-xs font-bold text-muted-foreground" }, "Discount Type")
+                , React.createElement('select', {
+                    id: "coupon-type",
+                    value: couponDiscountType,
+                    onChange: (e) => setCouponDiscountType(e.target.value),
+                    className: "w-full h-9 border border-zinc-200 rounded-md bg-white px-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-800"
+                  },
+                  React.createElement('option', { value: "PERCENTAGE" }, "Percentage (%)"),
+                  React.createElement('option', { value: "FIXED_AMOUNT" }, "Fixed Amount (₹)")
+                )
+              )
+              /* Discount Value */
+              , React.createElement('div', { className: "space-y-1.5" }
+                , React.createElement(Label, { htmlFor: "coupon-value", className: "text-xs font-bold text-muted-foreground" },
+                  couponDiscountType === "PERCENTAGE" ? "Value (%)" : "Value (₹)"
+                )
+                , React.createElement(Input, {
+                    id: "coupon-value",
+                    type: "number",
+                    min: "0.01",
+                    step: "0.01",
+                    max: couponDiscountType === "PERCENTAGE" ? "100" : undefined,
+                    value: couponDiscountValue,
+                    onChange: (e) => setCouponDiscountValue(e.target.value),
+                    placeholder: couponDiscountType === "PERCENTAGE" ? "e.g. 20" : "e.g. 200",
+                    className: "text-xs border-border bg-white h-9",
+                    required: true
+                  })
+              )
+              /* Description */
+              , React.createElement('div', { className: "space-y-1.5" }
+                , React.createElement(Label, { htmlFor: "coupon-desc", className: "text-xs font-bold text-muted-foreground" }, "Description (optional)")
+                , React.createElement(Input, {
+                    id: "coupon-desc",
+                    value: couponDescription,
+                    onChange: (e) => setCouponDescription(e.target.value),
+                    placeholder: "e.g. Launch offer",
+                    className: "text-xs border-border bg-white h-9"
+                  })
+              )
+            )
+            , React.createElement('div', { className: "flex flex-col md:flex-row items-center justify-between gap-4" }
+              , React.createElement('div', { className: "w-full md:flex-1" }
+                , couponStatus && (
+                    React.createElement('div', {
+                      className: `text-xs px-3 py-2 rounded-lg border ${
+                        couponStatus.success
+                          ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                          : "bg-red-50 text-red-800 border-red-200"
+                      }`
+                    }, couponStatus.message)
+                  )
+              )
+              , React.createElement('button', {
+                  type: "submit",
+                  disabled: couponSaving,
+                  className: "w-full md:w-auto flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-md transition-all duration-200 disabled:opacity-60"
+                }
+                , couponSaving ? React.createElement(Loader2, { className: "h-3.5 w-3.5 animate-spin" }) : React.createElement(Plus, { className: "h-3.5 w-3.5" })
+                , couponSaving ? "Creating..." : "Create Coupon"
+              )
+            )
+          )
+
+          /* Existing Coupons List */
+          , React.createElement('div', { className: "border-t border-border pt-4" }
+            , React.createElement('p', { className: "text-[10px] font-black text-muted-foreground uppercase tracking-wider mb-3" }, "Active Coupons")
+            , couponsLoading ? (
+                React.createElement('div', { className: "flex items-center gap-2 text-xs text-muted-foreground py-2" }
+                  , React.createElement(Loader2, { className: "h-3.5 w-3.5 animate-spin" })
+                  , "Loading coupons..."
+                )
+              ) : coupons.length === 0 ? (
+                React.createElement('p', { className: "text-xs text-muted-foreground py-2" }, "No coupon codes created yet.")
+              ) : (
+                React.createElement('div', { className: "space-y-2" }
+                  , coupons.map(c =>
+                    React.createElement('div', {
+                        key: c.code,
+                        className: "flex items-center justify-between bg-slate-50 border border-border rounded-xl px-4 py-2.5 text-xs"
+                      }
+                      , React.createElement('div', { className: "flex items-center gap-3" }
+                        , React.createElement('span', { className: "font-mono font-black text-emerald-700 text-sm tracking-wider" }, c.code)
+                        , React.createElement('span', { className: `px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            c.discountType === "PERCENTAGE"
+                              ? "bg-blue-50 text-blue-700 border border-blue-200"
+                              : "bg-amber-50 text-amber-700 border border-amber-200"
+                          }` },
+                          c.discountType === "PERCENTAGE"
+                            ? `${c.discountValue}% OFF`
+                            : `₹${c.discountValue} OFF`
+                        )
+                        , c.description && React.createElement('span', { className: "text-muted-foreground hidden sm:inline" }, c.description)
+                      )
+                      , React.createElement('button', {
+                          onClick: () => handleDeleteCoupon(c.code),
+                          className: "p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors",
+                          title: "Delete coupon"
+                        }
+                        , React.createElement(Trash2, { className: "h-3.5 w-3.5" })
+                      )
+                    )
+                  )
+                )
+              )
+          )
+        )
       )
 
       /* Send Platform Alerts Section */

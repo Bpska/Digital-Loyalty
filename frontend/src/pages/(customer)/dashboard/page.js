@@ -919,10 +919,13 @@ export default function CustomerDashboard() {
 
       if (wasRewardActive && !isRewardActive) {
         const biz = selectedReward.reward?.business || selectedReward.coupon?.business;
+        const discountType = selectedReward.coupon?.discountType;
+        const discountValue = selectedReward.coupon?.discountValue;
         setRedemptionSuccessPlace({
           businessName: biz?.name || "the business",
           googleReviewUrl: biz?.googleReviewUrl || null,
-          title: selectedReward.reward?.title || selectedReward.coupon?.offerTitle || selectedReward.coupon?.title
+          title: selectedReward.reward?.title || selectedReward.coupon?.offerTitle || selectedReward.coupon?.title,
+          discountText: discountValue ? (discountType === 'PERCENTAGE' ? `${parseFloat(discountValue)}% OFF` : `₹${parseFloat(discountValue)} OFF`) : null
         });
         setSelectedReward(null);
       }
@@ -1018,7 +1021,12 @@ export default function CustomerDashboard() {
           },
             React.createElement(CardHeader, { className: "p-4 pb-2" },
               React.createElement("div", { className: "flex justify-between items-start" },
-                React.createElement("span", { className: "text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full uppercase" }, "Claimed"),
+                React.createElement("div", { className: "flex gap-1.5 items-center" },
+                  React.createElement("span", { className: "text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full uppercase" }, "Claimed"),
+                  claim.coupon?.discountValue && React.createElement("span", { className: "text-[10px] bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full uppercase" },
+                    claim.coupon.discountType === 'PERCENTAGE' ? `${parseFloat(claim.coupon.discountValue)}% OFF` : `₹${parseFloat(claim.coupon.discountValue)} OFF`
+                  )
+                ),
                 React.createElement(Tag, { className: "h-5 w-5 text-amber-600" })
               ),
               React.createElement(CardTitle, { className: "text-base mt-2 text-foreground font-bold" }, claim.coupon.offerTitle || claim.coupon.title),
@@ -1073,10 +1081,10 @@ export default function CustomerDashboard() {
     ),
 
     // Completed / Redeemed Vouchers Section
-    (redeemedRewards.length > 0 || redeemedCoupons.length > 0) && React.createElement("div", { className: "space-y-3" },
+    (redeemedRewards.length > 0) && React.createElement("div", { className: "space-y-3" },
       React.createElement("h3", { className: "text-sm font-semibold tracking-wider text-muted-foreground uppercase flex items-center" },
         React.createElement(CheckCircle2, { className: "mr-2 h-4 w-4 text-emerald-600" }),
-        `Completed Vouchers (${redeemedRewards.length + redeemedCoupons.length})`
+        `Completed Vouchers (${redeemedRewards.length})`
       ),
       React.createElement("div", { className: "flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scroll-smooth scrollbar-none -mx-4 px-6" },
         redeemedRewards.map(reward =>
@@ -1107,38 +1115,6 @@ export default function CustomerDashboard() {
               ),
               reward.redeemedAt && React.createElement("span", { className: "text-[10px] text-muted-foreground font-medium" },
                 new Date(reward.redeemedAt).toLocaleDateString('en-IN')
-              )
-            )
-          )
-        ),
-        redeemedCoupons.map(claim =>
-          React.createElement(Card, {
-            key: claim.id,
-            className: "w-[calc(100vw-4rem)] sm:w-72 shrink-0 snap-center border-emerald-100 bg-emerald-50/20 hover:bg-emerald-50/30 transition-all shadow-sm rounded-xl",
-          },
-            React.createElement(CardHeader, { className: "p-4 pb-2" },
-              React.createElement("div", { className: "flex justify-between items-start" },
-                React.createElement("span", { className: "text-[10px] bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full uppercase" }, "Redeemed"),
-                React.createElement(CheckCircle2, { className: "h-5 w-5 text-emerald-600" })
-              ),
-              React.createElement(CardTitle, { className: "text-base mt-2 text-foreground font-bold line-through text-muted-foreground" }, claim.coupon.offerTitle || claim.coupon.title),
-              React.createElement(CardDescription, { className: "text-xs text-muted-foreground line-clamp-1" },
-                claim.coupon.offerDescription || claim.coupon.description || "Coupon redeemed"
-              ),
-              claim.coupon?.business?.name && React.createElement("p", { className: "text-[10px] font-semibold text-emerald-800 mt-1 flex items-center gap-1" },
-                React.createElement(MapPin, { className: "h-2.5 w-2.5" }),
-                claim.coupon.business.name
-              )
-            ),
-            React.createElement(CardContent, { className: "p-4 pt-0 flex justify-between items-center gap-2" },
-              React.createElement("div", { className: "flex items-center gap-1 min-w-0" },
-                React.createElement("span", { className: "text-[10px] text-muted-foreground uppercase font-bold shrink-0" }, "Code: "),
-                React.createElement("span", { className: "text-xs font-mono font-bold text-slate-500 bg-slate-100 border border-slate-200/50 px-2 py-0.5 rounded truncate" },
-                  claim.redemptionCode.length > 12 ? `${claim.redemptionCode.slice(0, 8).toUpperCase()}...` : claim.redemptionCode.toUpperCase()
-                )
-              ),
-              claim.redeemedAt && React.createElement("span", { className: "text-[10px] text-muted-foreground font-medium" },
-                new Date(claim.redeemedAt).toLocaleDateString('en-IN')
               )
             )
           )
@@ -1206,7 +1182,10 @@ export default function CustomerDashboard() {
         React.createElement(DialogHeader, { className: "flex flex-col items-center justify-center text-center w-full" },
           React.createElement(DialogTitle, { className: "text-lg font-extrabold text-foreground" }, "Redemption Successful! 🎉"),
           React.createElement(DialogDescription, { className: "text-xs mt-1 text-muted-foreground" },
-            `Your voucher "${redemptionSuccessPlace.title}" has been successfully redeemed at ${redemptionSuccessPlace.businessName}.`
+            `Your voucher "${redemptionSuccessPlace.title}" has been successfully redeemed at ${redemptionSuccessPlace.businessName}.`,
+            redemptionSuccessPlace.discountText && React.createElement("div", { className: "mt-3 p-3.5 bg-emerald-50 border border-emerald-100 text-emerald-800 font-extrabold text-sm rounded-2xl animate-pulse" },
+              `Verification Successful! You got a discount of ${redemptionSuccessPlace.discountText}.`
+            )
           )
         ),
         redemptionSuccessPlace.googleReviewUrl ? React.createElement('div', { className: "w-full bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 rounded-2xl p-4 mt-4 space-y-3" },

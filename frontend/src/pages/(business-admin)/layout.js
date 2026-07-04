@@ -109,6 +109,37 @@ export default function BusinessAdminLayout({
   const [demoPayLoading, setDemoPayLoading] = useState(false);
   const [demoPaySuccess, setDemoPaySuccess] = useState(false);
 
+  // Coupon state
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null); // { code, discountType, discountValue, description }
+  const [couponApplying, setCouponApplying] = useState(false);
+  const [couponError, setCouponError] = useState("");
+
+  const handleApplyCoupon = async () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) return;
+    setCouponApplying(true);
+    setCouponError("");
+    setAppliedCoupon(null);
+    try {
+      const res = await api.post("/subscriptions/validate-coupon", { code });
+      setAppliedCoupon(res.data);
+    } catch (err) {
+      setCouponError(err.response?.data?.message || "Invalid coupon code.");
+    } finally {
+      setCouponApplying(false);
+    }
+  };
+
+  const getDiscountedTotal = () => {
+    if (!pricing || !appliedCoupon) return pricing?.totalAmount ?? 0;
+    if (appliedCoupon.discountType === "PERCENTAGE") {
+      const discount = (pricing.totalAmount * appliedCoupon.discountValue) / 100;
+      return Math.max(0, parseFloat((pricing.totalAmount - discount).toFixed(2)));
+    }
+    return Math.max(0, parseFloat((pricing.totalAmount - appliedCoupon.discountValue).toFixed(2)));
+  };
+
   const fetchPricing = async () => {
     setPricingLoading(true);
     try {
@@ -363,7 +394,59 @@ export default function BusinessAdminLayout({
                     , React.createElement('span', null, `GST (${pricing.gstPercent}%):`)
                     , React.createElement('span', null, "₹", pricing.gstAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 }))
                   )
+                  , appliedCoupon && (
+                    React.createElement('div', { className: "flex justify-between text-emerald-700 font-bold border-t border-emerald-100 pt-2 mt-1" }
+                      , React.createElement('span', null, `Coupon (${appliedCoupon.code}):`)
+                      , React.createElement('span', null,
+                        appliedCoupon.discountType === "PERCENTAGE"
+                          ? `−${appliedCoupon.discountValue}%`
+                          : `−₹${appliedCoupon.discountValue.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                      )
+                    )
+                  )
+                  , React.createElement('div', { className: "flex justify-between text-slate-800 font-black border-t border-[#F0E0D0] pt-2 mt-1 text-sm" }
+                    , React.createElement('span', null, "Total Payable:")
+                    , React.createElement('span', { className: appliedCoupon ? "text-emerald-700" : "" },
+                      "₹", getDiscountedTotal().toLocaleString("en-IN", { minimumFractionDigits: 2 })
+                    )
+                  )
                 )
+
+                /* Coupon Code Input */
+                , React.createElement('div', { className: "space-y-2" }
+                  , React.createElement('p', { className: "text-[10px] font-black text-[#FF6A00] uppercase tracking-wider" }, "Have a Coupon Code?")
+                  , React.createElement('div', { className: "flex gap-2" }
+                    , React.createElement('input', {
+                        type: "text",
+                        value: couponInput,
+                        onChange: (e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(""); },
+                        placeholder: "Enter coupon code",
+                        disabled: !!appliedCoupon,
+                        className: "flex-1 h-9 border border-[#FFD9B3] rounded-xl px-3 text-xs font-mono uppercase bg-white focus:outline-none focus:ring-1 focus:ring-[#FF6A00] disabled:opacity-50 disabled:bg-slate-50"
+                      })
+                    , appliedCoupon ? (
+                        React.createElement('button', {
+                            type: "button",
+                            onClick: () => { setAppliedCoupon(null); setCouponInput(""); setCouponError(""); },
+                            className: "h-9 px-3 rounded-xl border border-red-200 text-red-500 hover:bg-red-50 text-xs font-bold transition-colors"
+                          }, "Remove")
+                      ) : (
+                        React.createElement('button', {
+                            type: "button",
+                            onClick: handleApplyCoupon,
+                            disabled: !couponInput.trim() || couponApplying,
+                            className: "h-9 px-4 rounded-xl bg-[#FF6A00] hover:bg-[#E05E00] text-white text-xs font-bold transition-colors disabled:opacity-50"
+                          },
+                          couponApplying ? "..." : "Apply"
+                        )
+                      )
+                  )
+                  , couponError && React.createElement('p', { className: "text-[10px] text-red-500 font-semibold" }, couponError)
+                  , appliedCoupon && React.createElement('p', { className: "text-[10px] text-emerald-700 font-bold" },
+                    `✅ Coupon applied! ${appliedCoupon.description || "Discount applied to your total."}`
+                  )
+                )
+
                 , React.createElement('div', { className: "space-y-2.5 text-xs text-slate-600" }
                   , React.createElement('p', { className: "font-bold text-slate-700 text-[10px] uppercase tracking-wider" }, "What's included:")
                   , React.createElement('div', { className: "grid grid-cols-2 gap-2 text-[11px]" }
@@ -386,7 +469,7 @@ export default function BusinessAdminLayout({
                     disabled: paymentLoading 
                   }
                   , paymentLoading ? React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin" }) : null
-                  , paymentLoading ? "Opening Gateway..." : "Pay ₹" + pricing.totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })
+                  , paymentLoading ? "Opening Gateway..." : "Pay ₹" + getDiscountedTotal().toLocaleString("en-IN", { minimumFractionDigits: 2 })
                 )
               )
             ) : (
@@ -497,14 +580,14 @@ export default function BusinessAdminLayout({
   return (
     React.createElement('div', { className: "min-h-screen bg-background flex text-foreground"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 63}}
       /* Desktop Sidebar */
-      , React.createElement('aside', { className: "w-64 border-r border-border bg-card hidden md:flex flex-col h-screen sticky top-0"         , __self: this, __source: {fileName: _jsxFileName, lineNumber: 65}}
-        , React.createElement('div', { className: "p-6 border-b border-border flex items-center space-x-2"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 66}}
+      , React.createElement('aside', { className: "group/sidebar w-16 hover:w-64 border-r border-border bg-card hidden md:flex flex-col h-screen sticky top-0 transition-all duration-300 ease-in-out overflow-hidden"         , __self: this, __source: {fileName: _jsxFileName, lineNumber: 65}}
+        , React.createElement('div', { className: "p-4 border-b border-border flex items-center space-x-2 min-w-[256px]"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 66}}
           , business?.logoUrl 
             ? React.createElement('img', { src: getImageUrl(business.logoUrl), alt: business.name, className: "h-7 w-7 rounded-lg object-cover border border-border shrink-0" })
-            : React.createElement('img', { src: "/new.png", alt: "LogiSaar Logo", className: "h-7 w-auto object-contain" })
-          , React.createElement('span', { className: "text-base font-bold text-foreground tracking-tight"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 70}}, "Business" )
+            : React.createElement('img', { src: "/new.png", alt: "LogiSaar Logo", className: "h-7 w-auto object-contain shrink-0" })
+          , React.createElement('span', { className: "text-base font-bold text-foreground tracking-tight whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 70}}, "Business" )
         )
-        , React.createElement('nav', { className: "flex-1 p-4 space-y-1 overflow-y-auto"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 72}}
+        , React.createElement('nav', { className: "flex-1 p-2 space-y-1 overflow-y-auto"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 72}}
           , menuItems.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
@@ -512,27 +595,29 @@ export default function BusinessAdminLayout({
               React.createElement(Link, {
                 key: item.href,
                 to: item.href,
+                title: item.label,
                 className: cn(
-                  "flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200",
+                  "flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 min-w-[240px]",
                   isActive 
                     ? "bg-primary text-primary-foreground font-medium shadow-sm" 
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 ), __self: this, __source: {fileName: _jsxFileName, lineNumber: 77}}
 
-                , React.createElement(Icon, { className: "h-4.5 w-4.5" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 87}} )
-                , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 88}}, item.label)
-                , item.badge > 0 && React.createElement('span', { className: "ml-auto bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center" }, item.badge)
+                , React.createElement(Icon, { className: "h-4.5 w-4.5 shrink-0" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 87}} )
+                , React.createElement('span', { className: "whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200", __self: this, __source: {fileName: _jsxFileName, lineNumber: 88}}, item.label)
+                , item.badge > 0 && React.createElement('span', { className: "ml-auto bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200" }, item.badge)
               )
             );
           })
         )
-        , React.createElement('div', { className: "p-4 border-t border-border"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 93}}
+        , React.createElement('div', { className: "p-2 border-t border-border"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 93}}
           , React.createElement('button', {
             onClick: logout,
-            className: "flex items-center space-x-3 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"           , __self: this, __source: {fileName: _jsxFileName, lineNumber: 94}}
+            title: "Sign Out",
+            className: "flex items-center space-x-3 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors min-w-[240px]"           , __self: this, __source: {fileName: _jsxFileName, lineNumber: 94}}
 
-            , React.createElement(LogOut, { className: "h-4.5 w-4.5" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 98}} )
-            , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 99}}, "Sign Out" )
+            , React.createElement(LogOut, { className: "h-4.5 w-4.5 shrink-0" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 98}} )
+            , React.createElement('span', { className: "whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200", __self: this, __source: {fileName: _jsxFileName, lineNumber: 99}}, "Sign Out" )
           )
         )
       )

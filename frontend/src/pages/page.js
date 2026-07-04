@@ -35,6 +35,7 @@ export default function LandingPage() {
   const [totalBusinesses, setTotalBusinesses] = useState(50);
   const [openFaqIndex, setOpenFaqIndex] = useState(null);
 
+
   useEffect(() => {
     // Dynamic SEO Configuration
     document.title = "ScanLoyal - QR Digital Stamp Cards & Geofenced Customer Loyalty India";
