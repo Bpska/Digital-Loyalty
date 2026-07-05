@@ -161,7 +161,10 @@ export default function BusinessAdminLayout({
   const handlePayAndUpgrade = async () => {
     setPaymentLoading(true);
     try {
-      const orderRes = await api.post("/subscriptions/create-order", { businessId });
+      const orderRes = await api.post("/subscriptions/create-order", { 
+        businessId,
+        couponCode: appliedCoupon?.code
+      });
       const order = orderRes.data;
 
       const options = {

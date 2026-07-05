@@ -96,7 +96,7 @@ router.post('/validate-coupon', authenticate, async (req, res, next) => {
 // ── Create a Razorpay payment order ──────────────────────────
 router.post('/create-order', authenticate, async (req, res, next) => {
   try {
-    const { businessId } = req.body;
+    const { businessId, couponCode } = req.body;
     if (!businessId || businessId === 'null' || businessId === 'undefined') {
       throw new AppError('Business ID is required', 400);
     }
@@ -128,7 +128,27 @@ router.post('/create-order', authenticate, async (req, res, next) => {
     const gstAmount = parseFloat(((basePrice * gstPercent) / 100).toFixed(2));
     const totalAmount = parseFloat((basePrice + gatewayAmount + gstAmount).toFixed(2));
 
-    const amountInPaise = Math.round(totalAmount * 100);
+    let finalTotal = totalAmount;
+    if (couponCode) {
+      const key = `coupon_${String(couponCode).trim().toUpperCase()}`;
+      const setting = await prisma.systemSetting.findUnique({ where: { key } });
+      if (setting) {
+        try {
+          const couponData = JSON.parse(setting.value);
+          if (couponData.discountType === 'PERCENTAGE') {
+            const discount = (totalAmount * parseFloat(couponData.discountValue)) / 100;
+            finalTotal = Math.max(0, parseFloat((totalAmount - discount).toFixed(2)));
+          } else {
+            const discount = parseFloat(couponData.discountValue);
+            finalTotal = Math.max(0, parseFloat((totalAmount - discount).toFixed(2)));
+          }
+        } catch (_) {
+          // ignore parsing error
+        }
+      }
+    }
+
+    const amountInPaise = Math.round(finalTotal * 100);
 
     const Razorpay = (await import('razorpay')).default;
     const razorpay = new Razorpay({
