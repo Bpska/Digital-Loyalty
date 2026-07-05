@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import {
   Gift, Coffee, Star, Stamp, MapPin, Award, CheckCircle2,
   ChevronRight, QrCode, Tag, Percent, Banknote, Clock, Zap, CalendarDays, RefreshCcw,
-  Scissors, Hotel, Store, Sparkles, Bell, LayoutDashboard
+  Scissors, Hotel, Store, Sparkles, Bell, LayoutDashboard, Wallet
 } from "lucide-react";
 
 const BrandIcon = ({ iconName, customUrl, defaultIcon: DefaultIcon, className = "h-5 w-5" }) => {
