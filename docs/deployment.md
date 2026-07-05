@@ -225,20 +225,27 @@ docker compose logs -f frontend
 # 4. Apply any new database migrations (just in case the schema changed)
   docker compose exec backend npx prisma migrate deploy
 
-1->a arro add in the Footer section click go to hero section .
-2->Remove the Navbat setionin the Landing page
-3->Loyality click Demo to Logisaar
-4->Count option Show Card No. bussn name 
+<!-- 1->a arro add in the Footer section click go to hero section . -->
+<!-- 2->Remove the Navbat setionin the Landing page -->
+<!-- 3->Loyality click Demo to Logisaar -->
+<!-- 4->Count option Show Card No. bussn name  -->
 5->pop up and down animation in landing page . how many buus name you are in 500 free qr code in the pricing 
-6->4 step chacke . detes about all the original data . remove the A
-7->groth store data update .
-
-8->Cupon code is propoly working
+<!-- 6->4 step chacke . detes about all the original data . remove the A -->
+<!-- 7->groth store data update  -->
+<!-- 8->Cupon code is propoly working / fully  100 % -->
 9->Ux propoly step by step admin dash bord . fully update 
-10->Demo update propoy
-11->icon Costamization .
-12-> ls re offre name used
+<!-- 10->Demo update propoy -->
+<!-- 11->icon Costamization . -->
+<!-- 12-> ls re offre name used -->
 13->revew is not propoly genetated
 14->analysi page update custamize
 15->cupon Time Cusamization in the cupon section and notification user 
-16->
+16->Click any this in histry the page is full blan in the user panel fix it
+17->click the logo go to the Home page user dashbord
+18->remove the sating in the Loyality appove 
+19->vary fay chaeck in page direc open the today . histry .
+20->total costamaer all the detes are propoly show ing .
+21->ai revies validation propoly .
+22->direa gmail link .
+23-> * simble ad ed 
+24->

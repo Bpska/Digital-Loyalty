@@ -22,7 +22,12 @@ import {
   ClipboardCheck,
   Settings2,
   Upload,
-  Users
+  Users,
+  Palette,
+  Coffee,
+  Gift,
+  Star,
+  Wallet
 } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
@@ -34,6 +39,32 @@ import { Button } from "@/components/ui/button";
 import { api, getImageUrl } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { subscribeUserToPush } from "@/lib/pushSubscription";
+
+const BrandIcon = ({ iconName, customUrl, defaultIcon: DefaultIcon, className = "h-4.5 w-4.5" }) => {
+  if (customUrl && (customUrl.startsWith("/") || customUrl.startsWith("http"))) {
+    return React.createElement("img", {
+      src: getImageUrl(customUrl),
+      alt: "custom-icon",
+      className: `${className} object-contain shrink-0`,
+      loading: "lazy"
+    });
+  }
+  const BUILTIN_MAP = {
+    coffee: Coffee,
+    gift: Gift,
+    coupon: Percent,
+    star: Star,
+    wallet: Wallet,
+    membership: Award,
+    dashboard: LayoutDashboard,
+    notification: Bell
+  };
+  const IconComponent = BUILTIN_MAP[iconName];
+  if (IconComponent) {
+    return React.createElement(IconComponent, { className: `${className} shrink-0` });
+  }
+  return React.createElement(DefaultIcon, { className: `${className} shrink-0` });
+};
 
 export default function BusinessAdminLayout({
   children,
@@ -166,6 +197,12 @@ export default function BusinessAdminLayout({
         couponCode: appliedCoupon?.code
       });
       const order = orderRes.data;
+
+      if (order.isFreeUpgrade) {
+        alert("You are the Loyal customer");
+        await refetchProfile();
+        return;
+      }
 
       const options = {
         key: order.keyId,
@@ -564,14 +601,15 @@ export default function BusinessAdminLayout({
 
 
   const menuItems = isPending
-    ? [{ label: "Subscription Required", icon: LayoutDashboard, href: "/dashboard/business" }]
+    ? [{ label: "Subscription Required", icon: LayoutDashboard, href: "/dashboard/business", iconKey: "dashboardIcon" }]
     : [
-        { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard/business" },
-        { label: "Loyalty Approvals", icon: ClipboardCheck, href: "/dashboard/business/approvals", badge: pendingApprovals },
-        { label: "Coupons", icon: Percent, href: "/dashboard/business/coupons" },
-        { label: "Analytics", icon: BarChart3, href: "/dashboard/business/analytics" },
-        { label: "Branches", icon: MapPin, href: "/dashboard/business/branches" },
-        { label: "Loyalty Settings", icon: Settings2, href: "/dashboard/business/loyalty-config" },
+        { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard/business", iconKey: "dashboardIcon" },
+        { label: "Loyalty Approvals", icon: ClipboardCheck, href: "/dashboard/business/approvals", badge: pendingApprovals, iconKey: "redemptionIcon" },
+        { label: "Coupons", icon: Percent, href: "/dashboard/business/coupons", iconKey: "couponIcon" },
+        { label: "Analytics", icon: BarChart3, href: "/dashboard/business/analytics", iconKey: "dashboardIcon" },
+        { label: "Branches", icon: MapPin, href: "/dashboard/business/branches", iconKey: "dashboardIcon" },
+        { label: "Loyalty Settings", icon: Settings2, href: "/dashboard/business/loyalty-config", iconKey: "loyaltyIcon" },
+        { label: "Brand Customization", icon: Palette, href: "/dashboard/business/branding", iconKey: "loyaltyIcon" },
       ];
 
   return (
@@ -600,7 +638,7 @@ export default function BusinessAdminLayout({
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 ), __self: this, __source: {fileName: _jsxFileName, lineNumber: 77}}
 
-                , React.createElement(Icon, { className: "h-4.5 w-4.5 shrink-0" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 87}} )
+                , React.createElement(BrandIcon, { iconName: business?.brandAsset?.[item.iconKey], customUrl: business?.brandAsset?.[item.iconKey], defaultIcon: Icon, className: "h-4.5 w-4.5 shrink-0" })
                 , React.createElement('span', { className: "whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200", __self: this, __source: {fileName: _jsxFileName, lineNumber: 88}}, item.label)
                 , item.badge > 0 && React.createElement('span', { className: "ml-auto bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200" }, item.badge)
               )
@@ -659,7 +697,7 @@ export default function BusinessAdminLayout({
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 ), __self: this, __source: {fileName: _jsxFileName, lineNumber: 133}}
 
-                , React.createElement(Icon, { className: "h-4.5 w-4.5" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 144}} )
+                , React.createElement(BrandIcon, { iconName: business?.brandAsset?.[item.iconKey], customUrl: business?.brandAsset?.[item.iconKey], defaultIcon: Icon, className: "h-4.5 w-4.5 shrink-0" })
                 , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 145}}, item.label)
                 , item.badge > 0 && React.createElement('span', { className: "ml-auto bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center" }, item.badge)
               )

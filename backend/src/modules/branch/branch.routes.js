@@ -69,6 +69,8 @@ router.post(
 
       const branchId = `br-${Date.now()}`;
       const qrToken = generateQrToken();
+      const payloadUrl = `${env.FRONTEND_URL}/checkin?businessId=${businessId}&branchId=${branchId}&token=${qrToken}`;
+      const qrImage = await generateQrImage(payloadUrl);
 
       const branch = await prisma.branch.create({
         data: {
@@ -76,6 +78,8 @@ router.post(
           id: branchId,
           businessId,
           qrToken,
+          qrImage,
+          qrPayload: payloadUrl,
         },
       });
       sendCreated(res, branch, 'Branch created');
@@ -121,7 +125,18 @@ router.get(
         },
       });
 
-      const payloadUrl = `${env.FRONTEND_URL}/checkin?businessId=${branch.businessId}&branchId=${branch.id}&token=${branch.qrToken}`;
+      let payloadUrl = branch.qrPayload;
+      let qrImage = branch.qrImage;
+
+      if (!payloadUrl || !qrImage) {
+        payloadUrl = `${env.FRONTEND_URL}/checkin?businessId=${branch.businessId}&branchId=${branch.id}&token=${branch.qrToken}`;
+        qrImage = await generateQrImage(payloadUrl);
+        await prisma.branch.update({
+          where: { id: branch.id },
+          data: { qrImage, qrPayload: payloadUrl },
+        });
+      }
+
       const format = req.query.format === 'pdf' ? 'pdf' : (req.query.format === 'png' ? 'png' : 'base64');
 
       if (format === 'pdf') {
@@ -141,8 +156,7 @@ router.get(
         res.set('Content-Disposition', `attachment; filename="qr-${branch.name.replace(/\s+/g, "_")}.png"`);
         res.send(buffer);
       } else {
-        const dataUrl = await generateQrImage(payloadUrl);
-        sendSuccess(res, { qrImage: dataUrl, payload: payloadUrl });
+        sendSuccess(res, { qrImage: qrImage, payload: payloadUrl });
       }
     } catch (err) {
       next(err);

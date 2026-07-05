@@ -98,16 +98,41 @@ export default function BranchesPage() {
 
   // 4. QR Token regeneration is disabled for permanent QR codes.
 
-  // 5. Fetch branch QR image
+  // 4. Auto-load primary branch QR code
+  React.useEffect(() => {
+    if (branches && branches.length > 0) {
+      const primaryBranch = branches[0];
+      setSelectedBranch(primaryBranch);
+      if (primaryBranch.qrImage && primaryBranch.qrPayload) {
+        setSelectedQrImage(primaryBranch.qrImage);
+        setSelectedQrPayload(primaryBranch.qrPayload);
+      } else {
+        api.get(`/branches/${primaryBranch.id}/qr?format=base64`)
+          .then((res) => {
+            setSelectedQrImage(res.data.qrImage);
+            setSelectedQrPayload(res.data.payload);
+          })
+          .catch((err) => console.error("Auto load QR failed:", err));
+      }
+    }
+  }, [branches]);
+
+  // 5. Fetch branch QR image (or load from cache)
   const handleShowQr = async (branch) => {
     setSelectedBranch(branch);
     setShowQrModal(true);
+    if (branch.qrImage && branch.qrPayload) {
+      setSelectedQrImage(branch.qrImage);
+      setSelectedQrPayload(branch.qrPayload);
+      return;
+    }
     setSelectedQrImage(null);
     setSelectedQrPayload(null);
     try {
       const response = await api.get(`/branches/${branch.id}/qr?format=base64`);
       setSelectedQrImage(response.data.qrImage);
       setSelectedQrPayload(response.data.payload);
+      queryClient.invalidateQueries({ queryKey: ["businessBranches", businessId] });
     } catch (err) {
       console.error("Failed to load QR image:", err);
     }

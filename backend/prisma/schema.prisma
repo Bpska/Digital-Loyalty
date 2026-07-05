@@ -180,6 +180,7 @@ model Business {
   walletTransactions   WalletTransaction[]
   loyaltyWallets         CustomerLoyaltyWallet[]
   loyaltyPointsLedgers LoyaltyPointsLedger[]
+  brandAsset           BusinessBrandAsset?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -207,6 +208,8 @@ model Branch {
   longitude    Float
   radiusMeters Int     @default(100) // GPS check-in acceptance radius
   qrToken      String  @unique       // HMAC-SHA256 signed token (rotatable)
+  qrImage      String? @db.Text      // Base64 data URL representation of the QR Code
+  qrPayload    String? @db.Text      // Payload URL encoded in the QR Code
   isActive     Boolean @default(true)
 
   businessId String
@@ -809,3 +812,30 @@ model CustomerLoyaltyWallet {
 
   @@map("customer_loyalty_wallet")
 }
+
+model BusinessBrandAsset {
+  id               String   @id @default(cuid())
+  businessId       String   @unique @map("business_id")
+  business         Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  logoUrl          String?  @map("logo_url")
+  loyaltyIcon      String?  @map("loyalty_icon")
+  rewardIcon       String?  @map("reward_icon")
+  couponIcon       String?  @map("coupon_icon")
+  walletIcon       String?  @map("wallet_icon")
+  giftIcon         String?  @map("gift_icon")
+  offerIcon        String?  @map("offer_icon")
+  notificationIcon String?  @map("notification_icon")
+  membershipIcon   String?  @map("membership_icon")
+  dashboardIcon    String?  @map("dashboard_icon")
+  qrCheckInIcon    String?  @map("qr_check_in_icon")
+  stampIcon        String?  @map("stamp_icon")
+  pointIcon        String?  @map("point_icon")
+  customerIcon     String?  @map("customer_icon")
+  referralIcon     String?  @map("referral_icon")
+  redemptionIcon   String?  @map("redemption_icon")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("business_brand_assets")
+}
+

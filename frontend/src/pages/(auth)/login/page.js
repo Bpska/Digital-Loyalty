@@ -1,4 +1,4 @@
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 const _jsxFileName = "src\\pages\\(auth)\\login\\page.tsx"; function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; } "use client";
 
 import React, { useState, useEffect } from "react";
@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading, error, loginWithPassword, registerCustomer, registerBusiness, loginWithGoogle, clearError } = useAuthStore();
 
   const [email, setEmail] = useState("");
@@ -23,15 +24,22 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [businessName, setBusinessName] = useState("");
+
   const [businessAddress, setBusinessAddress] = useState("");
   const [category, setCategory] = useState("Cafe");
   const [customCategory, setCustomCategory] = useState("");
   const [bookingUrl, setBookingUrl] = useState("");
   const [successMsg, setSuccessMsg] = useState(null);
   const [showForgotDialog, setShowForgotDialog] = useState(false);
-
-  // Active tab state
   const [activeTab, setActiveTab] = useState("customer");
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("signup") === "true") {
+      setIsSignUp(true);
+      setActiveTab("business");
+    }
+  }, [location]);
 
   // Google Login states
   const [googleInitialized, setGoogleInitialized] = useState(false);
@@ -116,6 +124,18 @@ export default function LoginPage() {
       }, 150);
     }
   }, [activeTab, googleInitialized]);
+
+  // Handle back button navigation to redirect to landing page
+  useEffect(() => {
+    window.history.pushState(null, null, window.location.pathname);
+    const handlePopState = () => {
+      navigate("/", { replace: true });
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [navigate]);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -231,7 +251,7 @@ export default function LoginPage() {
               )
             )
 
-            , React.createElement(Tabs, { defaultValue: "customer", className: "w-full", onValueChange: (val) => { setActiveTab(val); clearError(); setEmail(""); setPassword(""); setPhone(""); setName(""); setBusinessName(""); setBusinessAddress(""); setIsSignUp(false); }, __self: this, __source: { fileName: _jsxFileName, lineNumber: 222 } }
+            , React.createElement(Tabs, { value: activeTab, className: "w-full", onValueChange: (val) => { setActiveTab(val); clearError(); setEmail(""); setPassword(""); setPhone(""); setName(""); setBusinessName(""); setBusinessAddress(""); setIsSignUp(false); }, __self: this, __source: { fileName: _jsxFileName, lineNumber: 222 } }
               , React.createElement(TabsList, { className: "grid w-full grid-cols-2 mb-6", __self: this, __source: { fileName: _jsxFileName, lineNumber: 223 } }
                 , React.createElement(TabsTrigger, { value: "customer", __self: this, __source: { fileName: _jsxFileName, lineNumber: 224 } }, "Customer")
                 , React.createElement(TabsTrigger, { value: "business", __self: this, __source: { fileName: _jsxFileName, lineNumber: 225 } }, "Business Admin")

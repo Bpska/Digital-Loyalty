@@ -145,16 +145,11 @@ export default function BusinessLoyaltyConfigPage() {
   // Live calculation using global rates from settings response and current stampCost state
   const ppr = settings?.pointsPerRupee || 0.1;
   const currentStampCostInput = parseFloat(stampCost) || 500;
-  const pps = Math.max(1, Math.round(currentStampCostInput * ppr));
   const reqStamps = parseInt(settingsForm.requiredStamps, 10) || 7;
 
   const simPointsEarned = Math.floor(simAmount * ppr);
-  let simStampsFromPurchase = Math.floor(simPointsEarned / pps);
-  const maxStamps = settingsForm.maxDailyStamps ? parseInt(settingsForm.maxDailyStamps, 10) : 1;
-  if (simStampsFromPurchase > maxStamps) {
-    simStampsFromPurchase = maxStamps;
-  }
-  const simRupeePerStamp = Math.ceil(pps / ppr);
+  const simStampsFromPurchase = simAmount >= currentStampCostInput ? 1 : 0;
+  const simRupeePerStamp = currentStampCostInput;
   const simTotalSpendForReward = simRupeePerStamp * reqStamps;
 
   if (isLoadingSettings) {
@@ -398,7 +393,7 @@ export default function BusinessLoyaltyConfigPage() {
               React.createElement(
                 Label,
                 { htmlFor: "prog-name" },
-                "Program Name ",
+                "Offer Name ",
                 React.createElement("span", { className: "text-destructive" }, "*")
               ),
               React.createElement(Input, {
@@ -600,7 +595,7 @@ export default function BusinessLoyaltyConfigPage() {
               CardTitle,
               { className: "flex items-center gap-2 text-base text-foreground font-bold" },
               React.createElement(IndianRupee, { className: "h-4.5 w-4.5 text-emerald-600" }),
-              "Purchase Simulator"
+              "Purchase Demo"
             ),
             React.createElement(
               CardDescription,
@@ -805,7 +800,7 @@ export default function BusinessLoyaltyConfigPage() {
                   "span",
                   { className: "text-slate-600 font-medium" },
                   "Stamps: ",
-                  React.createElement("strong", { className: "text-primary" }, "3"),
+                  React.createElement("strong", { className: "text-primary" }, String(Math.min(simStampsFromPurchase, reqStamps))),
                   " / ",
                   reqStamps
                 ),
@@ -820,7 +815,7 @@ export default function BusinessLoyaltyConfigPage() {
                 "div",
                 { className: "flex flex-wrap gap-1.5" },
                 Array.from({ length: Math.min(reqStamps, 12) }).map((_, i) =>
-                  React.createElement(StampDot, { key: i, filled: i < 3 })
+                  React.createElement(StampDot, { key: i, filled: i < simStampsFromPurchase })
                 ),
                 reqStamps > 12 &&
                   React.createElement(
@@ -839,13 +834,13 @@ export default function BusinessLoyaltyConfigPage() {
                 "div",
                 { className: "flex justify-between items-center" },
                 React.createElement("span", { className: "text-muted-foreground" }, "Total Points Earned:"),
-                React.createElement("span", { className: "text-slate-800 font-bold" }, "230 pts")
+                React.createElement("span", { className: "text-slate-800 font-bold" }, `${simPointsEarned} pts`)
               ),
               React.createElement(
                 "div",
                 { className: "flex justify-between items-center bg-amber-50/40 px-2 py-0.5 rounded border border-amber-100/50" },
                 React.createElement("span", { className: "text-slate-500 font-semibold flex items-center gap-1" }, "Extra Points Balance:"),
-                React.createElement("span", { className: "font-black text-amber-600" }, "45 pts")
+                React.createElement("span", { className: "font-black text-amber-600" }, `${simPointsEarned % (Math.round(currentStampCostInput * ppr) || 1)} pts`)
               )
             ),
 
@@ -853,10 +848,17 @@ export default function BusinessLoyaltyConfigPage() {
             React.createElement(
               "div",
               {
-                className:
-                  "w-full rounded-xl bg-slate-100 border border-slate-200 text-slate-400 text-xs font-bold py-2.5 text-center",
+                className: `w-full rounded-xl border text-xs font-bold py-2.5 text-center transition-all ${
+                  simStampsFromPurchase >= reqStamps
+                    ? "bg-gradient-to-tr from-emerald-500 to-teal-600 text-white border-emerald-500 shadow-md"
+                    : "bg-slate-100 border-slate-200 text-slate-400"
+                }`,
               },
-              `Collect ${reqStamps - 3} more stamps to redeem`
+              simStampsFromPurchase >= reqStamps
+                ? `Reward Unlocked! Claim "${settingsForm.rewardName || "Reward"}" Now`
+                : `Collect ${Math.max(0, reqStamps - simStampsFromPurchase)} more stamp${
+                    reqStamps - simStampsFromPurchase > 1 ? "s" : ""
+                  } to redeem`
             ),
 
             React.createElement(

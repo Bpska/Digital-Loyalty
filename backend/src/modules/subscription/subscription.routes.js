@@ -148,6 +148,57 @@ router.post('/create-order', authenticate, async (req, res, next) => {
       }
     }
 
+    if (finalTotal <= 0) {
+      const nextYear = new Date();
+      nextYear.setFullYear(nextYear.getFullYear() + 1);
+
+      const plan = await prisma.plan.findFirst({
+        where: { isActive: true },
+      });
+      if (!plan) {
+        throw new AppError('No active plan found in database', 500);
+      }
+
+      await prisma.$transaction(async (tx) => {
+        const sub = await tx.subscription.upsert({
+          where: { businessId },
+          update: {
+            planId: plan.id,
+            status: 'ACTIVE',
+            currentPeriodEnd: nextYear,
+            razorpaySubscriptionId: `free-promo-${String(couponCode).trim().toUpperCase()}-${Date.now()}`,
+          },
+          create: {
+            businessId,
+            planId: plan.id,
+            status: 'ACTIVE',
+            currentPeriodEnd: nextYear,
+            razorpaySubscriptionId: `free-promo-${String(couponCode).trim().toUpperCase()}-${Date.now()}`,
+          },
+        });
+
+        await tx.business.update({
+          where: { id: businessId },
+          data: { planId: plan.id, status: 'ACTIVE' },
+        });
+
+        await tx.payment.create({
+          data: {
+            subscriptionId: sub.id,
+            amount: 0,
+            razorpayPaymentId: `free-pay-${Date.now()}`,
+            status: 'CAPTURED',
+            paidAt: new Date(),
+          },
+        });
+      });
+
+      return sendSuccess(res, {
+        isFreeUpgrade: true,
+        message: 'You are the Loyal customer!',
+      });
+    }
+
     const amountInPaise = Math.round(finalTotal * 100);
 
     const Razorpay = (await import('razorpay')).default;

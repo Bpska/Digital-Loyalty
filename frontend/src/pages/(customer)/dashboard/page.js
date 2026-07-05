@@ -9,8 +9,34 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import {
   Gift, Coffee, Star, Stamp, MapPin, Award, CheckCircle2,
   ChevronRight, QrCode, Tag, Percent, Banknote, Clock, Zap, CalendarDays, RefreshCcw,
-  Scissors, Hotel, Store, Sparkles
+  Scissors, Hotel, Store, Sparkles, Bell, LayoutDashboard
 } from "lucide-react";
+
+const BrandIcon = ({ iconName, customUrl, defaultIcon: DefaultIcon, className = "h-5 w-5" }) => {
+  if (customUrl && (customUrl.startsWith("/") || customUrl.startsWith("http"))) {
+    return React.createElement("img", {
+      src: getImageUrl(customUrl),
+      alt: "custom-icon",
+      className: `${className} object-contain shrink-0`,
+      loading: "lazy"
+    });
+  }
+  const BUILTIN_MAP = {
+    coffee: Coffee,
+    gift: Gift,
+    coupon: Percent,
+    star: Star,
+    wallet: Wallet,
+    membership: Award,
+    dashboard: LayoutDashboard,
+    notification: Bell
+  };
+  const IconComponent = BUILTIN_MAP[iconName];
+  if (IconComponent) {
+    return React.createElement(IconComponent, { className: `${className} shrink-0` });
+  }
+  return React.createElement(DefaultIcon, { className: `${className} shrink-0` });
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -114,9 +140,12 @@ function CouponChip({ coupon, onClick }) {
     },
     React.createElement("div", { className: "flex items-center gap-2.5 min-w-0" },
       React.createElement("div", { className: "flex-shrink-0 h-9 w-9 rounded-full bg-amber-100 border border-amber-200 flex items-center justify-center" },
-        isPercent
-          ? React.createElement(Percent, { className: "h-4 w-4 text-amber-600" })
-          : React.createElement(Banknote, { className: "h-4 w-4 text-amber-600" })
+        React.createElement(BrandIcon, {
+          iconName: coupon.business?.brandAsset?.couponIcon,
+          customUrl: coupon.business?.brandAsset?.couponIcon,
+          defaultIcon: isPercent ? Percent : Banknote,
+          className: "h-4 w-4 text-amber-600"
+        })
       ),
       React.createElement("div", { className: "min-w-0" },
         React.createElement("p", { className: "text-xs font-bold text-amber-900 truncate" }, coupon.title),
@@ -297,7 +326,7 @@ function ProgramBlock({ program, card, isFirst }) {
 }
 
 // ─── Hybrid Program Block ────────────────────────────────────────────────────
-function HybridProgramBlock({ settings, wallet, businessId }) {
+function HybridProgramBlock({ settings, wallet, businessId, brandAsset }) {
   const queryClient = useQueryClient();
   const redeemMutation = useMutation({
     mutationFn: () => api.post(`/loyalty-approval/redeem-wallet-reward/${businessId}`),
@@ -334,11 +363,11 @@ function HybridProgramBlock({ settings, wallet, businessId }) {
     // Header / Program Name
     React.createElement("div", { className: "flex items-center justify-between" },
       React.createElement("div", { className: "flex items-center gap-1.5" },
-        React.createElement(Coffee, { className: "h-4 w-4 text-[#800020]" }),
+        React.createElement(BrandIcon, { iconName: brandAsset?.loyaltyIcon, customUrl: brandAsset?.loyaltyIcon, defaultIcon: Coffee, className: "h-4 w-4 text-[#800020]" }),
         React.createElement("span", { className: "text-sm font-extrabold text-[#800020]" }, settings.programName)
       ),
       React.createElement("span", { className: "text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border font-medium flex items-center gap-1" },
-        React.createElement(Gift, { className: "h-2.5 w-2.5" }),
+        React.createElement(BrandIcon, { iconName: brandAsset?.rewardIcon, customUrl: brandAsset?.rewardIcon, defaultIcon: Gift, className: "h-2.5 w-2.5 text-slate-500" }),
         settings.rewardName
       )
     ),
@@ -373,7 +402,10 @@ function HybridProgramBlock({ settings, wallet, businessId }) {
                 : "bg-white border-dashed border-[#CBD5E1] text-[#CBD5E1]"
               }`
           },
-            React.createElement(Stamp, {
+            React.createElement(BrandIcon, {
+              iconName: brandAsset?.stampIcon,
+              customUrl: brandAsset?.stampIcon,
+              defaultIcon: Stamp,
               className: stamped ? "h-5 w-5 fill-white text-white stroke-none" : "h-5 w-5 opacity-35"
             }));
         })
@@ -584,10 +616,10 @@ function BusinessCard({ card, onClick }) {
 
     // Top section: brand logo and title
     React.createElement("div", { className: "relative z-10 flex items-center gap-4" },
-      business.logoUrl
-        ? React.createElement("img", { src: getImageUrl(business.logoUrl), alt: business.name, className: "h-14 w-14 rounded-2xl object-cover border-2 border-white/80 shadow-md flex-shrink-0" })
+      business.brandAsset?.logoUrl || business.logoUrl
+        ? React.createElement("img", { src: getImageUrl(business.brandAsset?.logoUrl || business.logoUrl), alt: business.name, className: "h-14 w-14 rounded-2xl object-cover border-2 border-white/80 shadow-md flex-shrink-0" })
         : React.createElement("div", { className: "h-14 w-14 rounded-2xl bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-white shadow-md border-2 border-white/80 flex-shrink-0" }
-            , React.createElement(getCategoryIcon(business.category), { className: "h-6 w-6 stroke-[2.5]" })
+            , React.createElement(BrandIcon, { iconName: business.brandAsset?.loyaltyIcon, customUrl: business.brandAsset?.loyaltyIcon, defaultIcon: getCategoryIcon(business.category), className: "h-6 w-6 stroke-[2.5]" })
           ),
       React.createElement("div", { className: "min-w-0 flex-1" },
         React.createElement("p", { className: "text-base font-black text-foreground truncate tracking-tight" }, business.name),
@@ -631,7 +663,10 @@ function BusinessCard({ card, onClick }) {
                 : "bg-white/60 border-dashed border-slate-300 text-slate-300"
               }`
             },
-              React.createElement(Stamp, {
+              React.createElement(BrandIcon, {
+                iconName: business.brandAsset?.stampIcon,
+                customUrl: business.brandAsset?.stampIcon,
+                defaultIcon: Stamp,
                 className: stamped ? "h-5 w-5 fill-white text-white stroke-none" : "h-5 w-5 opacity-40"
               })
             );
@@ -824,6 +859,7 @@ function BusinessDetailsModal({ card, unlockedRewards, setSelectedReward, onClos
           settings: card.settings,
           wallet: card.wallet || { currentPoints: 0, currentStamps: 0 },
           businessId: business.id,
+          brandAsset: business.brandAsset,
         }),
 
 

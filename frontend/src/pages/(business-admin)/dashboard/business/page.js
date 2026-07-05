@@ -29,9 +29,41 @@ import {
   QrCode,
   Camera,
   Award,
-  Clock
+  Clock,
+  Coffee,
+  Percent,
+  Star,
+  Wallet,
+  Bell,
+  LayoutDashboard
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+
+const BrandIcon = ({ iconName, customUrl, defaultIcon: DefaultIcon, className = "h-5 w-5" }) => {
+  if (customUrl && (customUrl.startsWith("/") || customUrl.startsWith("http"))) {
+    return React.createElement("img", {
+      src: getImageUrl(customUrl),
+      alt: "custom-icon",
+      className: `${className} object-contain shrink-0`,
+      loading: "lazy"
+    });
+  }
+  const BUILTIN_MAP = {
+    coffee: Coffee,
+    gift: Gift,
+    coupon: Percent,
+    star: Star,
+    wallet: Wallet,
+    membership: Award,
+    dashboard: LayoutDashboard,
+    notification: Bell
+  };
+  const IconComponent = BUILTIN_MAP[iconName];
+  if (IconComponent) {
+    return React.createElement(IconComponent, { className: `${className} shrink-0` });
+  }
+  return React.createElement(DefaultIcon, { className: `${className} shrink-0` });
+};
 export default function BusinessDashboard() {
   const { user } = useAuthStore();
   const businessId = _optionalChain([user, 'optionalAccess', _ => _.businessId]);
@@ -339,6 +371,14 @@ export default function BusinessDashboard() {
     queryFn: () => api.get(`/businesses/${businessId}`).then((res) => res.data),
     enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
   });
+
+  // Fetch branches list for QR display
+  const { data: branches = [] } = useQuery({
+    queryKey: ["businessBranches", businessId],
+    queryFn: () => api.get(`/branches/business/${businessId}`).then((res) => res.data),
+    enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
+  });
+  const primaryBranch = branches[0];
 
   const handleOpenSocialModal = () => {
     if (business) {
@@ -652,7 +692,7 @@ export default function BusinessDashboard() {
           , React.createElement(Card, { className: "glass hover:shadow-md transition-shadow h-full", glass: true }
             , React.createElement(CardHeader, { className: "flex flex-row items-center justify-between pb-2" }
               , React.createElement(CardDescription, { className: "text-xs font-bold uppercase tracking-wider text-muted-foreground" }, "Total Customers")
-              , React.createElement(Users, { className: "h-5 w-5 text-primary" })
+              , React.createElement(BrandIcon, { iconName: business?.brandAsset?.customerIcon, customUrl: business?.brandAsset?.customerIcon, defaultIcon: Users, className: "h-5 w-5 text-primary" })
             )
             , React.createElement(CardContent, null
               , React.createElement('span', { className: "text-3xl font-extrabold text-foreground" }, _optionalChain([analytics, 'optionalAccess', _3 => _3.totalCustomers]) ?? 1)
@@ -660,12 +700,12 @@ export default function BusinessDashboard() {
             )
           )
         )
-
+ 
         , React.createElement(Link, { to: "/dashboard/business/approvals", className: "block cursor-pointer hover:scale-[1.02] transition-transform duration-200" }
           , React.createElement(Card, { className: "glass hover:shadow-md transition-shadow h-full", glass: true }
             , React.createElement(CardHeader, { className: "flex flex-row items-center justify-between pb-2" }
               , React.createElement(CardDescription, { className: "text-xs font-bold uppercase tracking-wider text-muted-foreground" }, "Verified Check-Ins")
-              , React.createElement(UserCheck, { className: "h-5 w-5 text-emerald-600" })
+              , React.createElement(BrandIcon, { iconName: business?.brandAsset?.redemptionIcon, customUrl: business?.brandAsset?.redemptionIcon, defaultIcon: UserCheck, className: "h-5 w-5 text-emerald-600" })
             )
             , React.createElement(CardContent, null
               , React.createElement('span', { className: "text-3xl font-extrabold text-foreground" }, _optionalChain([analytics, 'optionalAccess', _4 => _4.totalCheckIns]) ?? 2)
@@ -675,12 +715,12 @@ export default function BusinessDashboard() {
             )
           )
         )
-
+ 
         , React.createElement(Link, { to: "/dashboard/business/analytics", className: "block cursor-pointer hover:scale-[1.02] transition-transform duration-200" }
           , React.createElement(Card, { className: "glass hover:shadow-md transition-shadow h-full", glass: true }
             , React.createElement(CardHeader, { className: "flex flex-row items-center justify-between pb-2" }
               , React.createElement(CardDescription, { className: "text-xs font-bold uppercase tracking-wider text-muted-foreground" }, "Repeat Rate")
-              , React.createElement(Zap, { className: "h-5 w-5 text-indigo-600" })
+              , React.createElement(BrandIcon, { iconName: business?.brandAsset?.loyaltyIcon, customUrl: business?.brandAsset?.loyaltyIcon, defaultIcon: Zap, className: "h-5 w-5 text-indigo-600" })
             )
             , React.createElement(CardContent, null
               , React.createElement('span', { className: "text-3xl font-extrabold text-foreground" }, _optionalChain([analytics, 'optionalAccess', _6 => _6.repeatRate]) ?? 100, "%")
@@ -688,12 +728,12 @@ export default function BusinessDashboard() {
             )
           )
         )
-
+ 
         , React.createElement(Link, { to: "/dashboard/business/approvals", className: "block cursor-pointer hover:scale-[1.02] transition-transform duration-200" }
           , React.createElement(Card, { className: "glass hover:shadow-md transition-shadow h-full", glass: true }
             , React.createElement(CardHeader, { className: "flex flex-row items-center justify-between pb-2" }
               , React.createElement(CardDescription, { className: "text-xs font-bold uppercase tracking-wider text-muted-foreground" }, "Reward Conversions")
-              , React.createElement(Gift, { className: "h-5 w-5 text-primary" })
+              , React.createElement(BrandIcon, { iconName: business?.brandAsset?.rewardIcon, customUrl: business?.brandAsset?.rewardIcon, defaultIcon: Gift, className: "h-5 w-5 text-primary" })
             )
             , React.createElement(CardContent, null
               , React.createElement('span', { className: "text-3xl font-extrabold text-foreground" }, _optionalChain([analytics, 'optionalAccess', _7 => _7.redemptionRate]) ?? 0, "%")
@@ -914,40 +954,61 @@ export default function BusinessDashboard() {
                 )
           )
 
-          // Google Review Link & QR Code Card
-          , revGoogleUrl && React.createElement(Card, { className: "border-border bg-white shadow-sm rounded-xl mt-6" }
+
+          // Branch Check-in QR Code Card
+          , primaryBranch && React.createElement(Card, { className: "border-border bg-white shadow-sm rounded-xl mt-6" }
             , React.createElement(CardHeader, { className: "p-6 pb-2" }
-              , React.createElement(CardTitle, { className: "text-base font-bold text-[#FF6A00] flex items-center gap-2" }
+              , React.createElement(CardTitle, { className: "text-base font-bold text-primary flex items-center gap-2" }
                 , React.createElement(QrCode, { className: "h-4 w-4" })
-                , "Google Review QR Code"
+                , "Customer Check-in QR Code"
               )
-              , React.createElement(CardDescription, { className: "text-xs text-muted-foreground" }, "Show this QR code at your checkout counter to collect reviews")
+              , React.createElement(CardDescription, { className: "text-xs text-muted-foreground" }, "Display this QR code for customers to scan and earn stamps/points")
             )
             , React.createElement(CardContent, { className: "p-6 pt-2 flex flex-col items-center text-center space-y-4" }
-              , React.createElement('div', { className: "rounded-xl border border-dashed border-indigo-100 bg-slate-50/50 p-4 shadow-sm" }
-                , React.createElement('img', {
-                    src: `https://api.qrserver.com/v1/create-qr-code/?size=180x180&color=0f172a&data=${encodeURIComponent(revGoogleUrl)}`,
-                    alt: "Google Review QR Code",
-                    className: "h-36 w-36 shadow-sm border border-slate-100 rounded-lg bg-white"
-                  })
+              , React.createElement('div', { className: "rounded-xl border border-dashed border-primary/20 bg-slate-50/50 p-4 shadow-sm relative group" }
+                , primaryBranch.qrImage ? (
+                  React.createElement('div', { className: "relative flex items-center justify-center bg-white" }
+                    , React.createElement('img', { src: primaryBranch.qrImage, alt: "Branch Check-in QR Code", className: "h-36 w-36 shadow-sm border border-slate-100 rounded-lg" })
+                    , React.createElement('div', { className: "absolute w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-md border border-[#FF6A00]/25" }
+                      , React.createElement('span', { className: "text-[10px] font-black bg-gradient-to-tr from-[#FF6A00] to-[#800020] bg-clip-text text-transparent" }, "LS")
+                    )
+                  )
+                ) : (
+                  React.createElement('div', { className: "h-36 w-36 flex items-center justify-center" }
+                    , React.createElement(Loader2, { className: "h-6 w-6 animate-spin text-zinc-500" })
+                  )
+                )
               )
               , React.createElement('div', { className: "w-full space-y-1.5" }
-                , React.createElement('span', { className: "text-[9px] text-muted-foreground uppercase tracking-widest font-bold" }, "Direct Review Link")
+                , React.createElement('span', { className: "text-[9px] text-muted-foreground uppercase tracking-widest font-bold" }, "Direct Check-in Link")
                 , React.createElement('input', {
                     readOnly: true,
-                    value: revGoogleUrl,
+                    value: primaryBranch.qrPayload || "",
                     className: "w-full text-[10px] font-mono select-all bg-slate-50 border border-border p-2 rounded-lg text-center"
                   })
               )
-              , React.createElement(Button, {
-                  type: "button",
-                  variant: "outline",
-                  onClick: () => {
-                    navigator.clipboard.writeText(revGoogleUrl);
-                    alert("Google Review Link copied to clipboard!");
-                  },
-                  className: "w-full rounded-full border-[#FF6A00] text-[#FF6A00] hover:bg-orange-50 font-bold text-xs"
-                }, "Copy Review Link")
+              , React.createElement('div', { className: "flex gap-2 w-full" }
+                , React.createElement(Button, {
+                    type: "button",
+                    variant: "outline",
+                    onClick: () => {
+                      navigator.clipboard.writeText(primaryBranch.qrPayload || "");
+                      alert("Check-in Link copied to clipboard!");
+                    },
+                    className: "flex-1 rounded-full border-primary text-primary hover:bg-orange-50 font-bold text-xs"
+                  }, "Copy Link")
+                , React.createElement(Button, {
+                    type: "button",
+                    onClick: () => {
+                      const link = document.createElement("a");
+                      link.href = primaryBranch.qrImage;
+                      link.download = `CheckIn-QR-${primaryBranch.name.replace(/\s+/g, "_")}.png`;
+                      link.click();
+                    },
+                    disabled: !primaryBranch.qrImage,
+                    className: "flex-1 rounded-full bg-primary text-white hover:bg-primary/95 font-bold text-xs"
+                  }, "Download PNG")
+              )
             )
           )
         )

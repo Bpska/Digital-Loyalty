@@ -68,6 +68,26 @@ const updateBusinessSchema = z.object({
   description: z.string().optional().nullable(),
 });
 
+const updateBrandAssetSchema = z.object({
+  logoUrl: z.string().optional().nullable(),
+  loyaltyIcon: z.string().optional().nullable(),
+  rewardIcon: z.string().optional().nullable(),
+  couponIcon: z.string().optional().nullable(),
+  walletIcon: z.string().optional().nullable(),
+  giftIcon: z.string().optional().nullable(),
+  offerIcon: z.string().optional().nullable(),
+  notificationIcon: z.string().optional().nullable(),
+  membershipIcon: z.string().optional().nullable(),
+  dashboardIcon: z.string().optional().nullable(),
+  qrCheckInIcon: z.string().optional().nullable(),
+  stampIcon: z.string().optional().nullable(),
+  pointIcon: z.string().optional().nullable(),
+  customerIcon: z.string().optional().nullable(),
+  referralIcon: z.string().optional().nullable(),
+  redemptionIcon: z.string().optional().nullable(),
+});
+
+
 // ── Routes ────────────────────────────────────────────────────
 
 // Super Admin: create a business (on behalf of a user)
@@ -121,6 +141,7 @@ router.get('/:businessId', authenticate, async (req, res, next) => {
         owner: { select: { id: true, name: true, phone: true, email: true } },
         plan: true,
         subscription: true,
+        brandAsset: true,
         _count: { select: { branches: true, staff: true } },
       },
     });
@@ -363,4 +384,54 @@ router.post(
   }
 );
 
+// Fetch brand assets
+router.get('/:businessId/brand', authenticate, requireSameBusiness, async (req, res, next) => {
+  try {
+    const brand = await prisma.businessBrandAsset.findUnique({
+      where: { businessId: req.params.businessId },
+    });
+    sendSuccess(res, brand || {});
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Update brand assets
+router.post(
+  '/:businessId/brand',
+  authenticate,
+  requireSameBusiness,
+  validate(updateBrandAssetSchema),
+  async (req, res, next) => {
+    try {
+      const brand = await prisma.businessBrandAsset.upsert({
+        where: { businessId: req.params.businessId },
+        update: req.body,
+        create: { ...req.body, businessId: req.params.businessId },
+      });
+      sendSuccess(res, brand, 'Branding settings updated successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// Upload custom brand asset / icon
+router.post(
+  '/:businessId/brand/upload',
+  authenticate,
+  requireSameBusiness,
+  upload.single('icon'),
+  async (req, res, next) => {
+    try {
+      if (!req.file) throw new AppError('No file uploaded', 400);
+      const iconUrl = `/uploads/logos/${req.file.filename}`;
+      sendSuccess(res, { iconUrl }, 'Icon uploaded successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 export default router;
+

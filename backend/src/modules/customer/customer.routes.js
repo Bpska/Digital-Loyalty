@@ -37,6 +37,26 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
             googleReviewUrl: true,
             category: true,
             bookingUrl: true,
+            brandAsset: {
+              select: {
+                logoUrl: true,
+                loyaltyIcon: true,
+                rewardIcon: true,
+                couponIcon: true,
+                walletIcon: true,
+                giftIcon: true,
+                offerIcon: true,
+                notificationIcon: true,
+                membershipIcon: true,
+                dashboardIcon: true,
+                qrCheckInIcon: true,
+                stampIcon: true,
+                pointIcon: true,
+                customerIcon: true,
+                referralIcon: true,
+                redemptionIcon: true,
+              }
+            },
             branches: {
               where: { isActive: true },
               select: {
