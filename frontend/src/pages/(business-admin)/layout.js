@@ -164,46 +164,40 @@ export default function BusinessAdminLayout({
       const orderRes = await api.post("/subscriptions/create-order", { businessId });
       const order = orderRes.data;
 
-      if (order.isMock) {
-        setDemoOrder(order);
-        setDemoPaySuccess(false);
-        setShowDemoCheckout(true);
-      } else {
-        const options = {
-          key: order.keyId,
-          amount: order.amount,
-          currency: order.currency,
-          name: "ScanLoyal SaaS",
-          description: "Launch Year Special — Yearly Subscription",
-          image: "/new.png",
-          order_id: order.orderId,
-          handler: async (response) => {
-            try {
-              await api.post("/subscriptions/verify-payment", {
-                businessId,
-                razorpayOrderId: response.razorpay_order_id,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature,
-              });
-              alert("Subscription upgraded!");
-              await refetchProfile();
-            } catch (err) {
-              alert(err.message || "Payment verification failed.");
-            }
-          },
-          prefill: {
-            name: user?.name || "",
-            contact: user?.phone || "",
-            email: user?.email || "",
-          },
-          theme: { color: "#FF6A00" },
-          modal: { ondismiss: () => { setPaymentLoading(false); } }
-        };
-        const rzp = new window.Razorpay(options);
-        rzp.open();
-      }
+      const options = {
+        key: order.keyId,
+        amount: order.amount,
+        currency: order.currency,
+        name: "ScanLoyal SaaS",
+        description: "Launch Year Special — Yearly Subscription",
+        image: "/new.png",
+        order_id: order.orderId,
+        handler: async (response) => {
+          try {
+            await api.post("/subscriptions/verify-payment", {
+              businessId,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            });
+            alert("Subscription upgraded!");
+            await refetchProfile();
+          } catch (err) {
+            alert(err.message || "Payment verification failed.");
+          }
+        },
+        prefill: {
+          name: user?.name || "",
+          contact: user?.phone || "",
+          email: user?.email || "",
+        },
+        theme: { color: "#FF6A00" },
+        modal: { ondismiss: () => { setPaymentLoading(false); } }
+      };
+      const rzp = new window.Razorpay(options);
+      rzp.open();
     } catch (err) {
-      alert(err.message || "Failed to initiate payment.");
+      alert(err.message || "Failed to initiate payment. Please try again.");
     } finally {
       setPaymentLoading(false);
     }

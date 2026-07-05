@@ -109,6 +109,10 @@ router.post('/create-order', authenticate, async (req, res, next) => {
       }
     }
 
+    if (!env.RAZORPAY_KEY_ID || !env.RAZORPAY_KEY_SECRET) {
+      throw new AppError('Payment gateway not configured. Please contact support.', 503);
+    }
+
     const activeCount = await prisma.business.count({
       where: { status: 'ACTIVE', deletedAt: null },
     });
@@ -126,35 +130,24 @@ router.post('/create-order', authenticate, async (req, res, next) => {
 
     const amountInPaise = Math.round(totalAmount * 100);
 
-    let orderId = `mock-order-${Date.now()}`;
-    let isMock = true;
+    const Razorpay = (await import('razorpay')).default;
+    const razorpay = new Razorpay({
+      key_id: env.RAZORPAY_KEY_ID.trim(),
+      key_secret: env.RAZORPAY_KEY_SECRET.trim(),
+    });
 
-    if (env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET) {
-      try {
-        const Razorpay = (await import('razorpay')).default;
-        const razorpay = new Razorpay({
-          key_id: env.RAZORPAY_KEY_ID,
-          key_secret: env.RAZORPAY_KEY_SECRET,
-        });
-
-        const order = await razorpay.orders.create({
-          amount: amountInPaise,
-          currency: 'INR',
-          receipt: `rcpt_${businessId.slice(0, 10)}_${Date.now()}`,
-        });
-        orderId = order.id;
-        isMock = false;
-      } catch (err) {
-        logger.error('Failed to create Razorpay order, falling back to mock mode', { err });
-      }
-    }
-
-    sendSuccess(res, {
-      orderId,
+    const order = await razorpay.orders.create({
       amount: amountInPaise,
       currency: 'INR',
-      keyId: env.RAZORPAY_KEY_ID || 'rzp_test_mock_key',
-      isMock,
+      receipt: `rcpt_${businessId.slice(0, 10)}_${Date.now()}`,
+    });
+
+    sendSuccess(res, {
+      orderId: order.id,
+      amount: amountInPaise,
+      currency: 'INR',
+      keyId: env.RAZORPAY_KEY_ID.trim(),
+      isMock: false,
     });
   } catch (err) { next(err); }
 });

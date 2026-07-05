@@ -454,58 +454,50 @@ export default function BusinessDashboard() {
       const orderRes = await api.post("/subscriptions/create-order", { businessId });
       const order = orderRes.data;
 
-      if (order.isMock) {
-        // Show styled demo checkout modal instead of window.confirm
-        setDemoOrder(order);
-        setDemoPaySuccess(false);
-        setShowUpgradeModal(false);
-        setShowDemoCheckout(true);
-      } else {
-        // Live Razorpay Checkout flow
-        const options = {
-          key: order.keyId,
-          amount: order.amount,
-          currency: order.currency,
-          name: "ScanLoyal SaaS",
-          description: "Launch Year Special — Yearly Subscription",
-          image: "/new.png",
-          order_id: order.orderId,
-          handler: async (response) => {
-            try {
-              const verifyRes = await api.post("/subscriptions/verify-payment", {
-                businessId,
-                razorpayOrderId: response.razorpay_order_id,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature,
-              });
-              alert(verifyRes.message || "Subscription upgraded!");
-              await refetchProfile();
-              setShowUpgradeModal(false);
-            } catch (err) {
-              alert(err.message || "Payment verification failed.");
-            }
-          },
-          prefill: {
-            name: business?.owner?.name || "",
-            contact: business?.owner?.phone || "",
-            email: business?.owner?.email || "",
-          },
-          notes: {
-            businessId,
-            planType: "yearly",
-          },
-          theme: {
-            color: "#FF6A00",
-          },
-          modal: {
-            ondismiss: () => { setPaymentLoading(false); }
-          },
-        };
-        const rzp = new window.Razorpay(options);
-        rzp.open();
-      }
+      // Live Razorpay Checkout flow
+      const options = {
+        key: order.keyId,
+        amount: order.amount,
+        currency: order.currency,
+        name: "ScanLoyal SaaS",
+        description: "Launch Year Special — Yearly Subscription",
+        image: "/new.png",
+        order_id: order.orderId,
+        handler: async (response) => {
+          try {
+            const verifyRes = await api.post("/subscriptions/verify-payment", {
+              businessId,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            });
+            alert(verifyRes.message || "Subscription upgraded!");
+            await refetchProfile();
+            setShowUpgradeModal(false);
+          } catch (err) {
+            alert(err.message || "Payment verification failed.");
+          }
+        },
+        prefill: {
+          name: business?.owner?.name || "",
+          contact: business?.owner?.phone || "",
+          email: business?.owner?.email || "",
+        },
+        notes: {
+          businessId,
+          planType: "yearly",
+        },
+        theme: {
+          color: "#FF6A00",
+        },
+        modal: {
+          ondismiss: () => { setPaymentLoading(false); }
+        },
+      };
+      const rzp = new window.Razorpay(options);
+      rzp.open();
     } catch (err) {
-      alert(err.message || "Failed to initiate payment.");
+      alert(err.message || "Failed to initiate payment. Please try again.");
     } finally {
       setPaymentLoading(false);
     }
