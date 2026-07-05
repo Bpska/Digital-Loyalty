@@ -224,3 +224,21 @@ docker compose logs -f frontend
 ```
 # 4. Apply any new database migrations (just in case the schema changed)
   docker compose exec backend npx prisma migrate deploy
+
+1->a arro add in the Footer section click go to hero section .
+2->Remove the Navbat setionin the Landing page
+3->Loyality click Demo to Logisaar
+4->Count option Show Card No. bussn name 
+5->pop up and down animation in landing page . how many buus name you are in 500 free qr code in the pricing 
+6->4 step chacke . detes about all the original data . remove the A
+7->groth store data update .
+
+8->Cupon code is propoly working
+9->Ux propoly step by step admin dash bord . fully update 
+10->Demo update propoy
+11->icon Costamization .
+12-> ls re offre name used
+13->revew is not propoly genetated
+14->analysi page update custamize
+15->cupon Time Cusamization in the cupon section and notification user 
+16->

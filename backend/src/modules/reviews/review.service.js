@@ -27,10 +27,45 @@ export async function generateReviewSuggestions(userId, businessId, rating) {
     throw new AppError('Business not found', 404);
   }
 
-  const businessType = business.reviewSettings?.businessType || business.name || 'Business';
+  // Extract locality/area from address
+  let locality = '';
+  if (business.address) {
+    const parts = business.address.split(',').map((p) => p.trim());
+    if (parts.length >= 2) {
+      locality = parts[parts.length - 2];
+    } else {
+      locality = parts[0];
+    }
+  }
+
+  // Fetch last 5 selected/generated reviews for this business to avoid duplicates
+  const lastGenerations = await prisma.reviewGeneration.findMany({
+    where: { businessId },
+    orderBy: { createdAt: 'desc' },
+    take: 5,
+    select: { selectedReview: true, generatedReviews: true },
+  });
+
+  const lastReviews = [];
+  lastGenerations.forEach((g) => {
+    if (g.selectedReview) lastReviews.push(g.selectedReview);
+    if (Array.isArray(g.generatedReviews)) {
+      g.generatedReviews.forEach((r) => {
+        if (typeof r === 'string') lastReviews.push(r);
+      });
+    }
+  });
+  const uniqueLastReviews = [...new Set(lastReviews)].slice(0, 5);
+
+  const context = {
+    name: business.name,
+    category: business.reviewSettings?.businessType || business.category || 'Business',
+    description: business.description || '',
+    locality: locality,
+  };
 
   // Call Ollama (or fallback)
-  const reviews = await generateReviews(businessType, rating);
+  const reviews = await generateReviews(context, rating, uniqueLastReviews);
 
   // Persist analytics record
   const record = await prisma.reviewGeneration.create({

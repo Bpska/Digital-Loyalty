@@ -23,7 +23,9 @@ import {
   Activity,
   HelpCircle,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  ArrowUp,
+  Building2
 } from "lucide-react";
 
 
@@ -34,6 +36,48 @@ export default function LandingPage() {
   const [totalScans, setTotalScans] = useState(847);
   const [totalBusinesses, setTotalBusinesses] = useState(50);
   const [openFaqIndex, setOpenFaqIndex] = useState(null);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  // Animated business count state
+  const [animatedBusinesses, setAnimatedBusinesses] = useState(50);
+
+  useEffect(() => {
+    let start = animatedBusinesses;
+    const end = totalBusinesses;
+    if (start === end) return;
+
+    const duration = 1500;
+    const startTime = performance.now();
+
+    const animate = (currentTime) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing out quadratic
+      const easeProgress = progress * (2 - progress);
+      const currentVal = Math.floor(start + easeProgress * (end - start));
+      
+      setAnimatedBusinesses(currentVal);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [totalBusinesses]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setShowBackToTop(true);
+      } else {
+        setShowBackToTop(false);
+      }
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
 
   useEffect(() => {
@@ -98,7 +142,7 @@ export default function LandingPage() {
 
       /* 1. Global Navigation Bar */
       , React.createElement('header', { className: "sticky top-0 z-50 w-full border-b border-[#EAE3DF]/50 bg-white/75 backdrop-blur-md"       , __self: this, __source: {fileName: _jsxFileName, lineNumber: 47}}
-        , React.createElement('div', { className: "max-w-7xl mx-auto px-6 h-16 flex items-center justify-between"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 48}}
+        , React.createElement('div', { className: "max-w-7xl mx-auto px-6 h-16 flex items-center"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 48}}
           , React.createElement('div', { className: "flex items-center space-x-3" }
             , React.createElement('img', { src: "/new.png", alt: "LogiSaar Logo", className: "h-8 w-auto object-contain" })
             , React.createElement('div', { className: "flex flex-col justify-center" }
@@ -106,45 +150,25 @@ export default function LandingPage() {
               , React.createElement('span', { className: "text-[9px] font-black text-[#FF6A00] uppercase tracking-wider leading-none" }, "ScanLoyal")
             )
           )
-
-          , React.createElement('nav', { className: "hidden md:flex items-center space-x-8 text-xs font-bold uppercase tracking-wider text-[#5A4E46]"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 56}}
-            , React.createElement('a', { href: "#features", className: "hover:text-[#FF6A00] transition-colors" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 57}}, "Features")
-            , React.createElement('a', { href: "#how-it-works", className: "hover:text-[#FF6A00] transition-colors" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 58}}, "Product Flow" )
-            , React.createElement('a', { href: "#interactive-preview", className: "hover:text-[#FF6A00] transition-colors" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 59}}, "Demo")
-            , React.createElement('a', { href: "#pricing", className: "hover:text-[#FF6A00] transition-colors" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 60}}, "Pricing")
-          )
-
-          , React.createElement('div', { className: "flex items-center space-x-3"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 63}}
-            , loading ? (
-              React.createElement('div', { className: "h-8 w-20 rounded-xl bg-[#F2ECE9] animate-pulse"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 65}} )
-            ) : user ? (
-              React.createElement(React.Fragment, null
-                , React.createElement(Link, { to: 
-                  user.role === "SUPER_ADMIN" ? "/dashboard/super" :
-                  user.role === "BUSINESS_ADMIN" ? "/dashboard/business" : "/dashboard"
-                , __self: this, __source: {fileName: _jsxFileName, lineNumber: 67}}
-                  , React.createElement(Button, { variant: "ghost", size: "sm", className: "text-[#5A4E46] hover:text-[#2B201A] font-bold text-xs uppercase tracking-wider" }, "Go to Dashboard")
-                )
-                 , React.createElement(Button, { size: "sm", onClick: logout, className: "bg-gradient-to-r from-[#FF6A00] to-[#800020] hover:from-[#E05E00] hover:to-[#800020] text-white shadow-md shadow-[#FF6A00]/10 rounded-full font-bold text-xs border-0 transition-all duration-300" }, "Sign Out")
-              )
-            ) : (
-              React.createElement(React.Fragment, null
-                , React.createElement(Link, { to: "/login" }
-                  , React.createElement(Button, { variant: "ghost", size: "sm", className: "text-[#5A4E46] hover:text-[#2B201A] font-bold text-xs uppercase tracking-wider" }, "Sign In"
-                  )
-                )
-                , React.createElement(Link, { to: "/login?signup=true" }
-                  , React.createElement(Button, { size: "sm", className: "bg-gradient-to-r from-[#FF6A00] to-[#800020] hover:from-[#E05E00] hover:to-[#800020] text-white shadow-md shadow-[#FF6A00]/15 rounded-full font-bold text-xs border-0 transition-all duration-300" }, "Get Started"
-                  )
-                )
-              )
-            )
-          )
         )
       )
 
       /* 2. Hero Section — New Centered Split Layout */
-      , React.createElement('section', { className: "relative overflow-hidden bg-[#FAF8F6] border-b border-[#EAE3DF]/40" }
+      , React.createElement('section', { id: "hero", className: "relative overflow-hidden bg-[#FAF8F6] border-b border-[#EAE3DF]/40" }
+        /* Floating Business Counter Card (Top Left) */
+        , React.createElement('div', { className: "absolute top-6 left-4 sm:top-12 sm:left-8 z-30 bg-white/90 backdrop-blur-md rounded-2xl border border-[#FF6A00]/15 shadow-xl p-3.5 flex items-center gap-3 animate-fade-in hover:scale-105 transition-transform duration-300" }
+          , React.createElement('div', { className: "h-9 w-9 rounded-xl bg-gradient-to-tr from-[#FF6A00]/10 to-[#800020]/10 flex items-center justify-center border border-[#FF6A00]/20" }
+            , React.createElement(Building2, { className: "h-4.5 w-4.5 text-[#FF6A00]" })
+          )
+          , React.createElement('div', { className: "text-left" }
+            , React.createElement('p', { className: "text-base font-black text-[#2B201A] leading-none" }
+              , animatedBusinesses, "+ Businesses"
+            )
+            , React.createElement('p', { className: "text-[9px] font-bold text-[#8C6553] uppercase tracking-wider mt-0.5" }
+              , "Active Storefronts"
+            )
+          )
+        )
 
         /* Background blobs */
         , React.createElement('div', { className: "absolute -top-32 left-1/3 w-[700px] h-[700px] bg-[#FF6A00]/8 rounded-full blur-3xl pointer-events-none" })
@@ -354,8 +378,8 @@ export default function LandingPage() {
                 , React.createElement('div', { className: "h-12 w-12 rounded-xl bg-[#FF6A00]/10 backdrop-blur-sm flex items-center justify-center text-[#FF6A00] border border-[#FF6A00]/15 shadow-sm" }
                   , React.createElement(QrCode, { className: "h-5.5 w-5.5" } )
                 )
-                , React.createElement('h3', { className: "text-lg font-extrabold text-[#2B201A]" }, "Printable Shop QR Codes" )
-                , React.createElement('p', { className: "text-xs leading-relaxed text-[#5A4E46] p-0" }, "Generate one permanent QR code for your counter, dining tables, or reception desk. Download it as a high-quality PDF or PNG to print and display." )
+                , React.createElement('h3', { className: "text-lg font-extrabold text-[#2B201A]" }, "Premium Printed QR Codes" )
+                , React.createElement('p', { className: "text-xs leading-relaxed text-[#5A4E46] p-0" }, "We provide and deliver a premium, ready-to-use printed QR code stand directly to your business location within 4 to 7 days." )
               )
             )
 
@@ -421,8 +445,7 @@ export default function LandingPage() {
       , React.createElement('section', { id: "how-it-works", className: "py-24 md:py-32 border-t border-[#EAE3DF]/30 bg-white"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 306}}
         , React.createElement('div', { className: "max-w-7xl mx-auto px-6 text-center space-y-12"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 307}}
           , React.createElement('div', { className: "max-w-2xl mx-auto space-y-4"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 308}}
-            , React.createElement('span', { className: "text-xs font-black text-[#FF6A00] uppercase tracking-widest block mb-2"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 309}}, "Seamless Operation" )
-            , React.createElement('h2', { className: "text-4xl sm:text-5xl font-extrabold text-[#2B201A] tracking-tight"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 310}}, "A 4-Step Checkout Flow"
+            , React.createElement('h2', { className: "text-4xl sm:text-5xl font-extrabold text-[#2B201A] tracking-tight"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 310}}, "4-Step Checkout Flow"
 
             )
             , React.createElement('p', { className: "text-sm sm:text-base text-[#5A4E46] leading-relaxed"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 313}}, "We make the experience smooth for both the business owner and the customer visiting the store."
@@ -434,7 +457,7 @@ export default function LandingPage() {
             , React.createElement('div', { className: "bg-[#FAF8F7] p-8 pt-12 rounded-[28px] border border-[#EAE3DF] relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-[#FF6A00]/5" }
               , React.createElement('span', { className: "text-7xl font-black text-[#FF6A00]/25 absolute right-6 top-6 select-none pointer-events-none font-mono" }, "01")
               , React.createElement('h3', { className: "text-base font-extrabold text-[#2B201A] mb-2 mt-4" }, "Create & Print QR" )
-              , React.createElement('p', { className: "text-xs text-[#5A4E46] leading-relaxed" }, "Businesses generate permanent QR codes and display them inside their storefronts (billing counters, cafe tables, hotels)." )
+              , React.createElement('p', { className: "text-xs text-[#5A4E46] leading-relaxed" }, "We provide the Printed QR code. Delivered to your business location within 4 to 7 days." )
             )
 
             , React.createElement('div', { className: "bg-[#FAF8F7] p-8 pt-12 rounded-[28px] border border-[#EAE3DF] relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-[#FF6A00]/5" }
@@ -530,7 +553,7 @@ export default function LandingPage() {
                     )
                     , React.createElement('div', { className: "space-y-1" }
                       , React.createElement('h5', { className: "text-xs font-black text-emerald-800 uppercase tracking-wide" }, "Voucher Unlocked! 🎉" )
-                      , React.createElement('p', { className: "text-[10px] text-emerald-700" }, "Code: ", React.createElement('code', { className: "bg-emerald-100 font-mono px-2 py-0.5 rounded-lg font-bold text-emerald-900" }, "DEMO-STAMP-100"))
+                      , React.createElement('p', { className: "text-[10px] text-emerald-700" }, "Code: ", React.createElement('code', { className: "bg-emerald-100 font-mono px-2 py-0.5 rounded-lg font-bold text-emerald-900" }, "Logisaar-stamp-100"))
                     )
                   )
                 ) : (
@@ -795,6 +818,18 @@ export default function LandingPage() {
               , ". All rights reserved."
             )
           , React.createElement('span', { className: "text-[10px] text-[#8C6553] mt-2 md:mt-0 font-bold"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 726}}, "Made for retail store retention in India"      )
+        )
+      )
+
+      /* Floating Back to Top Button */
+      , showBackToTop && (
+        React.createElement('button', {
+          onClick: () => {
+            document.getElementById('hero')?.scrollIntoView({ behavior: 'smooth' });
+          },
+          className: "fixed bottom-24 right-6 z-50 p-3 rounded-full bg-gradient-to-r from-[#FF6A00] to-[#800020] text-white shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transition-all duration-300 ease-in-out animate-fade-in focus:outline-none"
+        }
+          , React.createElement(ArrowUp, { className: "h-5 w-5" })
         )
       )
 

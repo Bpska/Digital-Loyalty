@@ -177,7 +177,7 @@ router.patch(
       }
 
       const business = await prisma.business.update({
-        where: { id: req.params.id, deletedAt: null },
+        where: { id: req.params.id },
         data: updateData,
         select: { id: true, name: true, status: true },
       });
@@ -201,6 +201,28 @@ router.delete(
         },
       });
       sendSuccess(res, null, 'Business deleted successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// PATCH /admin/businesses/:id/description — update business description by super admin
+router.patch(
+  '/businesses/:id/description',
+  validate(z.object({
+    description: z.string().nullable().optional(),
+  })),
+  auditLog('BUSINESS_DESCRIPTION_CHANGED', 'Business'),
+  async (req, res, next) => {
+    try {
+      const { description } = req.body;
+      const business = await prisma.business.update({
+        where: { id: req.params.id },
+        data: { description: description || null },
+        select: { id: true, name: true, description: true },
+      });
+      sendSuccess(res, business, 'Business description updated successfully');
     } catch (err) {
       next(err);
     }
@@ -476,6 +498,181 @@ router.get('/users', async (req, res, next) => {
   }
 });
 
+// ── AI Review Analytics ────────────────────────────────────────
+/**
+ * GET /admin/reviews/analytics
+ * Super Admin: platform-wide AI review generation analytics + per-business breakdown.
+ */
+router.get('/reviews/analytics', async (req, res, next) => {
+  try {
+    const [
+      totalGenerations,
+      totalWithSelection,
+      totalWithClick,
+      ratingBreakdown,
+      perBusiness,
+      recentGenerations,
+    ] = await Promise.all([
+      prisma.reviewGeneration.count(),
+      prisma.reviewGeneration.count({ where: { selectedReview: { not: null } } }),
+      prisma.reviewGeneration.count({ where: { reviewLinkClicked: true } }),
+      prisma.reviewGeneration.groupBy({
+        by: ['rating'],
+        _count: { id: true },
+        orderBy: { rating: 'asc' },
+      }),
+      prisma.reviewGeneration.groupBy({
+        by: ['businessId'],
+        _count: { id: true },
+        orderBy: { _count: { id: 'desc' } },
+        take: 20,
+      }),
+      prisma.reviewGeneration.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: {
+          id: true,
+          rating: true,
+          selectedReview: true,
+          reviewLinkClicked: true,
+          createdAt: true,
+          user: { select: { id: true, name: true, phone: true } },
+          business: { select: { id: true, name: true, category: true } },
+        },
+      }),
+    ]);
+
+    // Hydrate per-business counts with business name
+    const businessIds = perBusiness.map((b) => b.businessId);
+    const businesses = await prisma.business.findMany({
+      where: { id: { in: businessIds } },
+      select: {
+        id: true,
+        name: true,
+        category: true,
+        reviewSettings: {
+          select: {
+            googleReviewUrl: true,
+            businessType: true,
+            googlePlaceId: true,
+          },
+        },
+      },
+    });
+    const businessMap = Object.fromEntries(businesses.map((b) => [b.id, b]));
+
+    const businessBreakdown = perBusiness.map((b) => ({
+      businessId: b.businessId,
+      count: b._count.id,
+      business: businessMap[b.businessId] || null,
+    }));
+
+    sendSuccess(res, {
+      totalGenerations,
+      totalWithSelection,
+      totalWithClick,
+      selectionRate: totalGenerations > 0 ? Math.round((totalWithSelection / totalGenerations) * 100) : 0,
+      clickThroughRate: totalGenerations > 0 ? Math.round((totalWithClick / totalGenerations) * 100) : 0,
+      ratingBreakdown,
+      businessBreakdown,
+      recentGenerations,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /admin/reviews/settings/:businessId
+ * Super Admin: get AI review settings for any business.
+ */
+router.get('/reviews/settings/:businessId', async (req, res, next) => {
+  try {
+    const business = await prisma.business.findFirst({
+      where: { id: req.params.businessId, deletedAt: null },
+      select: {
+        id: true,
+        name: true,
+        category: true,
+        description: true,
+        googleReviewUrl: true,
+        instagramUrl: true,
+        facebookUrl: true,
+        reviewSettings: true,
+      },
+    });
+    if (!business) {
+      return next(new (await import('../../middlewares/error.middleware.js')).AppError('Business not found', 404));
+    }
+    sendSuccess(res, {
+      businessId: business.id,
+      name: business.name,
+      category: business.category,
+      description: business.description,
+      googleReviewUrl: business.reviewSettings?.googleReviewUrl || business.googleReviewUrl || null,
+      instagramUrl: business.reviewSettings?.instagramUrl || business.instagramUrl || null,
+      facebookUrl: business.reviewSettings?.facebookUrl || business.facebookUrl || null,
+      businessType: business.reviewSettings?.businessType || null,
+      googleBusinessName: business.reviewSettings?.googleBusinessName || null,
+      googlePlaceId: business.reviewSettings?.googlePlaceId || null,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+const adminReviewSettingsSchema = z.object({
+  businessType: z.string().max(100).optional().nullable(),
+  googleReviewUrl: z.string().url().optional().nullable().or(z.literal('')).transform(v => v || null),
+  instagramUrl: z.string().url().optional().nullable().or(z.literal('')).transform(v => v || null),
+  facebookUrl: z.string().url().optional().nullable().or(z.literal('')).transform(v => v || null),
+  googleBusinessName: z.string().max(200).optional().nullable(),
+  googlePlaceId: z.string().max(200).optional().nullable(),
+});
+
+/**
+ * PATCH /admin/reviews/settings/:businessId
+ * Super Admin: update AI review settings for any business.
+ */
+router.patch(
+  '/reviews/settings/:businessId',
+  validate(adminReviewSettingsSchema),
+  auditLog('BUSINESS_REVIEW_SETTINGS_CHANGED', 'BusinessReviewSettings'),
+  async (req, res, next) => {
+    try {
+      const updateData = { ...req.body };
+
+      // Auto-generate Google Review URL from place ID
+      if (updateData.googlePlaceId) {
+        updateData.googleReviewUrl = `https://search.google.com/local/writereview?placeid=${updateData.googlePlaceId}`;
+      }
+
+      const settings = await prisma.businessReviewSettings.upsert({
+        where: { businessId: req.params.businessId },
+        update: updateData,
+        create: { businessId: req.params.businessId, ...updateData },
+      });
+
+      // Sync URLs to main Business record
+      const businessUpdateData = {};
+      if (updateData.googleReviewUrl !== undefined) businessUpdateData.googleReviewUrl = updateData.googleReviewUrl;
+      if (updateData.instagramUrl !== undefined) businessUpdateData.instagramUrl = updateData.instagramUrl;
+      if (updateData.facebookUrl !== undefined) businessUpdateData.facebookUrl = updateData.facebookUrl;
+
+      if (Object.keys(businessUpdateData).length > 0) {
+        await prisma.business.update({
+          where: { id: req.params.businessId },
+          data: businessUpdateData,
+        });
+      }
+
+      sendSuccess(res, settings, 'Review settings updated');
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 // Get support messages
 router.get('/support-messages', async (req, res, next) => {
   try {
@@ -490,4 +687,61 @@ router.get('/support-messages', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── Coupon Code Management ─────────────────────────────────────
+// Coupon codes are stored in SystemSetting: key = "coupon_<CODE>", value = JSON string
+// JSON shape: { discountType: "PERCENTAGE"|"FIXED_AMOUNT", discountValue: number, description: string }
+
+const couponSchema = z.object({
+  code: z.string().min(2).max(32).regex(/^[A-Z0-9_-]+$/, 'Code must be uppercase letters, digits, _ or -'),
+  discountType: z.enum(['PERCENTAGE', 'FIXED_AMOUNT']),
+  discountValue: z.number().positive(),
+  description: z.string().optional().default(''),
+});
+
+// List all coupons
+router.get('/coupons', async (req, res, next) => {
+  try {
+    const rows = await prisma.systemSetting.findMany({
+      where: { key: { startsWith: 'coupon_' } },
+      orderBy: { key: 'asc' },
+    });
+    const coupons = rows.map(row => {
+      const code = row.key.replace(/^coupon_/, '');
+      let data = {};
+      try { data = JSON.parse(row.value); } catch (_) {}
+      return { code, ...data };
+    });
+    sendSuccess(res, coupons);
+  } catch (err) { next(err); }
+});
+
+// Create a coupon
+router.post('/coupons', validate(couponSchema), async (req, res, next) => {
+  try {
+    const { code, discountType, discountValue, description } = req.body;
+    const key = `coupon_${code.toUpperCase()}`;
+    const existing = await prisma.systemSetting.findUnique({ where: { key } });
+    if (existing) {
+      return res.status(409).json({ success: false, message: 'Coupon code already exists.' });
+    }
+    await prisma.systemSetting.create({
+      data: {
+        key,
+        value: JSON.stringify({ discountType, discountValue, description }),
+      },
+    });
+    sendCreated(res, { code: code.toUpperCase(), discountType, discountValue, description }, 'Coupon created');
+  } catch (err) { next(err); }
+});
+
+// Delete a coupon
+router.delete('/coupons/:code', async (req, res, next) => {
+  try {
+    const key = `coupon_${req.params.code.toUpperCase()}`;
+    await prisma.systemSetting.delete({ where: { key } });
+    sendSuccess(res, null, 'Coupon deleted');
+  } catch (err) { next(err); }
+});
+
 export default router;
+

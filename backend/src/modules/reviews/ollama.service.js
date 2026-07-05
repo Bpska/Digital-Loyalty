@@ -17,19 +17,30 @@ const STAR_LABELS = {
 /**
  * Build the prompt string sent to the model.
  */
-function buildPrompt(businessType, rating) {
+function buildPrompt(context, rating, lastReviews) {
+  const { name, category, description, locality } = context;
   const stars = STAR_LABELS[rating] || `${rating} Stars`;
-  return `Generate 3 realistic, highly SEO-friendly Google review suggestions for a business.
-  
-Business Type: ${businessType || 'Business'}
-Rating: ${stars}
 
-SEO Guidelines:
-- Automatically incorporate high-traffic, category-specific local search keywords related to ${businessType || 'Business'} (e.g. service quality, menu/services, hygiene, price, ambience, staff behaviour, location).
-- Maintain 100% organic, natural sounding human language. Do not make keyword placement feel stuffed or spammy.
-- Write 1-2 short, impactful sentences per review.
-- Provide diverse sentence structures and different word choices across all 3 reviews.
-- Maximum 30 words per review. Suitable for Google Maps/Local Business ranking.
+  let lastReviewsInstructions = "";
+  if (lastReviews && lastReviews.length > 0) {
+    lastReviewsInstructions = `\nCRITICAL: Do NOT reuse the sentence structures, phrasing, or patterns of these recently generated reviews for this business:
+${lastReviews.map((r) => `- "${r}"`).join('\n')}
+Vary the wording and structure from those to keep suggestions fresh.`;
+  }
+
+  return `Write a genuine-sounding, positive Google review for ${name}, a ${category} business located in ${locality || 'the local area'}, described as: ${description || 'No description available'}.
+
+Naturally weave in the business name, the type of service/product it offers, and the locality — each mentioned once, blended smoothly into normal sentence flow (never listed or forced). Highlight 1-2 specific, believable aspects relevant to a ${category} business (e.g. quality, staff behavior, ambience, speed, cleanliness — pick what fits naturally).
+
+Keep it 2-3 sentences, warm and positive in tone, written the way a real happy customer would casually type it — not overly polished or salesy. Avoid generic filler phrases like "great service" or "highly recommend" unless paired with a specific reason why. Do not keyword-stuff — the SEO value should come from natural mention of name, category, and locality, not repetition.
+
+Business Context:
+- Name: ${name}
+- Category: ${category}
+- Description: ${description || ''}
+- Locality: ${locality || ''}
+- Rating: ${stars}
+${lastReviewsInstructions}
 
 Return ONLY a JSON array of 3 strings. No markdown, no explanations, no numbering, no extra text. Example:
 ["Review 1 content.", "Review 2 content.", "Review 3 content."]`;
@@ -137,15 +148,17 @@ function parseReviewsFromResponse(text) {
 }
 
 /**
- * Generate 5 review suggestions using the local Ollama instance.
+/**
+ * Generate 3 review suggestions using the local Ollama instance.
  * Falls back to pre-written reviews on any error.
  *
- * @param {string} businessType - e.g. "Cafe"
+ * @param {object} context      - Business context ({ name, category, description, locality })
  * @param {number} rating       - 1 to 5
- * @returns {Promise<string[]>} - Array of 5 review strings
+ * @param {string[]} lastReviews - Last 5 generated reviews for the business
+ * @returns {Promise<string[]>} - Array of 3 review strings
  */
-export async function generateReviews(businessType, rating) {
-  const prompt = buildPrompt(businessType, rating);
+export async function generateReviews(context, rating, lastReviews) {
+  const prompt = buildPrompt(context, rating, lastReviews);
 
   try {
     const raw = await callOllama(prompt);

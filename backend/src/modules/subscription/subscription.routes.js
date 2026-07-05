@@ -66,6 +66,33 @@ router.get('/pricing', authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── Validate a coupon code ────────────────────────────────────
+router.post('/validate-coupon', authenticate, async (req, res, next) => {
+  try {
+    const { code } = req.body;
+    if (!code) {
+      return res.status(400).json({ success: false, message: 'Coupon code is required.' });
+    }
+    const key = `coupon_${String(code).trim().toUpperCase()}`;
+    const setting = await prisma.systemSetting.findUnique({ where: { key } });
+    if (!setting) {
+      return res.status(404).json({ success: false, message: 'Invalid coupon code.' });
+    }
+    let couponData = {};
+    try { couponData = JSON.parse(setting.value); } catch (_) {
+      return res.status(500).json({ success: false, message: 'Coupon data corrupted.' });
+    }
+    sendSuccess(res, {
+      code: String(code).trim().toUpperCase(),
+      discountType: couponData.discountType,
+      discountValue: couponData.discountValue,
+      description: couponData.description || '',
+    }, 'Coupon is valid');
+  } catch (err) { next(err); }
+});
+
+
+
 // ── Create a Razorpay payment order ──────────────────────────
 router.post('/create-order', authenticate, async (req, res, next) => {
   try {
