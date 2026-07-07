@@ -46,10 +46,27 @@ const createBusinessSchema = z.object({
   address: z.string().optional(),
   timezone: z.string().default('Asia/Kolkata'),
   planId: z.string().optional(),
-  instagramUrl: z.string().optional().nullable(),
-  facebookUrl: z.string().optional().nullable(),
+  instagramUrl: z.string().url().optional().nullable().or(z.literal('')).refine(val => {
+    if (!val) return true;
+    try {
+      return new URL(val).hostname.toLowerCase().includes('instagram.com');
+    } catch (_) { return false; }
+  }, { message: 'Must be a valid Instagram link' }),
+  facebookUrl: z.string().url().optional().nullable().or(z.literal('')).refine(val => {
+    if (!val) return true;
+    try {
+      const hostname = new URL(val).hostname.toLowerCase();
+      return hostname.includes('facebook.com') || hostname.includes('fb.com');
+    } catch (_) { return false; }
+  }, { message: 'Must be a valid Facebook link' }),
   whatsappUrl: z.string().optional().nullable(),
-  googleReviewUrl: z.string().optional().nullable(),
+  googleReviewUrl: z.string().url().optional().nullable().or(z.literal('')).refine(val => {
+    if (!val) return true;
+    try {
+      const hostname = new URL(val).hostname.toLowerCase();
+      return hostname.includes('google.') || hostname.includes('g.page');
+    } catch (_) { return false; }
+  }, { message: 'Must be a valid Google link' }),
 });
 
 const updateBusinessSchema = z.object({
@@ -58,10 +75,27 @@ const updateBusinessSchema = z.object({
   address: z.string().optional(),
   timezone: z.string().optional(),
   planId: z.string().optional(),
-  instagramUrl: z.string().optional().nullable(),
-  facebookUrl: z.string().optional().nullable(),
+  instagramUrl: z.string().url().optional().nullable().or(z.literal('')).refine(val => {
+    if (!val) return true;
+    try {
+      return new URL(val).hostname.toLowerCase().includes('instagram.com');
+    } catch (_) { return false; }
+  }, { message: 'Must be a valid Instagram link' }),
+  facebookUrl: z.string().url().optional().nullable().or(z.literal('')).refine(val => {
+    if (!val) return true;
+    try {
+      const hostname = new URL(val).hostname.toLowerCase();
+      return hostname.includes('facebook.com') || hostname.includes('fb.com');
+    } catch (_) { return false; }
+  }, { message: 'Must be a valid Facebook link' }),
   whatsappUrl: z.string().optional().nullable(),
-  googleReviewUrl: z.string().optional().nullable(),
+  googleReviewUrl: z.string().url().optional().nullable().or(z.literal('')).refine(val => {
+    if (!val) return true;
+    try {
+      const hostname = new URL(val).hostname.toLowerCase();
+      return hostname.includes('google.') || hostname.includes('g.page');
+    } catch (_) { return false; }
+  }, { message: 'Must be a valid Google link' }),
   category: z.string().optional().nullable(),
   bookingUrl: z.string().optional().nullable(),
   coverUrl: z.string().optional().nullable(),

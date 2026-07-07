@@ -61,25 +61,28 @@ export default function ReviewPage() {
         setGenerationId(res.data.generationId || "");
         setStep("suggestions");
       } else {
-        throw new Error("Failed to generate reviews suggestions");
+        throw new Error("Failed to load review suggestions");
       }
     } catch (err) {
       console.error("Error generating reviews:", err);
-      setGeneratingError(err.message || "Failed to generate suggestions. Please try again.");
+      setGeneratingError(err.message || "Failed to load suggestions. Please try again.");
       setStep("rating");
     }
   };
 
   // Handle suggestion selection
-  const handleSelectSuggestion = async (reviewText) => {
-    setSelectedReview(reviewText);
+  const handleSelectSuggestion = async (item) => {
+    const text = typeof item === 'string' ? item : item.text;
+    const templateId = typeof item === 'string' ? null : item.id;
+    setSelectedReview(text);
     setStep("selected");
 
     if (generationId) {
       try {
         await api.post("/reviews/track-selection", {
           reviewGenerationId: generationId,
-          selectedReview: reviewText,
+          selectedReview: text,
+          templateId: templateId,
         });
       } catch (err) {
         console.error("Failed to track selection:", err);
@@ -166,22 +169,20 @@ export default function ReviewPage() {
           React.createElement('h2', { className: "text-lg font-extrabold text-foreground" }, "Rate Your Experience"),
           React.createElement('p', { className: "text-xs text-muted-foreground" }, "How would you rate your visit to " + business.name + "?")
         ),
-        React.createElement('div', { className: "flex items-center justify-center gap-2 py-4" },
-          [1, 2, 3, 4, 5].map((star) => {
-            const active = star <= (hoverRating || rating);
-            return React.createElement(Star, {
-              key: star,
-              className: `h-10 w-10 cursor-pointer transition-all duration-200 hover:scale-125 ${
-                active ? "text-amber-500 fill-amber-500" : "text-slate-300 stroke-[1.5]"
-              }`,
-              onMouseEnter: () => setHoverRating(star),
-              onMouseLeave: () => setHoverRating(0),
-              onClick: () => handleRatingSelect(star)
-            });
+        React.createElement('div', { className: "flex flex-col gap-3 py-4" },
+          [3, 4, 5].map((starVal) => {
+            return React.createElement(Button, {
+              key: starVal,
+              variant: "outline",
+              className: "w-full py-6 flex items-center justify-center gap-2 rounded-xl text-base font-bold border-zinc-200 hover:border-amber-500 hover:bg-amber-50/20 text-zinc-800 transition-all duration-200",
+              onClick: () => handleRatingSelect(starVal)
+            },
+              "⭐".repeat(starVal)
+            );
           })
         ),
         generatingError ? React.createElement('p', { className: "text-xs text-destructive text-center" }, generatingError) : null,
-        React.createElement('p', { className: "text-[10px] text-muted-foreground text-center" }, "Selecting a rating generates personalized review suggestions powered by AI.")
+        React.createElement('p', { className: "text-[10px] text-muted-foreground text-center" }, "Selecting a rating displays matching suggested reviews from our database.")
       )
     ) : null,
 
@@ -193,8 +194,8 @@ export default function ReviewPage() {
           React.createElement(Sparkles, { className: "h-6 w-6 text-primary animate-pulse" })
         ),
         React.createElement('div', { className: "space-y-1.5" },
-          React.createElement(CardTitle, { className: "text-sm text-foreground font-extrabold" }, "Generating Review Suggestions..."),
-          React.createElement(CardDescription, { className: "text-xs text-muted-foreground" }, "Our AI is crafting 5 unique feedback options for you.")
+          React.createElement(CardTitle, { className: "text-sm text-foreground font-extrabold" }, "Loading suggestions..."),
+          React.createElement(CardDescription, { className: "text-xs text-muted-foreground" }, "Fetching matching review suggestions from the database.")
         )
       )
     ) : null,
@@ -202,21 +203,22 @@ export default function ReviewPage() {
     /* Step 3: suggestions list */
     step === "suggestions" ? React.createElement('div', { className: "space-y-4 animate-fade-in" },
       React.createElement('div', { className: "space-y-1" },
-        React.createElement('h2', { className: "text-base font-extrabold text-foreground" }, "AI Suggested Reviews"),
-        React.createElement('p', { className: "text-xs text-muted-foreground" }, "We crafted these based on your " + rating + "-star rating. Choose one to continue:")
+        React.createElement('h2', { className: "text-base font-extrabold text-foreground" }, "Suggested Reviews"),
+        React.createElement('p', { className: "text-xs text-muted-foreground" }, "We found these based on your " + rating + "-star rating. Choose one to continue:")
       ),
       React.createElement('div', { className: "space-y-3" },
-        suggestions.map((text, idx) =>
-          React.createElement(Card, { key: idx, className: "border-border/60 bg-white hover:border-primary/40 transition-colors shadow-sm rounded-xl overflow-hidden" },
+        suggestions.map((item, idx) => {
+          const text = typeof item === 'string' ? item : item.text;
+          return React.createElement(Card, { key: idx, className: "border-border/60 bg-white hover:border-primary/40 transition-colors shadow-sm rounded-xl overflow-hidden" },
             React.createElement(CardContent, { className: "p-4 space-y-3" },
               React.createElement('p', { className: "text-xs text-slate-700 leading-relaxed font-medium italic" }, `"${text}"`),
               React.createElement(Button, {
                 className: "w-full bg-primary/5 text-primary hover:bg-primary hover:text-white rounded-full text-xs font-bold h-9 transition-colors",
-                onClick: () => handleSelectSuggestion(text)
+                onClick: () => handleSelectSuggestion(item)
               }, "Use This Review")
             )
-          )
-        )
+          );
+        })
       )
     ) : null,
 

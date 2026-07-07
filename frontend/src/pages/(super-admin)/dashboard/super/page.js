@@ -233,6 +233,50 @@ export default function SuperDashboard() {
         )
       )
 
+      /* Review Statistics Section */
+      , React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" }
+        , React.createElement(Card, { className: "glass", glass: true }
+          , React.createElement(CardHeader, { className: "flex flex-row items-center justify-between pb-2" }
+            , React.createElement(CardDescription, { className: "text-xs font-bold uppercase tracking-wider text-muted-foreground" }, "Total Reviews")
+            , React.createElement(Users, { className: "h-5 w-5 text-indigo-600" })
+          )
+          , React.createElement(CardContent, null
+            , React.createElement('span', { className: "text-3xl font-extrabold text-foreground" }, _optionalChain([stats, 'optionalAccess', _ => _.totalReviews]) || 0)
+            , React.createElement('p', { className: "text-[10px] text-muted-foreground mt-1" }, "Total review templates in database")
+          )
+        )
+        , React.createElement(Card, { className: "glass", glass: true }
+          , React.createElement(CardHeader, { className: "flex flex-row items-center justify-between pb-2" }
+            , React.createElement(CardDescription, { className: "text-xs font-bold uppercase tracking-wider text-muted-foreground" }, "Available Reviews")
+            , React.createElement(UserCheck, { className: "h-5 w-5 text-emerald-600" })
+          )
+          , React.createElement(CardContent, null
+            , React.createElement('span', { className: "text-3xl font-extrabold text-foreground" }, _optionalChain([stats, 'optionalAccess', _ => _.availableReviews]) || 0)
+            , React.createElement('p', { className: "text-[10px] text-muted-foreground mt-1" }, "Templates ready to suggest")
+          )
+        )
+        , React.createElement(Card, { className: "glass", glass: true }
+          , React.createElement(CardHeader, { className: "flex flex-row items-center justify-between pb-2" }
+            , React.createElement(CardDescription, { className: "text-xs font-bold uppercase tracking-wider text-muted-foreground" }, "Reserved Reviews")
+            , React.createElement(CreditCard, { className: "h-5 w-5 text-amber-600" })
+          )
+          , React.createElement(CardContent, null
+            , React.createElement('span', { className: "text-3xl font-extrabold text-foreground" }, _optionalChain([stats, 'optionalAccess', _ => _.reservedReviews]) || 0)
+            , React.createElement('p', { className: "text-[10px] text-muted-foreground mt-1" }, "Templates currently reserved (10m timer)")
+          )
+        )
+        , React.createElement(Card, { className: "glass", glass: true }
+          , React.createElement(CardHeader, { className: "flex flex-row items-center justify-between pb-2" }
+            , React.createElement(CardDescription, { className: "text-xs font-bold uppercase tracking-wider text-muted-foreground" }, "Used Reviews")
+            , React.createElement(Award, { className: "h-5 w-5 text-primary" })
+          )
+          , React.createElement(CardContent, null
+            , React.createElement('span', { className: "text-3xl font-extrabold text-foreground" }, _optionalChain([stats, 'optionalAccess', _ => _.usedReviews]) || 0)
+            , React.createElement('p', { className: "text-[10px] text-muted-foreground mt-1" }, "Templates posted on Google")
+          )
+        )
+      )
+
       /* Subscription overview and billing status */
       , React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-6"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 122}}
 

@@ -63,8 +63,8 @@ router.post(
   validate(trackSelectionSchema),
   async (req, res, next) => {
     try {
-      const { reviewGenerationId, selectedReview } = req.body;
-      await trackReviewSelection(req.user.sub, reviewGenerationId, selectedReview);
+      const { reviewGenerationId, selectedReview, templateId } = req.body;
+      await trackReviewSelection(req.user.sub, reviewGenerationId, selectedReview, templateId);
       sendSuccess(res, null, 'Review selection tracked');
     } catch (err) {
       next(err);

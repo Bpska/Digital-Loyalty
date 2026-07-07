@@ -126,6 +126,8 @@ model User {
   loyaltyWallets       CustomerLoyaltyWallet[]
   loyaltyPointsLedgers LoyaltyPointsLedger[]
   claimedCoupons       ClaimedCoupon[]
+  reservedReviews      ReviewTemplate[]      @relation("ReservedReviews")
+  usedReviews          ReviewTemplate[]      @relation("UsedReviews")
 
   @@index([phone])
   @@index([role])
@@ -699,6 +701,9 @@ model ReviewGeneration {
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
+  reviewTemplateId String?
+  reviewTemplate   ReviewTemplate? @relation(fields: [reviewTemplateId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
 
   @@index([userId])
@@ -837,5 +842,24 @@ model BusinessBrandAsset {
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("business_brand_assets")
+}
+
+model ReviewTemplate {
+  id               String    @id @default(cuid())
+  businessCategory String    @map("business_category")
+  starRating       Int       @map("star_rating")
+  reviewText       String    @map("review_text")
+  status           String    @default("AVAILABLE") // AVAILABLE, RESERVED, USED
+  reservedById     String?   @map("reserved_by")
+  usedById         String?   @map("used_by")
+  reservedBy       User?     @relation("ReservedReviews", fields: [reservedById], references: [id])
+  usedBy           User?     @relation("UsedReviews", fields: [usedById], references: [id])
+  reservedAt       DateTime? @map("reserved_at")
+  usedAt           DateTime? @map("used_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  reviewGenerations ReviewGeneration[]
+
+  @@map("review_templates")
 }
 

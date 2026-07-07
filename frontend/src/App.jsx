@@ -34,6 +34,7 @@ import BusinessApprovals from './pages/(business-admin)/dashboard/business/appro
 import BusinessLoyaltyConfig from './pages/(business-admin)/dashboard/business/loyalty-config/page.js';
 import BusinessRedemptions from './pages/(business-admin)/dashboard/business/redemptions/page.js';
 import BrandCustomizationPage from './pages/(business-admin)/dashboard/business/branding/page.js';
+import BusinessProfile from './pages/(business-admin)/dashboard/business/profile/page.jsx';
 
 // Super Admin Pages
 import SuperDashboard from './pages/(super-admin)/dashboard/super/page.js';
@@ -114,6 +115,7 @@ export default function App() {
             <Route path="/dashboard/business/loyalty-config" element={<BusinessLoyaltyConfig />} />
             <Route path="/dashboard/business/redemptions" element={<BusinessRedemptions />} />
             <Route path="/dashboard/business/branding" element={<BrandCustomizationPage />} />
+            <Route path="/dashboard/business/profile" element={<BusinessProfile />} />
           </Route>
 
           {/* Super Admin Routes */}

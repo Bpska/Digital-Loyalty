@@ -609,7 +609,7 @@ export default function BusinessAdminLayout({
         { label: "Analytics", icon: BarChart3, href: "/dashboard/business/analytics", iconKey: "dashboardIcon" },
         { label: "Branches", icon: MapPin, href: "/dashboard/business/branches", iconKey: "dashboardIcon" },
         { label: "Loyalty Settings", icon: Settings2, href: "/dashboard/business/loyalty-config", iconKey: "loyaltyIcon" },
-        { label: "Brand Customization", icon: Palette, href: "/dashboard/business/branding", iconKey: "loyaltyIcon" },
+        { label: "Settings & Profile", icon: Settings, href: "/dashboard/business/profile", iconKey: "dashboardIcon" },
       ];
 
   return (
@@ -706,10 +706,10 @@ export default function BusinessAdminLayout({
         )
         , React.createElement('div', { className: "p-4 border-t border-border space-y-1" }
           /* Settings shortcut */
-          , React.createElement('button', {
-              onClick: () => { setMobileOpen(false); handleOpenProfileModal(); },
-              className: "flex items-center space-x-3 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors",
-              __self: this, __source: {fileName: _jsxFileName, lineNumber: 150}
+          , React.createElement(Link, {
+              to: "/dashboard/business/profile",
+              onClick: () => setMobileOpen(false),
+              className: "flex items-center space-x-3 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             }
             , React.createElement(Settings, { className: "h-4.5 w-4.5" })
             , React.createElement('span', null, "Settings & Profile")
@@ -754,8 +754,8 @@ export default function BusinessAdminLayout({
             )
             , React.createElement('div', { className: "h-px bg-border w-4 hidden sm:block"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 182}} )
             /* User avatar */
-            , React.createElement('button', { 
-                onClick: handleOpenProfileModal,
+            , React.createElement(Link, { 
+                to: "/dashboard/business/profile",
                 className: "flex items-center space-x-2 p-1 rounded-lg hover:bg-muted transition-colors outline-none",
                 __self: this, 
                 __source: {fileName: _jsxFileName, lineNumber: 184}
@@ -925,7 +925,7 @@ export default function BusinessAdminLayout({
               { label: "Approvals", icon: ClipboardCheck, href: "/dashboard/business/approvals", badge: pendingApprovals },
               { label: "Coupons", icon: Percent, href: "/dashboard/business/coupons" },
               { label: "Analytics", icon: BarChart3, href: "/dashboard/business/analytics" },
-              { label: "Settings", icon: Settings, onClick: () => setMobileOpen(true) }
+              { label: "Profile", icon: Settings, href: "/dashboard/business/profile" }
             ].map((item, idx) => {
               const isActive = item.href ? pathname === item.href : false;
               const Icon = item.icon;

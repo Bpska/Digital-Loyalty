@@ -8,13 +8,14 @@ import { AppError } from '../../middlewares/error.middleware.js';
 // ──────────────────────────────────────────────────────────────
 
 /**
- * Generate 5 AI review suggestions for a customer.
+ * Fetch 3 random pre-written reviews.
  * Saves a ReviewGeneration record for analytics.
+ * Bypasses Ollama/AI.
  *
  * @param {string} userId     - Authenticated customer's user ID
  * @param {string} businessId - Target business
- * @param {number} rating     - 1–5 star rating
- * @returns {{ generationId: string, reviews: string[] }}
+ * @param {number} rating     - 1–5 star rating (mapped to star_rating)
+ * @returns {{ generationId: string, reviews: { id: string, text: string }[] }}
  */
 export async function generateReviewSuggestions(userId, businessId, rating) {
   // Verify business exists
@@ -27,45 +28,61 @@ export async function generateReviewSuggestions(userId, businessId, rating) {
     throw new AppError('Business not found', 404);
   }
 
-  // Extract locality/area from address
-  let locality = '';
-  if (business.address) {
-    const parts = business.address.split(',').map((p) => p.trim());
-    if (parts.length >= 2) {
-      locality = parts[parts.length - 2];
-    } else {
-      locality = parts[0];
-    }
+  // 1. Reservation cleanup: Release expired reservations (older than 10 minutes) in the background
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+  prisma.reviewTemplate.updateMany({
+    where: {
+      status: 'RESERVED',
+      reservedAt: { lt: tenMinutesAgo },
+    },
+    data: {
+      status: 'AVAILABLE',
+      reservedById: null,
+      reservedAt: null,
+    },
+  }).catch((err) => {
+    console.error("Error in background review reservation cleanup:", err);
+  });
+
+  // 2. Fetch templates
+  const category = business.reviewSettings?.businessType || business.category || 'Business';
+  let normalizedCategory = 'Business';
+  if (category) {
+    normalizedCategory = category.trim().charAt(0).toUpperCase() + category.trim().slice(1).toLowerCase();
   }
 
-  // Fetch last 5 selected/generated reviews for this business to avoid duplicates
-  const lastGenerations = await prisma.reviewGeneration.findMany({
-    where: { businessId },
-    orderBy: { createdAt: 'desc' },
-    take: 5,
-    select: { selectedReview: true, generatedReviews: true },
+  // Find available templates matching rating and category (exact match for speed)
+  const templates = await prisma.reviewTemplate.findMany({
+    where: {
+      status: 'AVAILABLE',
+      starRating: rating,
+      businessCategory: normalizedCategory,
+    },
   });
 
-  const lastReviews = [];
-  lastGenerations.forEach((g) => {
-    if (g.selectedReview) lastReviews.push(g.selectedReview);
-    if (Array.isArray(g.generatedReviews)) {
-      g.generatedReviews.forEach((r) => {
-        if (typeof r === 'string') lastReviews.push(r);
-      });
-    }
-  });
-  const uniqueLastReviews = [...new Set(lastReviews)].slice(0, 5);
+  let selectedTemplates = [...templates];
 
-  const context = {
-    name: business.name,
-    category: business.reviewSettings?.businessType || business.category || 'Business',
-    description: business.description || '',
-    locality: locality,
-  };
+  // If we have fewer than 3 templates, pull fallbacks from 'Business' category
+  if (selectedTemplates.length < 3) {
+    const fallbackTemplates = await prisma.reviewTemplate.findMany({
+      where: {
+        status: 'AVAILABLE',
+        starRating: rating,
+        businessCategory: 'Business',
+        id: {
+          notIn: selectedTemplates.map((t) => t.id),
+        },
+      },
+    });
+    selectedTemplates = [...selectedTemplates, ...fallbackTemplates];
+  }
 
-  // Call Ollama (or fallback)
-  const reviews = await generateReviews(context, rating, uniqueLastReviews);
+  // Shuffle and pick 3
+  const shuffled = selectedTemplates.sort(() => 0.5 - Math.random());
+  const finalTemplates = shuffled.slice(0, 3);
+
+  // Extract text array to save in the legacy generatedReviews field for analytics/safety
+  const reviewTexts = finalTemplates.map((t) => t.reviewText);
 
   // Persist analytics record
   const record = await prisma.reviewGeneration.create({
@@ -73,13 +90,13 @@ export async function generateReviewSuggestions(userId, businessId, rating) {
       userId,
       businessId,
       rating,
-      generatedReviews: reviews,
+      generatedReviews: reviewTexts,
     },
   });
 
   return {
     generationId: record.id,
-    reviews,
+    reviews: finalTemplates.map((t) => ({ id: t.id, text: t.reviewText })),
   };
 }
 
@@ -89,8 +106,9 @@ export async function generateReviewSuggestions(userId, businessId, rating) {
 
 /**
  * Track which review the customer selected.
+ * Immediately reserves the template in the database.
  */
-export async function trackReviewSelection(userId, reviewGenerationId, selectedReview) {
+export async function trackReviewSelection(userId, reviewGenerationId, selectedReview, templateId) {
   const record = await prisma.reviewGeneration.findUnique({
     where: { id: reviewGenerationId },
   });
@@ -98,14 +116,38 @@ export async function trackReviewSelection(userId, reviewGenerationId, selectedR
   if (!record) throw new AppError('Review generation record not found', 404);
   if (record.userId !== userId) throw new AppError('Forbidden', 403);
 
+  // 1. Perform reservation if templateId is provided
+  if (templateId) {
+    // Verify template is still AVAILABLE
+    const template = await prisma.reviewTemplate.findUnique({
+      where: { id: templateId },
+    });
+
+    if (template && template.status === 'AVAILABLE') {
+      await prisma.reviewTemplate.update({
+        where: { id: templateId },
+        data: {
+          status: 'RESERVED',
+          reservedById: userId,
+          reservedAt: new Date(),
+        },
+      });
+    }
+  }
+
+  // 2. Update the ReviewGeneration session record with selected text and template ID
   await prisma.reviewGeneration.update({
     where: { id: reviewGenerationId },
-    data: { selectedReview },
+    data: {
+      selectedReview,
+      reviewTemplateId: templateId || null,
+    },
   });
 }
 
 /**
  * Track when the customer clicks the "Open Google Reviews" button.
+ * Immediately marks the reserved review template as USED.
  */
 export async function trackReviewLinkClick(userId, reviewGenerationId) {
   const record = await prisma.reviewGeneration.findUnique({
@@ -114,6 +156,18 @@ export async function trackReviewLinkClick(userId, reviewGenerationId) {
 
   if (!record) throw new AppError('Review generation record not found', 404);
   if (record.userId !== userId) throw new AppError('Forbidden', 403);
+
+  // Mark the reserved template as USED
+  if (record.reviewTemplateId) {
+    await prisma.reviewTemplate.update({
+      where: { id: record.reviewTemplateId },
+      data: {
+        status: 'USED',
+        usedById: userId,
+        usedAt: new Date(),
+      },
+    });
+  }
 
   await prisma.reviewGeneration.update({
     where: { id: reviewGenerationId },

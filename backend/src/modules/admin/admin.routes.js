@@ -25,6 +25,20 @@ router.use(authenticate, authorize(Role.SUPER_ADMIN));
  */
 router.get('/dashboard', async (req, res, next) => {
   try {
+    // First, clean up expired reservations (older than 10 minutes)
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    await prisma.reviewTemplate.updateMany({
+      where: {
+        status: 'RESERVED',
+        reservedAt: { lt: tenMinutesAgo },
+      },
+      data: {
+        status: 'AVAILABLE',
+        reservedById: null,
+        reservedAt: null,
+      },
+    });
+
     const [
       totalBusinesses,
       activeBusinesses,
@@ -32,6 +46,10 @@ router.get('/dashboard', async (req, res, next) => {
       totalCheckIns,
       totalRewardsRedeemed,
       activeSubscriptions,
+      totalReviews,
+      availableReviews,
+      reservedReviews,
+      usedReviews,
     ] = await Promise.all([
       prisma.business.count({ where: { deletedAt: null } }),
       prisma.business.count({ where: { status: BusinessStatus.ACTIVE } }),
@@ -39,6 +57,10 @@ router.get('/dashboard', async (req, res, next) => {
       prisma.checkIn.count(),
       prisma.customerReward.count({ where: { status: 'REDEEMED' } }),
       prisma.subscription.count({ where: { status: 'ACTIVE' } }),
+      prisma.reviewTemplate.count(),
+      prisma.reviewTemplate.count({ where: { status: 'AVAILABLE' } }),
+      prisma.reviewTemplate.count({ where: { status: 'RESERVED' } }),
+      prisma.reviewTemplate.count({ where: { status: 'USED' } }),
     ]);
 
     // Monthly revenue from captured payments (last 12 months)
@@ -58,6 +80,10 @@ router.get('/dashboard', async (req, res, next) => {
       totalCheckIns,
       totalRewardsRedeemed,
       activeSubscriptions,
+      totalReviews,
+      availableReviews,
+      reservedReviews,
+      usedReviews,
       recentPayments: payments,
     });
   } catch (err) {
