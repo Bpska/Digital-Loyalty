@@ -8,12 +8,13 @@ import { useAuthStore } from "@/store/authStore";
 import { 
   LayoutDashboard, 
   MapPin,
- 
+  Home,
+  QrCode,
+  Ticket,
   Settings, 
   Award, 
   Percent, 
   BarChart3,
- 
   LogOut, 
   Menu, 
   X, 
@@ -730,11 +731,15 @@ export default function BusinessAdminLayout({
         , React.createElement('div', { className: "absolute top-1/4 -right-48 w-[600px] h-[600px] bg-primary/8 rounded-full blur-[120px] pointer-events-none z-0" })
         , React.createElement('div', { className: "absolute bottom-1/4 -left-48 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] pointer-events-none z-0" })
         /* Top Navbar */
-        , React.createElement('header', { className: "h-16 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-30"           , __self: this, __source: {fileName: _jsxFileName, lineNumber: 164}}
-          , React.createElement('div', { className: "flex items-center space-x-4"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 165}}
-            , React.createElement('h2', { className: "text-sm font-semibold text-muted-foreground"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 172}}, "Business Portal"
-
+        , React.createElement('header', { className: "h-14 md:h-16 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between px-4 md:px-6 sticky top-0 z-30", __self: this, __source: {fileName: _jsxFileName, lineNumber: 164}}
+          , React.createElement('div', { className: "flex items-center space-x-3", __self: this, __source: {fileName: _jsxFileName, lineNumber: 165}}
+            , React.createElement('button', {
+              onClick: () => setMobileOpen(true),
+              className: "md:hidden p-1.5 rounded-lg text-muted-foreground hover:bg-muted transition-colors"
+            }
+              , React.createElement(Menu, { className: "h-5 w-5" })
             )
+            , React.createElement('h2', { className: "text-sm font-semibold text-muted-foreground", __self: this, __source: {fileName: _jsxFileName, lineNumber: 172}}, "Business Portal")
           )
           , React.createElement('div', { className: "flex items-center space-x-4"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 176}}
             /* Notifications */
@@ -771,7 +776,7 @@ export default function BusinessAdminLayout({
         )
 
         /* Content Box */
-        , React.createElement('main', { className: "flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto relative z-10"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 196}}
+        , React.createElement('main', { className: "flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto relative z-10", __self: this, __source: {fileName: _jsxFileName, lineNumber: 196}}
           , React.createElement(Outlet, null)
         )
         /* Notifications Modal Dialog */
@@ -918,54 +923,51 @@ export default function BusinessAdminLayout({
               )
             )
           )
-        /* Mobile Bottom Navigation - Android Material 3 Style */
-        , !isPending && React.createElement('div', { className: "fixed bottom-0 left-0 right-0 z-40 bg-white/95 border-t border-border/60 flex justify-around items-center py-2 pb-safe md:hidden shadow-[0_-4px_16px_rgba(0,0,0,0.04)] backdrop-blur-md" }
-          , [
-              { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard/business" },
-              { label: "Approvals", icon: ClipboardCheck, href: "/dashboard/business/approvals", badge: pendingApprovals },
-              { label: "Coupons", icon: Percent, href: "/dashboard/business/coupons" },
-              { label: "Analytics", icon: BarChart3, href: "/dashboard/business/analytics" },
-              { label: "Profile", icon: Settings, href: "/dashboard/business/profile" }
-            ].map((item, idx) => {
-              const isActive = item.href ? pathname === item.href : false;
-              const Icon = item.icon;
-              
-              const content = React.createElement(React.Fragment, null,
-                React.createElement('div', { 
-                  className: cn(
-                    "h-8 w-14 rounded-full flex items-center justify-center transition-all duration-300 transform relative",
-                    isActive 
-                      ? "bg-primary/10 text-primary scale-105" 
-                      : "text-muted-foreground group-hover:text-foreground"
-                  )
-                }, 
-                  React.createElement(Icon, { className: "h-4.5 w-4.5" })
-                  , item.badge > 0 && React.createElement('span', { className: "absolute top-0 right-2 bg-amber-500 text-white text-[8px] font-black h-3.5 min-w-[14px] flex items-center justify-center px-1 rounded-full shadow-sm" }, item.badge)
-                ),
-                React.createElement('span', { 
-                  className: cn(
-                    "text-[10px] tracking-tight transition-all duration-200 mt-1 block text-center",
-                    isActive ? "text-primary font-bold animate-pulse-subtle" : "text-muted-foreground font-medium"
-                  )
-                }, item.label)
-              );
-
-              if (item.onClick) {
-                return React.createElement('button', {
-                  key: idx,
-                  onClick: item.onClick,
-                  className: "flex flex-col items-center justify-center group py-1 min-w-[64px] active:scale-95 transition-transform"
-                }, content);
-              }
-
-              return React.createElement(Link, {
-                key: item.href,
-                to: item.href,
-                className: "flex flex-col items-center justify-center group py-1 min-w-[64px] active:scale-95 transition-transform"
-              }, content);
-            })
+        /* Mobile Bottom Navigation - ScanLoyal Premium Style */
+        , !isPending && React.createElement('div', { className: "fixed bottom-0 left-0 right-0 z-40 md:hidden" }
+          , React.createElement('div', { className: "bg-white/95 backdrop-blur-xl border-t border-[#F1F5F9] shadow-[0_-4px_24px_rgba(0,0,0,0.06)]" }
+            , React.createElement('div', { className: "flex justify-around items-end px-2 pt-2 pb-safe pb-2" }
+              /* Dashboard */
+              , React.createElement(Link, { to: "/dashboard/business", className: "flex flex-col items-center gap-1 py-1 px-3 min-w-[56px]" }
+                , React.createElement('div', { className: cn("flex items-center justify-center w-12 h-7 rounded-full transition-all", pathname === "/dashboard/business" ? "bg-[#FFF0E6]" : "bg-transparent") }
+                  , React.createElement(Home, { className: cn("h-5 w-5 transition-colors", pathname === "/dashboard/business" ? "text-[#F97316]" : "text-[#94A3B8]") })
+                )
+                , React.createElement('span', { className: cn("text-[10px] font-semibold transition-colors", pathname === "/dashboard/business" ? "text-[#F97316]" : "text-[#94A3B8]") }, "Dashboard")
+              )
+              /* Approvals */
+              , React.createElement(Link, { to: "/dashboard/business/approvals", className: "flex flex-col items-center gap-1 py-1 px-3 min-w-[56px] relative" }
+                , React.createElement('div', { className: cn("flex items-center justify-center w-12 h-7 rounded-full transition-all", pathname === "/dashboard/business/approvals" ? "bg-[#FFF0E6]" : "bg-transparent") }
+                  , React.createElement(ClipboardCheck, { className: cn("h-5 w-5 transition-colors", pathname === "/dashboard/business/approvals" ? "text-[#F97316]" : "text-[#94A3B8]") })
+                  , pendingApprovals > 0 && React.createElement('span', { className: "absolute top-0 right-1 bg-amber-500 text-white text-[8px] font-black h-3.5 min-w-[14px] flex items-center justify-center px-1 rounded-full shadow-sm" }, pendingApprovals)
+                )
+                , React.createElement('span', { className: cn("text-[10px] font-semibold transition-colors", pathname === "/dashboard/business/approvals" ? "text-[#F97316]" : "text-[#94A3B8]") }, "Approvals")
+              )
+              /* CENTER — Scan (raised floating button) */
+              , React.createElement('div', { className: "flex flex-col items-center -mt-5" }
+                , React.createElement(Link, { to: "/dashboard/business/branches", className: "w-14 h-14 rounded-full bg-[#F97316] flex items-center justify-center shadow-lg shadow-[#F97316]/40 active:scale-95 transition-transform border-4 border-white" }
+                  , React.createElement(QrCode, { className: "h-6 w-6 text-white" })
+                )
+                , React.createElement('span', { className: "text-[10px] font-semibold text-[#94A3B8] mt-1" }, "Scan")
+              )
+              /* Coupons */
+              , React.createElement(Link, { to: "/dashboard/business/coupons", className: "flex flex-col items-center gap-1 py-1 px-3 min-w-[56px]" }
+                , React.createElement('div', { className: cn("flex items-center justify-center w-12 h-7 rounded-full transition-all", pathname === "/dashboard/business/coupons" ? "bg-[#FFF0E6]" : "bg-transparent") }
+                  , React.createElement(Ticket, { className: cn("h-5 w-5 transition-colors", pathname === "/dashboard/business/coupons" ? "text-[#F97316]" : "text-[#94A3B8]") })
+                )
+                , React.createElement('span', { className: cn("text-[10px] font-semibold transition-colors", pathname === "/dashboard/business/coupons" ? "text-[#F97316]" : "text-[#94A3B8]") }, "Coupons")
+              )
+              /* Profile */
+              , React.createElement(Link, { to: "/dashboard/business/profile", className: "flex flex-col items-center gap-1 py-1 px-3 min-w-[56px]" }
+                , React.createElement('div', { className: cn("flex items-center justify-center w-12 h-7 rounded-full transition-all", pathname === "/dashboard/business/profile" ? "bg-[#FFF0E6]" : "bg-transparent") }
+                  , React.createElement(Settings, { className: cn("h-5 w-5 transition-colors", pathname === "/dashboard/business/profile" ? "text-[#F97316]" : "text-[#94A3B8]") })
+                )
+                , React.createElement('span', { className: cn("text-[10px] font-semibold transition-colors", pathname === "/dashboard/business/profile" ? "text-[#F97316]" : "text-[#94A3B8]") }, "Profile")
+              )
+            )
           )
+        )
       )
     )
   );
 }
+

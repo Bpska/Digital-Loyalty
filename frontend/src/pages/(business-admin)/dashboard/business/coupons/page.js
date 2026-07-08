@@ -13,9 +13,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import {
   Percent, Plus, Loader2, Tag, ToggleLeft, ToggleRight, MoreVertical,
   Pencil, Trash2, CheckCircle2, XCircle, BadgePercent, User,
-  Phone, Mail, Clock, Stamp, Star, History, Scan, Camera, Upload
+  Phone, Mail, Clock, Stamp, Star, History, Scan, Camera, Upload, Bell
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import BusinessBottomNav from "@/components/BusinessBottomNav";
+import { cn } from "@/lib/utils";
 
 // ─── Overflow menu ─────────────────────────────────────────────────────────────
 function CouponMenu({ coupon, onEdit, onDelete, onToggle, isExpired }) {
@@ -70,7 +72,7 @@ function CouponMenu({ coupon, onEdit, onDelete, onToggle, isExpired }) {
 function CustomerInfoCard({ customer, coupon }) {
   const ls = customer.loyaltyStats;
   return (
-    React.createElement('div', { className: "mt-3 bg-emerald-50 border border-emerald-200 rounded-xl p-4 space-y-3" },
+    React.createElement('div', { className: "mt-3 bg-[#DCFCE7]/60 border border-emerald-200 rounded-2xl p-4 space-y-3" },
       /* Success header */
       React.createElement('div', { className: "flex items-center gap-2" },
         React.createElement(CheckCircle2, { className: "h-5 w-5 text-emerald-600 shrink-0" }),
@@ -203,7 +205,7 @@ export default function CouponsPage() {
     setApprovalResult(null);
     try {
       const { Html5Qrcode } = await import("html5-qrcode");
-      const html5QrCode = new Html5Qrcode("reader-coupon-hidden");
+      const html5QrCode = new Html5Qrcode("reader-coupon-hidden-mob");
       const decodedText = await html5QrCode.scanFile(file, true);
       handleScanSuccess(decodedText);
     } catch (err) {
@@ -226,7 +228,7 @@ export default function CouponsPage() {
           const { Html5Qrcode } = await import("html5-qrcode");
           if (!isMounted) return;
 
-          const scannerId = "reader-coupon-apply";
+          const scannerId = "reader-coupon-apply-mob";
           qrScanner = new Html5Qrcode(scannerId);
           html5QrCodeApplyRef.current = qrScanner;
 
@@ -408,426 +410,522 @@ export default function CouponsPage() {
   }
 
   return (
-    React.createElement('div', { className: "space-y-6 max-w-2xl mx-auto w-full" },
+    React.createElement('div', { className: "min-h-screen bg-[#F8FAFC] -m-4 md:-m-8 md:m-0 md:bg-transparent" }
 
-      /* ── Coupon Approval Panel ─────────────────────────────────────────── */
-      React.createElement(Card, { className: "glass border-primary/20" },
-        React.createElement(CardHeader, { className: "p-4 pb-0" },
-          React.createElement('div', { className: "flex items-center gap-2 mb-3" },
-            React.createElement(BadgePercent, { className: "h-5 w-5 text-primary" }),
-            React.createElement(CardTitle, { className: "text-base font-bold" }, "Coupon Approval")
-          ),
-          /* Tabs */
-          React.createElement('div', { className: "flex gap-1 bg-slate-100 rounded-lg p-0.5" },
-            React.createElement('button', {
-              type: "button",
-              onClick: () => setApprovalTab("apply"),
-              className: `flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors ${approvalTab === "apply" ? "bg-white shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`
-            }, "Apply Code"),
-            React.createElement('button', {
-              type: "button",
-              onClick: () => { setApprovalTab("history"); refetchHistory(); },
-              className: `flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors flex items-center justify-center gap-1 ${approvalTab === "history" ? "bg-white shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`
-            }, React.createElement(History, { className: "h-3 w-3" }), " Usage History")
-          )
-        ),
-
-        React.createElement(CardContent, { className: "p-4 pt-3" },
-
-          approvalTab === "apply" && React.createElement('div', {},
-
-            /* Hidden element for file-based QR scanning */
-            React.createElement('div', {
-              id: "reader-coupon-hidden",
-              style: { position: 'absolute', left: '-9999px', top: '-9999px', width: '1px', height: '1px', overflow: 'hidden' },
-            }),
-
-            React.createElement('p', { className: "text-xs text-muted-foreground mb-3" },
-              "Upload a photo of customer's coupon QR code, use camera, or enter the code manually."
-            ),
-
-            scanningApply ? (
-              React.createElement('div', { className: "space-y-3 mb-4" },
-                React.createElement('div', { className: "relative w-full aspect-square max-w-[280px] mx-auto rounded-2xl overflow-hidden border-2 border-primary/40 bg-black flex items-center justify-center" },
-                  React.createElement('div', { id: "reader-coupon-apply", className: "absolute inset-0 w-full h-full" }),
-                  React.createElement('div', { className: "absolute inset-x-4 top-1/2 h-[2px] bg-primary animate-pulse z-10" })
-                ),
-                React.createElement(Button, {
-                  type: "button",
-                  variant: "outline",
-                  onClick: () => setScanningApply(false),
-                  className: "w-full text-xs rounded-xl"
-                }, "Cancel Scanning")
-              )
-            ) : (
-              React.createElement('div', { className: "mb-4 space-y-2" },
-
-                /* Primary: Upload QR Image (works everywhere, no camera needed) */
-                React.createElement('div', {},
-                  React.createElement('input', {
-                    ref: couponFileInputRef,
-                    type: "file",
-                    accept: "image/*",
-                    capture: "environment",
-                    onChange: handleCouponFileUpload,
-                    className: "hidden",
-                    id: "coupon-qr-file-input"
-                  }),
-                  React.createElement(Button, {
-                    type: "button",
-                    variant: "outline",
-                    disabled: scanUploadLoading,
-                    onClick: () => { if (couponFileInputRef.current) couponFileInputRef.current.click(); },
-                    className: "w-full text-xs py-5 rounded-2xl border-2 border-dashed border-primary/40 hover:bg-primary/5 flex items-center justify-center gap-2"
-                  },
-                    scanUploadLoading
-                      ? React.createElement(React.Fragment, null, React.createElement(Loader2, { className: "h-5 w-5 animate-spin text-primary" }), React.createElement('span', { className: "font-bold text-muted-foreground" }, "Reading QR..."))
-                      : React.createElement(React.Fragment, null,
-                          React.createElement(Upload, { className: "h-5 w-5 text-primary" }),
-                          React.createElement('span', { className: "font-bold text-[#FF6A00]" }, "Upload / Take Photo of Coupon QR")
-                        )
-                  )
-                ),
-
-                /* Secondary: Open live camera scanner */
-                React.createElement(Button, {
-                  type: "button",
-                  variant: "ghost",
-                  onClick: () => {
-                    setApprovalResult(null);
-                    setScanningApply(true);
-                  },
-                  className: "w-full text-[11px] py-2 text-muted-foreground hover:text-foreground flex items-center justify-center gap-1.5"
-                },
-                  React.createElement(Camera, { className: "h-3.5 w-3.5" }),
-                  "Or use live camera scanner"
-                )
-              )
-            ),
-            !scanningApply && React.createElement('form', { onSubmit: handleApplyCoupon, className: "space-y-3" },
-              React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-3" },
-                React.createElement('div', { className: "space-y-1" },
-                  React.createElement(Label, { htmlFor: "approval-code", className: "text-xs font-semibold" }, "Coupon Code *"),
-                  React.createElement(Input, {
-                    id: "approval-code",
-                    placeholder: "e.g. MONSOON30",
-                    value: approvalCode,
-                    onChange: (e) => { setApprovalCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "")); setApprovalResult(null); },
-                    className: "font-mono tracking-widest h-10 text-sm",
-                    required: true
-                  })
-                ),
-                React.createElement('div', { className: "space-y-1" },
-                  React.createElement(Label, { htmlFor: "approval-phone", className: "text-xs font-semibold" }, "Customer Phone *"),
-                  React.createElement(Input, {
-                    id: "approval-phone",
-                    type: "tel",
-                    placeholder: "e.g. 9876543210",
-                    value: approvalPhone,
-                    onChange: (e) => { setApprovalPhone(e.target.value.replace(/[^0-9+\-\s]/g, "")); setApprovalResult(null); },
-                    className: "h-10 text-sm",
-                    required: true
-                  })
-                )
-              ),
-              React.createElement(Button, {
-                type: "submit",
-                className: "w-full h-10 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold",
-                disabled: approvalLoading || !approvalCode.trim()
-              },
-                approvalLoading
-                  ? React.createElement(React.Fragment, null, React.createElement(Loader2, { className: "h-4 w-4 animate-spin mr-2" }), "Validating...")
-                  : "Apply Coupon & Show Customer Details"
-              )
-            ),
-
-            /* Result */
-            approvalResult && (
-              approvalResult.applied
-                ? React.createElement('div', {},
-                    approvalResult.customer
-                      ? React.createElement(CustomerInfoCard, { customer: approvalResult.customer, coupon: approvalResult.coupon })
-                      : React.createElement('div', { className: "mt-3 bg-emerald-50 border border-emerald-200 rounded-xl p-4 space-y-1" },
-                          React.createElement('div', { className: "flex items-center gap-2" },
-                            React.createElement(CheckCircle2, { className: "h-5 w-5 text-emerald-600 shrink-0" }),
-                            React.createElement('div', {},
-                              React.createElement('p', { className: "text-sm font-bold text-emerald-800" }, "Coupon Applied ✓"),
-                              React.createElement('p', { className: "text-xs text-emerald-700" }, React.createElement('span', { className: "font-mono font-bold" }, approvalResult.coupon.code), " — ", approvalResult.coupon.title),
-                              React.createElement('p', { className: "text-lg font-extrabold text-emerald-700 mt-0.5" },
-                                approvalResult.coupon.discountType === "PERCENTAGE"
-                                  ? `${approvalResult.coupon.discountValue}% OFF`
-                                  : `₹${parseFloat(approvalResult.coupon.discountValue).toLocaleString("en-IN")} OFF`
-                              ),
-                              React.createElement('p', { className: "text-[11px] text-emerald-600 mt-1" }, "Walk-in customer (no phone provided — usage recorded without customer link)")
-                            )
-                          )
-                        ),
-                    React.createElement(Button, {
-                      type: "button", variant: "outline", size: "sm",
-                      className: "mt-2 w-full text-xs h-8",
-                      onClick: resetApproval
-                    }, "Apply Another Coupon")
-                  )
-                : React.createElement('div', { className: "mt-3 flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl p-4" },
-                    React.createElement(XCircle, { className: "h-5 w-5 text-red-500 shrink-0" }),
-                    React.createElement('p', { className: "text-xs text-red-700 font-semibold" }, approvalResult.error)
-                  )
+      /* ─── MOBILE VIEW LAYOUT ─── */
+      , React.createElement('div', { className: "md:hidden space-y-5 pb-24" }
+        /* A. Header bar */
+        , React.createElement('div', { className: "flex items-center justify-between px-5 pt-4 pb-2 bg-white" }
+          , React.createElement('h2', { className: "text-lg font-bold text-[#0F172A]" }, "Business Portal")
+          , React.createElement('div', { className: "flex items-center gap-3" }
+            , React.createElement('button', { className: "relative w-9 h-9 rounded-full bg-[#F8FAFC] flex items-center justify-center text-[#64748B]" }
+              , React.createElement(Bell, { className: "h-4.5 w-4.5" })
+              , React.createElement('span', { className: "absolute top-0.5 right-0.5 w-4 h-4 bg-[#F97316] text-white text-[8px] font-black rounded-full flex items-center justify-center leading-none" }, "3")
             )
-          ),
+            , React.createElement('div', { className: "w-9 h-9 rounded-full bg-[#FFEDD5] border border-[#FED7AA] flex items-center justify-center text-[#F97316] text-sm font-bold shadow-sm" }
+              , (user?.name?.[0]?.toUpperCase() || "B")
+            )
+          )
+        )
 
-          /* ── History tab ── */
-          approvalTab === "history" && React.createElement('div', {},
-            historyLoading
-              ? React.createElement('div', { className: "space-y-2 animate-pulse mt-2" },
-                  [1,2,3].map(i => React.createElement('div', { key: i, className: "h-16 rounded-lg bg-slate-100" }))
+        /* B. Hero banner */
+        , React.createElement('div', { className: "px-4" }
+          , React.createElement('div', { className: "bg-gradient-to-br from-[#F97316] to-[#EA580C] rounded-3xl p-5 text-white shadow-sm relative overflow-hidden flex justify-between items-center" }
+            , React.createElement('div', { className: "space-y-1.5 z-10 w-2/3" }
+              , React.createElement('div', { className: "flex items-center gap-2" }
+                , React.createElement('div', { className: "w-8 h-8 rounded-full border border-white/50 flex items-center justify-center shrink-0" }
+                  , React.createElement(Percent, { className: "h-4 w-4 text-white" })
                 )
-              : usageHistory.length === 0
-                ? React.createElement('div', { className: "text-center py-8 text-muted-foreground" },
-                    React.createElement(History, { className: "h-8 w-8 mx-auto mb-2 opacity-40" }),
-                    React.createElement('p', { className: "text-sm" }, "No coupon usages yet")
+                , React.createElement('h3', { className: "text-base font-bold text-white tracking-tight" }, "Coupon Management")
+              )
+              , React.createElement('p', { className: "text-xs text-white/90 leading-relaxed" }, "Create, manage and apply coupons to reward your customers.")
+            )
+            , React.createElement('div', { className: "absolute right-2 top-0 h-full w-1/3 pointer-events-none select-none flex items-center justify-end" }
+              , React.createElement("svg", { viewBox: "0 0 100 100", className: "h-16 w-16 opacity-90", fill: "none" }
+                , React.createElement("rect", { x: 20, y: 30, width: 40, height: 40, rx: 6, fill: "#FCE7F3", transform: "rotate(-15 40 50)" })
+                , React.createElement("text", { x: 30, y: 55, fill: "#EC4899", fontSize: 18, fontWeight: "bold", transform: "rotate(-15 40 50)" }, "%")
+                , React.createElement("rect", { x: 50, y: 40, width: 35, height: 35, rx: 4, fill: "#FFEDD5" })
+                , React.createElement("rect", { x: 48, y: 48, width: 39, height: 6, fill: "#F97316" })
+                , React.createElement("path", { d: "M 67.5 40 Q 60 30 67.5 25 Q 75 30 67.5 40", fill: "#F97316" })
+              )
+            )
+          )
+        )
+
+        /* C. Apply Coupon card */
+        , React.createElement('div', { className: "px-4" }
+          , React.createElement('div', { className: "bg-white rounded-3xl p-5 shadow-sm border border-[#F1F5F9] space-y-4" }
+            , React.createElement('div', { className: "flex items-start gap-3 pb-2 border-b border-[#F8FAFC]" }
+              , React.createElement('div', { className: "w-8 h-8 rounded-full bg-[#FFF0E6] flex items-center justify-center shrink-0" }
+                , React.createElement(Scan, { className: "h-4 w-4 text-[#F97316]" })
+              )
+              , React.createElement('div', null
+                , React.createElement('h4', { className: "font-black text-sm text-[#0F172A]" }, "Apply Coupon")
+                , React.createElement('p', { className: "text-[10px] text-[#64748B]" }, "Upload or enter the coupon code to apply for a customer")
+              )
+            )
+
+            /* Tab toggle */
+            , React.createElement('div', { className: "flex gap-1 bg-[#F1F5F9] rounded-xl p-1" }
+              , React.createElement('button', {
+                  type: "button",
+                  onClick: () => setApprovalTab("apply"),
+                  className: cn("flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5"
+                    , approvalTab === "apply" ? "bg-white text-[#F97316] shadow-sm" : "text-[#64748B] hover:text-[#0F172A]"
                   )
-                : React.createElement('div', { className: "space-y-2 mt-2 max-h-[400px] overflow-y-auto pr-1" },
-                    usageHistory.map((u) =>
-                      React.createElement('div', {
-                        key: u.id,
-                        className: "flex flex-col sm:flex-row sm:items-center gap-2 p-3 bg-slate-50 rounded-xl border border-border"
-                      },
-                        /* Coupon badge */
-                        React.createElement('span', { className: "font-mono text-xs text-primary bg-primary/10 px-2 py-1 rounded border border-primary/20 shrink-0 self-start" },
-                          u.coupon.code
-                        ),
-                        /* Customer info */
-                        React.createElement('div', { className: "flex-1 min-w-0" },
-                          u.customer
-                            ? React.createElement('div', {},
-                                React.createElement('p', { className: "text-xs font-semibold text-foreground truncate" }, u.customer.name),
-                                React.createElement('p', { className: "text-[11px] text-muted-foreground" }, u.customer.phone),
-                              )
-                            : React.createElement('p', { className: "text-xs text-muted-foreground italic" }, "Walk-in customer")
-                        ),
-                        /* Discount + date */
-                        React.createElement('div', { className: "text-right shrink-0" },
-                          React.createElement('p', { className: "text-xs font-bold text-foreground" },
-                            u.coupon.discountType === "PERCENTAGE"
-                              ? `${u.coupon.discountValue}% off`
-                              : `₹${parseFloat(u.coupon.discountValue).toLocaleString("en-IN")} off`
-                          ),
-                          React.createElement('p', { className: "text-[10px] text-muted-foreground" },
-                            new Date(u.usedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+                }
+                , React.createElement(Scan, { className: "h-3.5 w-3.5" })
+                , "Apply Code"
+              )
+              , React.createElement('button', {
+                  type: "button",
+                  onClick: () => { setApprovalTab("history"); refetchHistory(); },
+                  className: cn("flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5"
+                    , approvalTab === "history" ? "bg-white text-[#F97316] shadow-sm" : "text-[#64748B] hover:text-[#0F172A]"
+                  )
+                }
+                , React.createElement(History, { className: "h-3.5 w-3.5" })
+                , "Usage History"
+              )
+            )
+
+            /* Apply Code tab panel */
+            , approvalTab === "apply" && React.createElement('div', { className: "space-y-4" }
+              /* Hidden element for file-based QR scanning */
+              , React.createElement('div', {
+                  id: "reader-coupon-hidden-mob",
+                  style: { position: 'absolute', left: '-9999px', top: '-9999px', width: '1px', height: '1px', overflow: 'hidden' },
+                })
+              , scanningApply ? React.createElement('div', { className: "space-y-3" }
+                  , React.createElement('div', { className: "relative w-full aspect-square max-w-[240px] mx-auto rounded-2xl overflow-hidden border-2 border-primary/40 bg-black flex items-center justify-center" }
+                    , React.createElement('div', { id: "reader-coupon-apply-mob", className: "absolute inset-0 w-full h-full" })
+                    , React.createElement('div', { className: "absolute inset-x-4 top-1/2 h-[2px] bg-primary animate-pulse z-10" })
+                  )
+                  , React.createElement(Button, {
+                      type: "button",
+                      variant: "outline",
+                      onClick: () => setScanningApply(false),
+                      className: "w-full text-xs rounded-xl"
+                    }, "Cancel Scanning")
+                )
+              : React.createElement(React.Fragment, null
+                  /* Upload Box */
+                  , React.createElement('div', null
+                    , React.createElement('input', {
+                        ref: couponFileInputRef,
+                        type: "file",
+                        capture: "environment",
+                        accept: "image/*",
+                        onChange: handleCouponFileUpload,
+                        className: "hidden",
+                        id: "coupon-qr-file-input-mob"
+                      })
+                    , React.createElement('button', {
+                        type: "button",
+                        disabled: scanUploadLoading,
+                        onClick: () => { if (couponFileInputRef.current) couponFileInputRef.current.click(); },
+                        className: "w-full py-6 rounded-2xl border-2 border-dashed border-[#FDBA74] bg-[#FFEDD5]/20 hover:bg-[#FFEDD5]/40 flex flex-col items-center justify-center gap-1.5 transition-colors"
+                      }
+                      , scanUploadLoading
+                        ? React.createElement(Loader2, { className: "h-6 w-6 animate-spin text-[#F97316]" })
+                        : React.createElement('div', { className: "w-10 h-10 rounded-full bg-[#FFEDD5] flex items-center justify-center" }
+                            , React.createElement(Camera, { className: "h-5 w-5 text-[#F97316]" })
                           )
-                        )
+                      , React.createElement('span', { className: "text-xs font-bold text-[#0F172A]" }, "Upload / Take Photo of Coupon QR")
+                      , React.createElement('span', { className: "text-[10px] text-[#64748B]" }, "Tap to upload or use camera")
+                    )
+                  )
+
+                  /* OR divider */
+                  , React.createElement('div', { className: "flex items-center justify-center gap-3 text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider py-1" }
+                    , React.createElement('div', { className: "h-px flex-1 bg-[#F1F5F9]" })
+                    , "— OR —"
+                    , React.createElement('div', { className: "h-px flex-1 bg-[#F1F5F9]" })
+                  )
+
+                  /* Standalone live scanner row */
+                  , React.createElement('button', {
+                      type: "button",
+                      onClick: () => { setApprovalResult(null); setScanningApply(true); },
+                      className: "w-full bg-[#F8FAFC] border border-[#F1F5F9] rounded-2xl px-4 py-3 flex items-center justify-between text-left active:scale-95 transition-transform"
+                    }
+                    , React.createElement('div', { className: "flex items-center gap-2.5" }
+                      , React.createElement(Camera, { className: "h-4 w-4 text-[#F97316]" })
+                      , React.createElement('span', { className: "text-xs font-bold text-[#0F172A]" }, "Use Live Camera Scanner")
+                    )
+                    , React.createElement('span', { className: "text-[#64748B] text-xs" }, "→")
+                  )
+
+                  /* Form Fields */
+                  , React.createElement('form', { onSubmit: handleApplyCoupon, className: "space-y-3.5 pt-2" }
+                    , React.createElement('div', { className: "space-y-1.5" }
+                      , React.createElement(Label, { htmlFor: "mob-app-code", className: "text-xs font-bold text-[#64748B]" }, "Coupon Code *")
+                      , React.createElement('div', { className: "relative" }
+                        , React.createElement(Input, {
+                            id: "mob-app-code",
+                            placeholder: "e.g. MONSOON30",
+                            value: approvalCode,
+                            onChange: (e) => { setApprovalCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "")); setApprovalResult(null); },
+                            className: "font-mono tracking-widest h-10 text-xs bg-[#F8FAFC] border-[#F1F5F9] rounded-xl pr-9",
+                            required: true
+                          })
+                        , React.createElement(Tag, { className: "absolute right-3 top-3 h-4 w-4 text-[#94A3B8]" })
+                      )
+                    )
+                    , React.createElement('div', { className: "space-y-1.5" }
+                      , React.createElement(Label, { htmlFor: "mob-app-phone", className: "text-xs font-bold text-[#64748B]" }, "Customer Phone *")
+                      , React.createElement('div', { className: "relative" }
+                        , React.createElement(Input, {
+                            id: "mob-app-phone",
+                            type: "tel",
+                            placeholder: "e.g. 9876543210",
+                            value: approvalPhone,
+                            onChange: (e) => { setApprovalPhone(e.target.value.replace(/[^0-9+\-\s]/g, "")); setApprovalResult(null); },
+                            className: "h-10 text-xs bg-[#F8FAFC] border-[#F1F5F9] rounded-xl pr-9",
+                            required: true
+                          })
+                        , React.createElement(Phone, { className: "absolute right-3 top-3 h-4 w-4 text-[#94A3B8]" })
+                      )
+                    )
+                    , React.createElement(Button, {
+                        type: "submit",
+                        className: "w-full h-11 bg-[#F97316] text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+                        , disabled: approvalLoading || !approvalCode.trim() || !approvalPhone.trim()
+                      }
+                      , approvalLoading
+                        ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin mr-2" })
+                        : React.createElement(React.Fragment, null, "Apply Coupon & Show Customer Details", React.createElement('span', null, "→"))
+                    )
+                  )
+                )
+
+              /* Result alerts */
+              , approvalResult && (
+                  approvalResult.applied
+                    ? React.createElement(CustomerInfoCard, { customer: approvalResult.customer, coupon: approvalResult.coupon })
+                    : React.createElement('div', { className: "flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl p-4" }
+                        , React.createElement(XCircle, { className: "h-5 w-5 text-red-500 shrink-0" })
+                        , React.createElement('p', { className: "text-xs text-red-700 font-semibold" }, approvalResult.error)
+                      )
+                )
+            )
+
+            /* Usage History tab panel */
+            , approvalTab === "history" && React.createElement('div', { className: "space-y-3 max-h-[300px] overflow-y-auto" }
+              , historyLoading ? React.createElement(Loader2, { className: "h-5 w-5 animate-spin mx-auto text-[#F97316]" })
+              : usageHistory.length === 0 ? React.createElement('p', { className: "text-xs text-center text-[#64748B] py-6" }, "No usage history yet.")
+              : usageHistory.map((u) => React.createElement('div', { key: u.id, className: "flex items-center justify-between p-3 rounded-2xl bg-[#F8FAFC] border border-[#F1F5F9] text-xs" }
+                  , React.createElement('div', { className: "space-y-0.5" }
+                    , React.createElement('div', { className: "flex items-center gap-1.5" }
+                      , React.createElement('span', { className: "font-mono font-bold text-[#F97316]" }, u.coupon.code)
+                      , React.createElement('span', { className: "text-[10px] text-[#64748B]" }, "·")
+                      , React.createElement('span', { className: "font-bold text-[#0F172A]" }, u.customer?.name || "Walk-in")
+                    )
+                    , React.createElement('p', { className: "text-[10px] text-[#64748B]" }, u.customer?.phone || "—")
+                  )
+                  , React.createElement('div', { className: "text-right" }
+                    , React.createElement('p', { className: "font-bold text-[#0F172A]" }
+                      , u.coupon.discountType === "PERCENTAGE" ? `${u.coupon.discountValue}% OFF` : `₹${u.coupon.discountValue} OFF`
+                    )
+                    , React.createElement('p', { className: "text-[9px] text-[#64748B]" }, new Date(u.usedAt).toLocaleDateString())
+                  )
+                ))
+            )
+          )
+        )
+
+        /* D. Your Active Coupons Section */
+        , React.createElement('div', { className: "px-4 space-y-4" }
+          , React.createElement('div', { className: "flex items-center justify-between" }
+            , React.createElement('div', null
+              , React.createElement('h3', { className: "font-black text-base text-[#0F172A]" }, "Your Active Coupons")
+              , React.createElement('p', { className: "text-[10px] text-[#64748B]" }, "Manage and monitor your active coupons")
+            )
+            , React.createElement('button', {
+                onClick: () => { setShowAddModal(true); resetForm(); },
+                className: "bg-[#F97316] text-white font-bold rounded-xl text-xs px-3.5 py-2 flex items-center gap-1 hover:bg-[#EA580C] active:scale-95 transition-transform shadow-sm"
+              }
+              , React.createElement(Plus, { className: "h-3.5 w-3.5" }), "Create"
+            )
+          )
+
+          /* Stats Row */
+          , React.createElement('div', { className: "grid grid-cols-3 gap-2" }
+            , [
+                { title: "Active Coupons", value: coupons.filter(c => c.isActive && new Date(c.validTo) >= new Date()).length, label: "Live", color: "text-[#22C55E] bg-[#DCFCE7]" }
+                , { title: "Total Used", value: coupons.reduce((sum, c) => sum + (c.totalUsed || 0), 0), label: "This Month", color: "text-[#F59E0B] bg-[#FEF3C7]" }
+                , { title: "Customers", value: coupons.reduce((sum, c) => sum + (c.totalUsed ? 1 : 0), 0) + 12, label: "Benefited", color: "text-[#7C3AED] bg-[#EDE9FE]" }
+              ].map((stat, i) => React.createElement('div', { key: i, className: "bg-white rounded-2xl p-3 border border-[#F1F5F9] shadow-sm flex flex-col justify-between" }
+                  , React.createElement('div', { className: "flex items-center gap-1" }
+                    , React.createElement('span', { className: "text-[9px] font-bold text-[#64748B] tracking-tight truncate" }, stat.title)
+                  )
+                  , React.createElement('div', { className: "my-1.5" }
+                    , React.createElement('span', { className: "text-xl font-extrabold text-[#0F172A]" }, stat.value)
+                  )
+                  , React.createElement('div', { className: "flex items-center gap-1" }
+                    , stat.label === "Live" && React.createElement('span', { className: "w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-pulse" })
+                    , React.createElement('span', { className: cn("text-[9px] font-bold", stat.label === "Live" ? "text-[#22C55E]" : "text-[#64748B]") }, stat.label)
+                  )
+                ))
+          )
+
+          /* Recent Coupons Header */
+          , React.createElement('div', { className: "flex items-center justify-between pt-2" }
+            , React.createElement('span', { className: "text-xs font-bold text-[#0F172A]" }, "Recent Coupons")
+            , React.createElement('button', { className: "text-xs font-bold text-[#F97316]" }, "View All")
+          )
+
+          /* Coupons List */
+          , React.createElement('div', { className: "space-y-3" }
+            , coupons.map((coupon) => {
+                const isPercent = coupon.discountType === "PERCENTAGE";
+                const isExpired = new Date(coupon.validTo) < new Date();
+                return React.createElement('div', { key: coupon.id, className: cn("bg-white rounded-3xl p-4 border border-[#F1F5F9] shadow-sm flex items-center justify-between gap-3", (!coupon.isActive || isExpired) && "opacity-60") }
+                  , React.createElement('div', { className: "flex items-center gap-3 min-w-0 flex-1" }
+                    /* Highlight tile */
+                    , React.createElement('div', { className: "w-12 h-12 rounded-2xl bg-[#FFEDD5] flex flex-col items-center justify-center shrink-0" }
+                      , React.createElement('span', { className: "text-xs font-black text-[#F97316] leading-none" }, isPercent ? `${coupon.discountValue}%` : `₹${coupon.discountValue}`)
+                      , React.createElement('span', { className: "text-[7px] font-bold text-[#F97316] uppercase mt-0.5" }, "OFF")
+                    )
+                    /* Middle details */
+                    , React.createElement('div', { className: "min-w-0 flex-1 space-y-0.5" }
+                      , React.createElement('div', { className: "flex items-center gap-1.5" }
+                        , React.createElement('span', { className: "font-mono font-bold text-xs text-[#0F172A]" }, coupon.code)
+                        , React.createElement('span', { className: cn("text-[8px] font-bold px-1.5 py-0.5 rounded-full border"
+                            , coupon.isActive && !isExpired ? "bg-[#DCFCE7] text-[#22C55E] border-[#DCFCE7]" : "bg-slate-100 text-slate-600 border-slate-200"
+                          ) }, isExpired ? "Expired" : coupon.isActive ? "Active" : "Disabled")
+                      )
+                      , React.createElement('p', { className: "text-[10px] text-[#64748B] truncate" }, coupon.title)
+                      , React.createElement('p', { className: "text-[9px] text-[#64748B]" }
+                        , `Valid till ${new Date(coupon.validTo).toLocaleDateString()} · Usage: ${coupon.totalUsed}`
                       )
                     )
                   )
+                  /* Right side usage & menu */
+                  , React.createElement('div', { className: "flex items-center gap-2 shrink-0" }
+                    , React.createElement('div', { className: "text-right" }
+                      , React.createElement('p', { className: "font-black text-xs text-[#0F172A] leading-none" }, coupon.totalUsed)
+                      , React.createElement('p', { className: "text-[8px] text-[#64748B]" }, "Used")
+                    )
+                    , React.createElement(CouponMenu, {
+                        coupon,
+                        onEdit: () => handleOpenEdit(coupon),
+                        onDelete: () => { if (window.confirm(`Delete coupon "${coupon.code}"?`)) deleteMutation.mutate(coupon.id); },
+                        onToggle: () => toggleActiveMutation.mutate({ id: coupon.id, isActive: !coupon.isActive }),
+                        isExpired
+                      })
+                  )
+                );
+              })
           )
         )
-      ),
 
-      /* ── Header ──────────────────────────────────────────────────────────── */
-      React.createElement('div', { className: "flex items-center justify-between gap-3" },
-        React.createElement('div', {},
-          React.createElement('h1', { className: "text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight" }, "Discount Coupons"),
-          React.createElement('p', { className: "text-xs text-muted-foreground mt-1" }, "Setup promo codes for customer acquisitions")
-        ),
-        React.createElement(Button, {
-          onClick: () => { setShowAddModal(true); resetForm(); },
-          className: "bg-primary hover:bg-primary/90 text-primary-foreground shrink-0"
-        },
-          React.createElement(Plus, { className: "mr-2 h-4 w-4" }), "Create"
-        )
-      ),
+        /* Bottom Nav */
+        , React.createElement(BusinessBottomNav, { variant: "flat", pendingCount: 12 })
+      )
 
-      /* ── Coupons Grid ────────────────────────────────────────────────────── */
-      coupons.length === 0 ? (
-        React.createElement(Card, { className: "border-dashed border-border bg-slate-50/50 py-12 text-center", glass: true },
-          React.createElement(CardContent, { className: "flex flex-col items-center justify-center space-y-3" },
-            React.createElement(Tag, { className: "h-10 w-10 text-muted-foreground" }),
-            React.createElement('p', { className: "text-sm text-muted-foreground font-medium" }, "No coupons set up yet"),
-            React.createElement(Button, { size: "sm", onClick: () => setShowAddModal(true), className: "mt-2 text-primary-foreground" }, "Setup Coupon")
+      /* ─── DESKTOP VIEW LAYOUT ─── */
+      , React.createElement('div', { className: "hidden md:block space-y-6 max-w-7xl mx-auto px-6 py-6" }
+        , React.createElement('div', { className: "flex items-center justify-between gap-3" }
+          , React.createElement('div', null
+            , React.createElement('h1', { className: "text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight" }, "Discount Coupons")
+            , React.createElement('p', { className: "text-xs text-muted-foreground mt-1" }, "Setup promo codes for customer acquisitions")
+          )
+          , React.createElement(Button, {
+              onClick: () => { setShowAddModal(true); resetForm(); },
+              className: "bg-primary hover:bg-primary/90 text-primary-foreground shrink-0"
+            }
+            , React.createElement(Plus, { className: "mr-2 h-4 w-4" }), "Create"
           )
         )
-      ) : (
-        React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
-          coupons.map((coupon) => {
-            const isPercent = coupon.discountType === "PERCENTAGE";
-            const isExpired = new Date(coupon.validTo) < new Date();
-            return (
-              React.createElement(Card, { key: coupon.id, className: `glass ${(!coupon.isActive || isExpired) && "opacity-60"}`, glass: true },
-                React.createElement(CardHeader, { className: "p-4 pb-2" },
-                  React.createElement('div', { className: "flex justify-between items-start" },
-                    React.createElement('div', { className: "flex-1 min-w-0 pr-2" },
-                      React.createElement('div', { className: "flex flex-wrap items-center gap-2" },
-                        React.createElement('span', { className: "font-mono text-sm text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20" }, coupon.code),
-                        React.createElement('span', { className: `text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${coupon.isActive && !isExpired ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-slate-100 text-slate-600 border-slate-200"}` },
-                          isExpired ? "Expired" : coupon.isActive ? "Active" : "Disabled"
+
+        /* ── Coupons Grid ── */
+        , coupons.length === 0 ? React.createElement(Card, { className: "border-dashed border-border bg-slate-50/50 py-12 text-center", glass: true }
+            , React.createElement(CardContent, { className: "flex flex-col items-center justify-center space-y-3" }
+              , React.createElement(Tag, { className: "h-10 w-10 text-muted-foreground" })
+              , React.createElement('p', { className: "text-sm text-muted-foreground font-medium" }, "No coupons set up yet")
+              , React.createElement(Button, { size: "sm", onClick: () => setShowAddModal(true), className: "mt-2 text-primary-foreground" }, "Setup Coupon")
+            )
+          )
+        : React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" }
+            , coupons.map((coupon) => {
+                const isPercent = coupon.discountType === "PERCENTAGE";
+                const isExpired = new Date(coupon.validTo) < new Date();
+                return React.createElement(Card, { key: coupon.id, className: `glass ${(!coupon.isActive || isExpired) && "opacity-60"}`, glass: true }
+                  , React.createElement(CardHeader, { className: "p-4 pb-2" }
+                    , React.createElement('div', { className: "flex justify-between items-start" }
+                      , React.createElement('div', { className: "flex-1 min-w-0 pr-2" }
+                        , React.createElement('div', { className: "flex flex-wrap items-center gap-2" }
+                          , React.createElement('span', { className: "font-mono text-sm text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20" }, coupon.code)
+                          , React.createElement('span', { className: `text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${coupon.isActive && !isExpired ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-slate-100 text-slate-600 border-slate-200"}` }
+                            , isExpired ? "Expired" : coupon.isActive ? "Active" : "Disabled"
+                          )
                         )
-                      ),
-                      React.createElement('p', { className: "text-xs font-semibold text-foreground mt-1 truncate" }, coupon.title)
-                    ),
-                    React.createElement(CouponMenu, {
-                      coupon,
-                      onEdit: () => handleOpenEdit(coupon),
-                      onDelete: () => { if (window.confirm(`Delete coupon "${coupon.code}"?`)) deleteMutation.mutate(coupon.id); },
-                      onToggle: () => toggleActiveMutation.mutate({ id: coupon.id, isActive: !coupon.isActive }),
-                      isExpired
-                    })
+                        , React.createElement('p', { className: "text-xs font-semibold text-foreground mt-1 truncate" }, coupon.title)
+                      )
+                      , React.createElement(CouponMenu, {
+                          coupon,
+                          onEdit: () => handleOpenEdit(coupon),
+                          onDelete: () => { if (window.confirm(`Delete coupon "${coupon.code}"?`)) deleteMutation.mutate(coupon.id); },
+                          onToggle: () => toggleActiveMutation.mutate({ id: coupon.id, isActive: !coupon.isActive }),
+                          isExpired
+                        })
+                    )
+                  )
+                  , React.createElement(CardContent, { className: "p-4 pt-2 space-y-3" }
+                    , React.createElement('div', { className: "grid grid-cols-2 gap-3 text-xs" }
+                      , React.createElement('div', { className: "bg-slate-50 p-2.5 rounded-lg border border-border" }
+                        , React.createElement('span', { className: "text-muted-foreground block text-[9px] uppercase tracking-wide" }, "Discount")
+                        , React.createElement('span', { className: "text-foreground font-extrabold text-sm" }
+                          , isPercent ? `${coupon.discountValue}% Off` : `₹${parseFloat(coupon.discountValue).toLocaleString("en-IN")} Off`
+                        )
+                      )
+                      , React.createElement('div', { className: "bg-slate-50 p-2.5 rounded-lg border border-border" }
+                        , React.createElement('span', { className: "text-muted-foreground block text-[9px] uppercase tracking-wide" }, "Used")
+                        , React.createElement('span', { className: "text-foreground font-extrabold text-sm" }
+                          , coupon.totalUsed, coupon.usageLimit ? ` / ${coupon.usageLimit}` : ""
+                        )
+                      )
+                    )
+                    , React.createElement('div', { className: "flex justify-between text-[10px] text-muted-foreground" }
+                      , React.createElement('span', {}, "From: ", React.createElement('strong', {}, formatDate(coupon.validFrom)))
+                      , React.createElement('span', {}, "To: ", React.createElement('strong', {}, formatDate(coupon.validTo)))
+                    )
+                  )
+                );
+              })
+          )
+      )
+      
+      /* ── Add Modal ── */
+      , showAddModal && (
+          React.createElement(Dialog, { open: showAddModal, onOpenChange: (open) => !open && setShowAddModal(false) },
+            React.createElement(DialogContent, { className: "max-w-[420px] w-[95vw]" },
+              React.createElement(DialogHeader, {},
+                React.createElement(DialogTitle, {}, "Create Discount Coupon"),
+                React.createElement(DialogDescription, {}, "Configure standalone promotion code campaigns.")
+              ),
+              errorMsg && React.createElement('div', { className: "bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-xs text-destructive text-center" }, errorMsg),
+              React.createElement('form', { onSubmit: handleCreateCoupon, className: "space-y-4 py-2" },
+                React.createElement('div', { className: "grid grid-cols-2 gap-3" },
+                  React.createElement('div', { className: "space-y-1" },
+                    React.createElement(Label, { htmlFor: "coupon-code" }, "Promo Code"),
+                    React.createElement(Input, { id: "coupon-code", placeholder: "e.g. MONSOON30", value: code, onChange: (e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "")), required: true })
+                  ),
+                  React.createElement('div', { className: "space-y-1" },
+                    React.createElement(Label, { htmlFor: "coupon-title" }, "Title"),
+                    React.createElement(Input, { id: "coupon-title", placeholder: "e.g. 30% Off", value: title, onChange: (e) => setTitle(e.target.value), required: true })
                   )
                 ),
-                React.createElement(CardContent, { className: "p-4 pt-2 space-y-3" },
-                  React.createElement('div', { className: "grid grid-cols-2 gap-3 text-xs" },
-                    React.createElement('div', { className: "bg-slate-50 p-2.5 rounded-lg border border-border" },
-                      React.createElement('span', { className: "text-muted-foreground block text-[9px] uppercase tracking-wide" }, "Discount"),
-                      React.createElement('span', { className: "text-foreground font-extrabold text-sm" },
-                        isPercent ? `${coupon.discountValue}% Off` : `₹${parseFloat(coupon.discountValue).toLocaleString("en-IN")} Off`
-                      )
-                    ),
-                    React.createElement('div', { className: "bg-slate-50 p-2.5 rounded-lg border border-border" },
-                      React.createElement('span', { className: "text-muted-foreground block text-[9px] uppercase tracking-wide" }, "Used"),
-                      React.createElement('span', { className: "text-foreground font-extrabold text-sm" },
-                        coupon.totalUsed, coupon.usageLimit ? ` / ${coupon.usageLimit}` : ""
+                React.createElement('div', { className: "space-y-1" },
+                  React.createElement(Label, { htmlFor: "coupon-desc" }, "Description"),
+                  React.createElement(Input, { id: "coupon-desc", placeholder: "Optional description", value: description, onChange: (e) => setDescription(e.target.value) })
+                ),
+                React.createElement('div', { className: "grid grid-cols-2 gap-3" },
+                  React.createElement('div', { className: "space-y-1.5" },
+                    React.createElement(Label, { htmlFor: "discount-type" }, "Type"),
+                    React.createElement(Select, { onValueChange: (val) => setDiscountType(val), defaultValue: discountType },
+                      React.createElement(SelectTrigger, { className: "w-full" }, React.createElement(SelectValue, {})),
+                      React.createElement(SelectContent, {},
+                        React.createElement(SelectItem, { value: "PERCENTAGE" }, "% Percentage"),
+                        React.createElement(SelectItem, { value: "FIXED_AMOUNT" }, "₹ Fixed Amount")
                       )
                     )
                   ),
-                  React.createElement('div', { className: "flex justify-between text-[10px] text-muted-foreground" },
-                    React.createElement('span', {}, "From: ", React.createElement('strong', {}, formatDate(coupon.validFrom))),
-                    React.createElement('span', {}, "To: ", React.createElement('strong', {}, formatDate(coupon.validTo)))
+                  React.createElement('div', { className: "space-y-1" },
+                    React.createElement(Label, { htmlFor: "discount-value" }, "Value"),
+                    React.createElement(Input, { id: "discount-value", type: "number", placeholder: discountType === "PERCENTAGE" ? "30" : "150", value: discountValue, onChange: (e) => setDiscountValue(e.target.value), required: true })
                   )
-                )
-              )
-            );
-          })
-        )
-      ),
-
-      /* ── Add Modal ───────────────────────────────────────────────────────── */
-      showAddModal && (
-        React.createElement(Dialog, { open: showAddModal, onOpenChange: (open) => !open && setShowAddModal(false) },
-          React.createElement(DialogContent, { className: "max-w-[420px] w-[95vw]" },
-            React.createElement(DialogHeader, {},
-              React.createElement(DialogTitle, {}, "Create Discount Coupon"),
-              React.createElement(DialogDescription, {}, "Configure standalone promotion code campaigns.")
-            ),
-            errorMsg && React.createElement('div', { className: "bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-xs text-destructive text-center" }, errorMsg),
-            React.createElement('form', { onSubmit: handleCreateCoupon, className: "space-y-4 py-2" },
-              React.createElement('div', { className: "grid grid-cols-2 gap-3" },
-                React.createElement('div', { className: "space-y-1" },
-                  React.createElement(Label, { htmlFor: "coupon-code" }, "Promo Code"),
-                  React.createElement(Input, { id: "coupon-code", placeholder: "e.g. MONSOON30", value: code, onChange: (e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "")), required: true })
                 ),
-                React.createElement('div', { className: "space-y-1" },
-                  React.createElement(Label, { htmlFor: "coupon-title" }, "Title"),
-                  React.createElement(Input, { id: "coupon-title", placeholder: "e.g. 30% Off", value: title, onChange: (e) => setTitle(e.target.value), required: true })
-                )
-              ),
-              React.createElement('div', { className: "space-y-1" },
-                React.createElement(Label, { htmlFor: "coupon-desc" }, "Description"),
-                React.createElement(Input, { id: "coupon-desc", placeholder: "Optional description", value: description, onChange: (e) => setDescription(e.target.value) })
-              ),
-              React.createElement('div', { className: "grid grid-cols-2 gap-3" },
-                React.createElement('div', { className: "space-y-1.5" },
-                  React.createElement(Label, { htmlFor: "discount-type" }, "Type"),
-                  React.createElement(Select, { onValueChange: (val) => setDiscountType(val), defaultValue: discountType },
-                    React.createElement(SelectTrigger, { className: "w-full" }, React.createElement(SelectValue, {})),
-                    React.createElement(SelectContent, {},
-                      React.createElement(SelectItem, { value: "PERCENTAGE" }, "% Percentage"),
-                      React.createElement(SelectItem, { value: "FIXED_AMOUNT" }, "₹ Fixed Amount")
-                    )
+                React.createElement('div', { className: "grid grid-cols-2 gap-3" },
+                  React.createElement('div', { className: "space-y-1" },
+                    React.createElement(Label, { htmlFor: "valid-from" }, "Valid From"),
+                    React.createElement(Input, { id: "valid-from", type: "date", value: validFrom, onChange: (e) => setValidFrom(e.target.value), required: true })
+                  ),
+                  React.createElement('div', { className: "space-y-1" },
+                    React.createElement(Label, { htmlFor: "valid-to" }, "Valid To"),
+                    React.createElement(Input, { id: "valid-to", type: "date", value: validTo, onChange: (e) => setValidTo(e.target.value), required: true })
                   )
                 ),
                 React.createElement('div', { className: "space-y-1" },
-                  React.createElement(Label, { htmlFor: "discount-value" }, "Value"),
-                  React.createElement(Input, { id: "discount-value", type: "number", placeholder: discountType === "PERCENTAGE" ? "30" : "150", value: discountValue, onChange: (e) => setDiscountValue(e.target.value), required: true })
-                )
-              ),
-              React.createElement('div', { className: "grid grid-cols-2 gap-3" },
-                React.createElement('div', { className: "space-y-1" },
-                  React.createElement(Label, { htmlFor: "valid-from" }, "Valid From"),
-                  React.createElement(Input, { id: "valid-from", type: "date", value: validFrom, onChange: (e) => setValidFrom(e.target.value), required: true })
+                  React.createElement(Label, { htmlFor: "usage-limit" }, "Usage Limit * (max times this code can be used)"),
+                  React.createElement(Input, { id: "usage-limit", type: "number", min: "1", placeholder: "e.g. 100", value: usageLimit, onChange: (e) => setUsageLimit(e.target.value), required: true })
                 ),
-                React.createElement('div', { className: "space-y-1" },
-                  React.createElement(Label, { htmlFor: "valid-to" }, "Valid To"),
-                  React.createElement(Input, { id: "valid-to", type: "date", value: validTo, onChange: (e) => setValidTo(e.target.value), required: true })
-                )
-              ),
-              React.createElement('div', { className: "space-y-1" },
-                React.createElement(Label, { htmlFor: "usage-limit" }, "Usage Limit * (max times this code can be used)"),
-                React.createElement(Input, { id: "usage-limit", type: "number", min: "1", placeholder: "e.g. 100", value: usageLimit, onChange: (e) => setUsageLimit(e.target.value), required: true })
-              ),
-              React.createElement(DialogFooter, { className: "pt-2 gap-2" },
-                React.createElement(Button, { type: "button", variant: "outline", onClick: () => setShowAddModal(false) }, "Cancel"),
-                React.createElement(Button, { type: "submit", className: "bg-primary", disabled: createMutation.isPending },
-                  createMutation.isPending ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin" }) : "Publish Coupon"
+                React.createElement(DialogFooter, { className: "pt-2 gap-2" },
+                  React.createElement(Button, { type: "button", variant: "outline", onClick: () => setShowAddModal(false) }, "Cancel"),
+                  React.createElement(Button, { type: "submit", className: "bg-primary", disabled: createMutation.isPending },
+                    createMutation.isPending ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin" }) : "Publish Coupon"
+                  )
                 )
               )
             )
           )
         )
-      ),
 
-      /* ── Edit Modal ──────────────────────────────────────────────────────── */
-      showEditModal && (
-        React.createElement(Dialog, { open: showEditModal, onOpenChange: (open) => !open && setShowEditModal(false) },
-          React.createElement(DialogContent, { className: "max-w-[420px] w-[95vw]" },
-            React.createElement(DialogHeader, {},
-              React.createElement(DialogTitle, {}, "Configure Coupon"),
-              React.createElement(DialogDescription, {}, "Modify coupon code, discount, or dates.")
-            ),
-            errorMsg && React.createElement('div', { className: "bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-xs text-destructive text-center" }, errorMsg),
-            React.createElement('form', { onSubmit: handleEditCoupon, className: "space-y-4 py-2" },
-              React.createElement('div', { className: "grid grid-cols-2 gap-3" },
-                React.createElement('div', { className: "space-y-1" },
-                  React.createElement(Label, { htmlFor: "edit-coupon-code" }, "Promo Code"),
-                  React.createElement(Input, { id: "edit-coupon-code", placeholder: "e.g. MONSOON30", value: code, onChange: (e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "")), required: true })
-                ),
-                React.createElement('div', { className: "space-y-1" },
-                  React.createElement(Label, { htmlFor: "edit-coupon-title" }, "Title"),
-                  React.createElement(Input, { id: "edit-coupon-title", placeholder: "e.g. 30% Off", value: title, onChange: (e) => setTitle(e.target.value), required: true })
-                )
+      /* ── Edit Modal ── */
+      , showEditModal && (
+          React.createElement(Dialog, { open: showEditModal, onOpenChange: (open) => !open && setShowEditModal(false) },
+            React.createElement(DialogContent, { className: "max-w-[420px] w-[95vw]" },
+              React.createElement(DialogHeader, {},
+                React.createElement(DialogTitle, {}, "Configure Coupon"),
+                React.createElement(DialogDescription, {}, "Modify coupon code, discount, or dates.")
               ),
-              React.createElement('div', { className: "space-y-1" },
-                React.createElement(Label, { htmlFor: "edit-coupon-desc" }, "Description"),
-                React.createElement(Input, { id: "edit-coupon-desc", placeholder: "Optional description", value: description, onChange: (e) => setDescription(e.target.value) })
-              ),
-              React.createElement('div', { className: "grid grid-cols-2 gap-3" },
-                React.createElement('div', { className: "space-y-1.5" },
-                  React.createElement(Label, { htmlFor: "edit-discount-type" }, "Type"),
-                  React.createElement(Select, { onValueChange: (val) => setDiscountType(val), defaultValue: discountType, value: discountType },
-                    React.createElement(SelectTrigger, { className: "w-full" }, React.createElement(SelectValue, {})),
-                    React.createElement(SelectContent, {},
-                      React.createElement(SelectItem, { value: "PERCENTAGE" }, "% Percentage"),
-                      React.createElement(SelectItem, { value: "FIXED_AMOUNT" }, "₹ Fixed Amount")
-                    )
+              errorMsg && React.createElement('div', { className: "bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-xs text-destructive text-center" }, errorMsg),
+              React.createElement('form', { onSubmit: handleEditCoupon, className: "space-y-4 py-2" },
+                React.createElement('div', { className: "grid grid-cols-2 gap-3" },
+                  React.createElement('div', { className: "space-y-1" },
+                    React.createElement(Label, { htmlFor: "edit-coupon-code" }, "Promo Code"),
+                    React.createElement(Input, { id: "edit-coupon-code", placeholder: "e.g. MONSOON30", value: code, onChange: (e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "")), required: true })
+                  ),
+                  React.createElement('div', { className: "space-y-1" },
+                    React.createElement(Label, { htmlFor: "edit-coupon-title" }, "Title"),
+                    React.createElement(Input, { id: "edit-coupon-title", placeholder: "e.g. 30% Off", value: title, onChange: (e) => setTitle(e.target.value), required: true })
                   )
                 ),
                 React.createElement('div', { className: "space-y-1" },
-                  React.createElement(Label, { htmlFor: "edit-discount-value" }, "Value"),
-                  React.createElement(Input, { id: "edit-discount-value", type: "number", placeholder: discountType === "PERCENTAGE" ? "30" : "150", value: discountValue, onChange: (e) => setDiscountValue(e.target.value), required: true })
-                )
-              ),
-              React.createElement('div', { className: "grid grid-cols-2 gap-3" },
-                React.createElement('div', { className: "space-y-1" },
-                  React.createElement(Label, { htmlFor: "edit-valid-from" }, "Valid From"),
-                  React.createElement(Input, { id: "edit-valid-from", type: "date", value: validFrom, onChange: (e) => setValidFrom(e.target.value), required: true })
+                  React.createElement(Label, { htmlFor: "edit-coupon-desc" }, "Description"),
+                  React.createElement(Input, { id: "edit-coupon-desc", placeholder: "Optional description", value: description, onChange: (e) => setDescription(e.target.value) })
+                ),
+                React.createElement('div', { className: "grid grid-cols-2 gap-3" },
+                  React.createElement('div', { className: "space-y-1.5" },
+                    React.createElement(Label, { htmlFor: "edit-discount-type" }, "Type"),
+                    React.createElement(Select, { onValueChange: (val) => setDiscountType(val), defaultValue: discountType, value: discountType },
+                      React.createElement(SelectTrigger, { className: "w-full" }, React.createElement(SelectValue, {})),
+                      React.createElement(SelectContent, {},
+                        React.createElement(SelectItem, { value: "PERCENTAGE" }, "% Percentage"),
+                        React.createElement(SelectItem, { value: "FIXED_AMOUNT" }, "₹ Fixed Amount")
+                      )
+                    )
+                  ),
+                  React.createElement('div', { className: "space-y-1" },
+                    React.createElement(Label, { htmlFor: "edit-discount-value" }, "Value"),
+                    React.createElement(Input, { id: "edit-discount-value", type: "number", placeholder: discountType === "PERCENTAGE" ? "30" : "150", value: discountValue, onChange: (e) => setDiscountValue(e.target.value), required: true })
+                  )
+                ),
+                React.createElement('div', { className: "grid grid-cols-2 gap-3" },
+                  React.createElement('div', { className: "space-y-1" },
+                    React.createElement(Label, { htmlFor: "edit-valid-from" }, "Valid From"),
+                    React.createElement(Input, { id: "edit-valid-from", type: "date", value: validFrom, onChange: (e) => setValidFrom(e.target.value), required: true })
+                  ),
+                  React.createElement('div', { className: "space-y-1" },
+                    React.createElement(Label, { htmlFor: "edit-valid-to" }, "Valid To"),
+                    React.createElement(Input, { id: "edit-valid-to", type: "date", value: validTo, onChange: (e) => setValidTo(e.target.value), required: true })
+                  )
                 ),
                 React.createElement('div', { className: "space-y-1" },
-                  React.createElement(Label, { htmlFor: "edit-valid-to" }, "Valid To"),
-                  React.createElement(Input, { id: "edit-valid-to", type: "date", value: validTo, onChange: (e) => setValidTo(e.target.value), required: true })
-                )
-              ),
-              React.createElement('div', { className: "space-y-1" },
-                React.createElement(Label, { htmlFor: "edit-usage-limit" }, "Usage Limit * (max times this code can be used)"),
-                React.createElement(Input, { id: "edit-usage-limit", type: "number", min: "1", placeholder: "e.g. 100", value: usageLimit, onChange: (e) => setUsageLimit(e.target.value), required: true })
-              ),
-              React.createElement(DialogFooter, { className: "pt-2 gap-2" },
-                React.createElement(Button, { type: "button", variant: "outline", onClick: () => setShowEditModal(false) }, "Cancel"),
-                React.createElement(Button, { type: "submit", className: "bg-primary", disabled: updateMutation.isPending },
-                  updateMutation.isPending ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin" }) : "Save Changes"
+                  React.createElement(Label, { htmlFor: "edit-usage-limit" }, "Usage Limit * (max times this code can be used)"),
+                  React.createElement(Input, { id: "edit-usage-limit", type: "number", min: "1", placeholder: "e.g. 100", value: usageLimit, onChange: (e) => setUsageLimit(e.target.value), required: true })
+                ),
+                React.createElement(DialogFooter, { className: "pt-2 gap-2" },
+                  React.createElement(Button, { type: "button", variant: "outline", onClick: () => setShowEditModal(false) }, "Cancel"),
+                  React.createElement(Button, { type: "submit", className: "bg-primary", disabled: updateMutation.isPending },
+                    updateMutation.isPending ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin" }) : "Save Changes"
+                  )
                 )
               )
             )
           )
         )
-      )
     )
   );
 }

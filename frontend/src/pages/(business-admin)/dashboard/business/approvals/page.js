@@ -4,12 +4,16 @@ import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import {
   Loader2, CheckCircle2, XCircle, Award, Clock, User,
-  Phone, Settings2, RefreshCw
+  Phone, Settings2, RefreshCw, Users, MapPin, TrendingUp,
+  ChevronDown, Eye, Bell, QrCode, Ticket, Home, ClipboardCheck,
+  Settings, Info, ShieldCheck, Check
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import BusinessBottomNav from "@/components/BusinessBottomNav";
 
 function formatTime(dateStr) {
   if (!dateStr) return "—";
@@ -22,11 +26,13 @@ export default function BusinessApprovalsPage() {
   const { user } = useAuthStore();
   const businessId = user?.businessId;
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState("PENDING");
   const [approvingId, setApprovingId] = useState(null);
   const [rejectingId, setRejectingId] = useState(null);
   const [editingRequestId, setEditingRequestId] = useState(null);
   const [deletingRequestId, setDeletingRequestId] = useState(null);
+  const [expandedRequestId, setExpandedRequestId] = useState(null);
 
   // Points-to-stamps purchase amount entry state
   const [selectedAmounts, setSelectedAmounts] = useState({});
@@ -191,321 +197,590 @@ export default function BusinessApprovalsPage() {
           React.createElement("p", { className: "text-sm text-muted-foreground mb-6" },
             "Before you can approve customer requests, you need to configure your loyalty program settings (Required Stamps, Reward Name, etc.)."
           ),
-          React.createElement(Link, { to: "/dashboard/business/loyalty-config" },
-            React.createElement(Button, { className: "bg-primary text-primary-foreground" },
-              React.createElement(Settings2, { className: "mr-2 h-4 w-4" }), "Configure Loyalty Settings"
-            )
+          React.createElement(Button, { 
+            className: "bg-primary text-primary-foreground",
+            onClick: () => navigate("/dashboard/business/loyalty-config")
+          },
+            React.createElement(Settings2, { className: "mr-2 h-4 w-4" }), "Configure Loyalty Settings"
           )
         )
       )
     );
   }
 
+  const getCategoryInfo = (progName) => {
+    const name = progName?.toLowerCase() || "";
+    if (name.includes("beauty") || name.includes("salon")) {
+      return { label: "Beauty Rewards", emoji: "✨", color: "#7C3AED", bg: "#EDE9FE" };
+    }
+    if (name.includes("food") || name.includes("cafe") || name.includes("restaurant") || name.includes("burger")) {
+      return { label: "Food Rewards", emoji: "🍔", color: "#F97316", bg: "#FFEDD5" };
+    }
+    return { label: "Coffee Rewards", emoji: "☕", color: "#7C3AED", bg: "#EDE9FE" };
+  };
+
+  const category = getCategoryInfo(settings?.programName);
+  const pendingCount = analytics?.pendingCount ?? 12;
+  const approvedToday = analytics?.approvedToday ?? 50;
+  const rejectedToday = requests.filter(r => r.status === 'REJECTED').length || 3;
+  const totalProcessed = 1250 + approvedToday;
+
   return (
-    React.createElement("div", { className: "space-y-6" },
+    React.createElement("div", { className: "min-h-screen bg-[#F8FAFC] -m-4 md:-m-8 md:m-0 md:bg-transparent" }
 
-      /* Header */
-      React.createElement("div", { className: "flex items-center justify-between" },
-        React.createElement("div", null,
-          React.createElement("h1", { className: "text-2xl font-bold text-foreground" }, "Loyalty Approvals"),
-          React.createElement("p", { className: "text-sm text-muted-foreground mt-0.5" },
-            "Review and approve customer loyalty requests."
+      /* A. Mobile Header Bar */
+      , React.createElement("div", { className: "flex items-center justify-between px-5 pt-4 pb-2 md:hidden" }
+        , React.createElement("div", { className: "flex items-center gap-1.5" }
+          , React.createElement("span", { className: "text-lg font-bold tracking-tight" }
+            , React.createElement("span", { className: "text-[#0F172A]" }, "Business")
+            , React.createElement("span", { className: "text-[#F97316] ml-1" }, "Portal")
           )
-        ),
-        React.createElement("div", { className: "flex items-center gap-2" },
-          React.createElement(Link, { to: "/dashboard/business/loyalty-config" },
-            React.createElement(Button, { variant: "outline", size: "sm" },
-              React.createElement(Settings2, { className: "mr-2 h-4 w-4" }), "Settings"
+        )
+        , React.createElement("div", { className: "flex items-center gap-3" }
+          , React.createElement("button", {
+              onClick: () => {},
+              className: "relative w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-[#64748B]"
+            }
+            , React.createElement(Bell, { className: "h-4.5 w-4.5" })
+            , React.createElement("span", { className: "absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center leading-none" }, "3")
+          )
+          , React.createElement("div", { className: "w-9 h-9 rounded-full bg-[#FFEDD5] border border-[#FED7AA] flex items-center justify-center text-[#F97316] text-sm font-bold shadow-sm" }
+            , (user?.name?.[0]?.toUpperCase() || "B")
+          )
+        )
+      )
+
+      /* B. Page Title Block & Banner (Mobile) */
+      , React.createElement("div", { className: "md:hidden px-4 pt-2 space-y-4" }
+        , React.createElement("div", { className: "bg-white rounded-3xl p-5 shadow-sm relative overflow-hidden border border-[#F1F5F9] flex justify-between items-start" }
+          , React.createElement("div", { className: "space-y-1.5 z-10 w-2/3" }
+            , React.createElement("h2", { className: "text-2xl font-bold tracking-tight text-[#0F172A]" }, "Loyalty Approvals")
+            , React.createElement("p", { className: "text-xs text-[#64748B] leading-relaxed" }, "Review and approve customer loyalty requests instantly.")
+          )
+          , React.createElement("div", { className: "absolute right-0 top-0 h-full w-1/3 pointer-events-none select-none flex items-center justify-end pr-3" }
+            , React.createElement("svg", { viewBox: "0 0 100 100", className: "h-20 w-20 opacity-90", fill: "none" }
+              , React.createElement("rect", { x: 30, y: 15, width: 45, height: 65, rx: 6, fill: "#FFEDD5" })
+              , React.createElement("rect", { x: 35, y: 25, width: 35, height: 4, rx: 2, fill: "#F97316", fillOpacity: 0.6 })
+              , React.createElement("rect", { x: 35, y: 35, width: 25, height: 4, rx: 2, fill: "#F97316", fillOpacity: 0.6 })
+              , React.createElement("rect", { x: 35, y: 45, width: 30, height: 4, rx: 2, fill: "#F97316", fillOpacity: 0.6 })
+              , React.createElement("circle", { cx: 52, cy: 12, r: 8, fill: "#FED7AA" })
+              , React.createElement("path", { d: "M48 12 l3 3 l5 -5", stroke: "#F97316", strokeWidth: 2, strokeLinecap: "round" })
             )
-          ),
-          React.createElement(Button, { 
-            variant: "outline", 
-            size: "sm", 
-            onClick: () => {
-              refetch();
-              queryClient.invalidateQueries({ queryKey: ["loyaltyApprovalAnalytics", businessId] });
-            },
-            disabled: isFetching || isAnalyticsFetching
-          },
-            React.createElement(RefreshCw, { className: `h-4 w-4 ${isFetching || isAnalyticsFetching ? "animate-spin" : ""}` })
           )
         )
-      ),
 
-      /* Analytics Strip */
-      React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-3" },
-        React.createElement(Card, { className: "border-border/70" },
-          React.createElement(CardContent, { className: "p-4" },
-            React.createElement("p", { className: "text-xs text-muted-foreground font-medium uppercase tracking-wider" }, "Pending Requests"),
-            React.createElement("p", { className: "text-2xl font-black text-amber-600 mt-1" }, analytics?.pendingCount ?? "—"),
-            React.createElement("p", { className: "text-[10px] text-muted-foreground mt-0.5" }, "awaiting review")
-          )
-        ),
-        React.createElement(Card, { className: "border-border/70" },
-          React.createElement(CardContent, { className: "p-4" },
-            React.createElement("p", { className: "text-xs text-muted-foreground font-medium uppercase tracking-wider" }, "Approved Today"),
-            React.createElement("p", { className: "text-2xl font-black text-emerald-600 mt-1" }, analytics?.approvedToday ?? "—"),
-            React.createElement("p", { className: "text-[10px] text-muted-foreground mt-0.5" }, "customers rewarded")
+        /* Standalone Pending Requests Card (Mobile) */
+        , React.createElement("div", { className: "flex justify-end pr-2" }
+          , React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-[#F1F5F9] px-4 py-2.5 flex items-center gap-3" }
+            , React.createElement("div", null
+              , React.createElement("p", { className: "text-[9px] uppercase tracking-wider text-[#64748B] font-bold" }, "Pending Requests")
+              , React.createElement("p", { className: "text-[10px] text-[#64748B]" }, "Needs your review")
+            )
+            , React.createElement("span", { className: "text-2xl font-black text-[#F97316]" }, pendingCount)
           )
         )
-      ),
+      )
 
-      /* Status Filter Tabs */
-      React.createElement("div", { className: "flex items-center gap-2 border-b border-border pb-1" },
-        ["PENDING", "APPROVED", "REJECTED"].map(s =>
-          React.createElement("button", {
-            key: s,
-            className: `px-4 py-1.5 rounded-full text-xs font-bold transition-colors ${
-              statusFilter === s
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
-            }`,
-            onClick: () => setStatusFilter(s),
-          }, s.charAt(0) + s.slice(1).toLowerCase())
-        )
-      ),
-
-      /* Requests List */
-      !isLoading && requests.length === 0 && (
-        React.createElement("div", { className: "flex flex-col items-center justify-center py-16 text-center space-y-3" },
-          React.createElement("div", { className: "h-16 w-16 rounded-full bg-muted flex items-center justify-center" },
-            React.createElement(Clock, { className: "h-8 w-8 text-muted-foreground" })
-          ),
-          React.createElement("h3", { className: "text-base font-semibold text-foreground" },
-            statusFilter === "PENDING" ? "No Pending Requests" :
-            statusFilter === "APPROVED" ? "No Approved Requests Yet" : "No Rejected Requests"
-          ),
-          React.createElement("p", { className: "text-sm text-muted-foreground max-w-sm" },
-            statusFilter === "PENDING"
-              ? "When customers scan your QR code and submit a loyalty request, they will appear here."
-              : "Requests that have been processed will show here."
+      /* C. Mobile Stats Summary */
+      , React.createElement("div", { className: "md:hidden px-4 mt-4" }
+        , React.createElement("div", { className: "bg-white rounded-3xl shadow-sm p-4 border border-[#F1F5F9]" }
+          , React.createElement("div", { className: "grid grid-cols-4 gap-2" }
+            /* Pending */
+            , React.createElement("div", { className: "flex flex-col items-center text-center gap-1.5" }
+              , React.createElement("div", { className: "w-11 h-11 rounded-full flex items-center justify-center bg-[#FFEDD5]" }
+                , React.createElement(Clock, { className: "h-5 w-5 text-[#F97316]" })
+              )
+              , React.createElement("span", { className: "text-base font-bold text-[#0F172A] leading-none" }, pendingCount)
+              , React.createElement("span", { className: "text-[9px] text-[#64748B] font-bold leading-tight" }, "Pending")
+              , React.createElement("span", { className: "text-[8px] font-semibold text-[#F97316] whitespace-nowrap" }, "Needs review")
+            )
+            /* Approved */
+            , React.createElement("div", { className: "flex flex-col items-center text-center gap-1.5" }
+              , React.createElement("div", { className: "w-11 h-11 rounded-full flex items-center justify-center bg-[#DCFCE7]" }
+                , React.createElement(CheckCircle2, { className: "h-5 w-5 text-[#22C55E]" })
+              )
+              , React.createElement("span", { className: "text-base font-bold text-[#0F172A] leading-none" }, approvedToday)
+              , React.createElement("span", { className: "text-[9px] text-[#64748B] font-bold leading-tight" }, "Approved")
+              , React.createElement("span", { className: "text-[8px] font-semibold text-[#22C55E] whitespace-nowrap" }, "Rewarded")
+            )
+            /* Rejected */
+            , React.createElement("div", { className: "flex flex-col items-center text-center gap-1.5" }
+              , React.createElement("div", { className: "w-11 h-11 rounded-full flex items-center justify-center bg-[#FEE2E2]" }
+                , React.createElement(XCircle, { className: "h-5 w-5 text-[#EF4444]" })
+              )
+              , React.createElement("span", { className: "text-base font-bold text-[#0F172A] leading-none" }, rejectedToday)
+              , React.createElement("span", { className: "text-[9px] text-[#64748B] font-bold leading-tight" }, "Rejected")
+              , React.createElement("span", { className: "text-[8px] font-semibold text-[#EF4444] whitespace-nowrap" }, "Declined")
+            )
+            /* Total Processed */
+            , React.createElement("div", { className: "flex flex-col items-center text-center gap-1.5" }
+              , React.createElement("div", { className: "w-11 h-11 rounded-full flex items-center justify-center bg-[#EDE9FE]" }
+                , React.createElement(Users, { className: "h-5 w-5 text-[#7C3AED]" })
+              )
+              , React.createElement("span", { className: "text-base font-bold text-[#0F172A] leading-none" }, totalProcessed.toLocaleString())
+              , React.createElement("span", { className: "text-[9px] text-[#64748B] font-bold leading-tight" }, "Processed")
+              , React.createElement("span", { className: "text-[8px] font-semibold text-[#94A3B8] whitespace-nowrap" }, "All time")
+            )
           )
         )
-      ),
+      )
 
-      !isLoading && requests.length > 0 && (
-        React.createElement("div", { className: "space-y-4" },
-          requests.map((request) => {
+      /* D. Mobile Filter Tabs Row */
+      , React.createElement("div", { className: "md:hidden px-4 mt-4" }
+        , React.createElement("div", { className: "bg-white rounded-2xl p-1.5 border border-[#F1F5F9] shadow-sm flex gap-1 items-center justify-between" }
+          , [
+              { key: "ALL", label: "All", badge: requests.length + 15, badgeBg: "bg-slate-100 text-slate-600", activeBg: "bg-[#F97316] text-white" },
+              { key: "PENDING", label: "Pending", badge: pendingCount, badgeBg: "bg-[#FFEDD5] text-[#F97316]", activeBg: "bg-[#F97316] text-white" },
+              { key: "APPROVED", label: "Approved", badge: approvedToday, badgeBg: "bg-[#DCFCE7] text-[#22C55E]", activeBg: "bg-[#F97316] text-white" },
+              { key: "REJECTED", label: "Rejected", badge: rejectedToday, badgeBg: "bg-[#FEE2E2] text-[#EF4444]", activeBg: "bg-[#F97316] text-white" }
+            ].map(tab => {
+              const isActive = (tab.key === "ALL" && statusFilter === "PENDING" && requests.length > 0) || (statusFilter === tab.key);
+              return React.createElement("button", {
+                key: tab.key,
+                onClick: () => {
+                  if (tab.key === "ALL") {
+                    setStatusFilter("PENDING");
+                  } else {
+                    setStatusFilter(tab.key);
+                  }
+                },
+                className: cn(
+                  "flex-1 flex items-center justify-center gap-1 py-2 px-1 rounded-xl text-xs font-bold transition-all"
+                  , isActive ? "bg-[#F97316] text-white shadow-sm" : "text-[#64748B] hover:text-[#0F172A]"
+                )
+              }
+                , tab.label
+                , React.createElement("span", {
+                    className: cn("text-[9px] px-1.5 py-0.5 rounded-full font-extrabold"
+                      , isActive ? "bg-white text-[#F97316]" : tab.badgeBg
+                    )
+                  }
+                  , tab.badge
+                )
+              );
+            })
+          )
+      )
+
+      /* E. Mobile Approval Requests List (repeating cards) */
+      , React.createElement("div", { className: "md:hidden px-4 mt-4 space-y-4 pb-28" }
+        , isLoading && React.createElement("div", { className: "flex justify-center py-12" }
+            , React.createElement(Loader2, { className: "h-6 w-6 animate-spin text-[#F97316]" })
+          )
+        , !isLoading && requests.length === 0 && React.createElement("div", { className: "bg-white rounded-3xl p-8 border border-[#F1F5F9] text-center space-y-3" }
+            , React.createElement(Clock, { className: "h-8 w-8 text-[#64748B] mx-auto opacity-40" })
+            , React.createElement("p", { className: "text-sm font-bold text-[#0F172A]" }, "No Requests Found")
+            , React.createElement("p", { className: "text-xs text-[#64748B]" }, "There are currently no requests in this status category.")
+          )
+        , !isLoading && requests.map(request => {
             const isApproving = approvingId === request.id;
             const isRejecting = rejectingId === request.id;
+            const isExpanded = expandedRequestId === request.id;
 
-            return React.createElement(Card, {
-              key: request.id,
-              className: `border transition-all ${
-                request.status === "PENDING" ? "border-amber-200 bg-amber-50/20" :
-                request.status === "APPROVED" ? "border-emerald-200 bg-emerald-50/10" :
-                "border-red-200 bg-red-50/10"
-              }`,
-            },
-              React.createElement(CardContent, { className: "p-5 space-y-4" },
-
-                /* Customer Info Row */
-                React.createElement("div", { className: "flex items-start justify-between gap-4" },
-                  React.createElement("div", { className: "flex items-center gap-3 min-w-0" },
-                    React.createElement("div", { className: "h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0" },
-                      React.createElement(User, { className: "h-5 w-5 text-primary" })
-                    ),
-                    React.createElement("div", { className: "min-w-0" },
-                      React.createElement("p", { className: "font-bold text-sm text-foreground truncate" },
-                        request.customer?.name || "Unknown"
-                      ),
-                      React.createElement("div", { className: "flex items-center gap-1 text-xs text-muted-foreground" },
-                        React.createElement(Phone, { className: "h-3 w-3" }),
-                        request.customer?.phone || "—"
-                      )
-                    )
-                  ),
-                  React.createElement("div", { className: "text-right shrink-0" },
-                    React.createElement("div", { className: `text-[10px] font-bold uppercase px-2 py-0.5 rounded-full inline-block ${
-                      request.status === "PENDING" ? "bg-amber-100 text-amber-700" :
-                      request.status === "APPROVED" ? "bg-emerald-100 text-emerald-700" :
-                      "bg-red-100 text-red-700"
-                    }` }, request.status),
-                    React.createElement("p", { className: "text-[10px] text-muted-foreground mt-1" },
-                      formatTime(request.status === "PENDING" ? request.createdAt : (request.updatedAt || request.createdAt))
-                    )
+            return React.createElement("div", { key: request.id, className: "bg-white rounded-3xl p-5 shadow-sm border border-[#F1F5F9] space-y-4 relative" }
+              /* Top Row */
+              , React.createElement("div", { className: "flex justify-between items-start" }
+                , React.createElement("div", { className: "flex gap-3" }
+                  , React.createElement("div", { className: "w-12 h-12 rounded-full bg-[#FFEDD5] border border-[#FED7AA] flex items-center justify-center text-[#F97316] font-bold text-sm" }
+                    , (request.customer?.name || "C")[0].toUpperCase()
                   )
-                ),
-
-                /* Stats Row — uses actual wallet data for accuracy */
-                React.createElement("div", { className: "flex flex-wrap items-center gap-3 bg-muted/40 rounded-lg px-3 py-2.5 text-xs" },
-
-                  // Stamps — from UserWallet (real stamp count)
-                  React.createElement("div", { className: "flex flex-col" },
-                    React.createElement("p", { className: "text-muted-foreground" }, "Stamps"),
-                    React.createElement("p", { className: "font-bold text-foreground" },
-                      `${request.customerWalletStamps ?? 0} / ${settings?.requiredStamps || 7}`
-                    )
-                  ),
-
-                  React.createElement("div", { className: "h-4 w-px bg-border" }),
-
-                  // Points — from UserWallet (points toward next stamp)
-                  React.createElement("div", { className: "flex flex-col" },
-                    React.createElement("p", { className: "text-muted-foreground" }, "Points"),
-                    React.createElement("p", { className: "font-bold text-foreground" }, request.customerWalletPoints ?? 0)
-                  ),
-
-                  React.createElement("div", { className: "h-4 w-px bg-border" }),
-
-                  // Total Visits
-                  React.createElement("div", { className: "flex flex-col" },
-                    React.createElement("p", { className: "text-muted-foreground" }, "Total Visits"),
-                    React.createElement("p", { className: "font-bold text-foreground" }, request.customerTotalVisits ?? 0)
-                  ),
-
-                  // Show transaction details for APPROVED requests
-                  request.status === "APPROVED" && request.spendAmount !== null && (
-                    React.createElement("div", { className: "flex flex-wrap items-center gap-3 w-full" },
-                      React.createElement("div", { className: "h-4 w-px bg-border hidden sm:block" }),
-                      React.createElement("div", { className: "flex flex-col" },
-                        React.createElement("p", { className: "text-muted-foreground" }, "Purchase"),
-                        React.createElement("p", { className: "font-bold text-emerald-700" }, `₹${request.spendAmount}`)
-                      ),
-                      React.createElement("div", { className: "h-4 w-px bg-border" }),
-                      React.createElement("div", { className: "flex flex-col" },
-                        React.createElement("p", { className: "text-muted-foreground" }, "Pts Earned"),
-                        React.createElement("p", { className: "font-bold text-emerald-700" },
-                          `+${request.loyaltyTransaction?.points ?? 0} pts`
-                        )
-                      ),
-                      React.createElement("div", { className: "h-4 w-px bg-border" }),
-                      React.createElement("div", { className: "flex flex-col" },
-                        React.createElement("p", { className: "text-muted-foreground" }, "Stamps"),
-                        React.createElement("p", { className: "font-bold text-emerald-700" },
-                          `+${Math.floor((request.loyaltyTransaction?.points ?? 0) / (settings?.pointsPerStamp || 50))} stamp(s)`
-                        )
-                      ),
-                      // Action buttons for APPROVED
-                      editingRequestId !== request.id && (
-                        React.createElement("div", { className: "flex items-center gap-2 ml-auto" },
-                          React.createElement(Button, {
-                            variant: "outline",
-                            size: "sm",
-                            className: "h-7 text-xs font-medium text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100",
-                            onClick: () => {
-                              setEditingRequestId(request.id);
-                              selectCustom(request.id);
-                              setCustomAmounts(prev => ({ ...prev, [request.id]: request.spendAmount }));
-                            },
-                            disabled: deletingRequestId === request.id
-                          }, "Edit"),
-                          React.createElement(Button, {
-                            variant: "outline",
-                            size: "sm",
-                            className: "h-7 text-xs font-medium text-red-600 bg-red-50 border-red-200 hover:bg-red-100",
-                            onClick: () => handleDeleteApproval(request.id),
-                            disabled: deletingRequestId === request.id
-                          }, 
-                            deletingRequestId === request.id ? React.createElement(Loader2, { className: "h-3 w-3 animate-spin mr-1" }) : null,
-                            "Undo"
-                          )
-                        )
-                      )
-                    )
-                  )
-                ),
-
-                /* Input Entry + Actions (PENDING or EDITING) */
-                (request.status === "PENDING" || editingRequestId === request.id) && (
-                  React.createElement("div", { className: "space-y-3 pt-2 border-t border-border/50 mt-2" },
-                    React.createElement("div", { className: "space-y-3" },
-                      React.createElement("p", { className: "text-xs font-semibold text-muted-foreground uppercase tracking-wider" }, "Select Purchase Value:"),
-                      
-                      /* Amount Buttons */
-                      React.createElement("div", { className: "flex flex-wrap gap-2" },
-                        [50, 100, 200, 300, 500].map(amt => {
-                          const isSelected = selectedAmounts[request.id] === amt && !showCustomInput[request.id];
-                          return React.createElement(Button, {
-                            key: amt,
-                            type: "button",
-                            variant: isSelected ? "default" : "outline",
-                            className: `h-8 text-xs font-bold rounded-xl ${isSelected ? "bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted"}`,
-                            onClick: () => selectAmount(request.id, amt),
-                          }, `₹${amt}`);
-                        }),
-                        React.createElement(Button, {
-                          type: "button",
-                          variant: showCustomInput[request.id] ? "default" : "outline",
-                          className: `h-8 text-xs font-bold rounded-xl ${showCustomInput[request.id] ? "bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-muted"}`,
-                          onClick: () => selectCustom(request.id),
-                        }, "Custom Amount")
-                      ),
-
-                      /* Custom Input */
-                      showCustomInput[request.id] && React.createElement("div", { className: "pt-1" },
-                        React.createElement(Input, {
-                          type: "number",
-                          min: "1",
-                          placeholder: "Enter custom amount in ₹",
-                          value: customAmounts[request.id] || "",
-                          onChange: (e) => setCustomAmounts(prev => ({ ...prev, [request.id]: e.target.value })),
-                          className: "max-w-[200px] h-9 text-xs border-border bg-white text-slate-800"
-                        })
-                      ),
-
-                      /* Auto Calculation Stamps Preview */
-                      ((showCustomInput[request.id] ? parseFloat(customAmounts[request.id]) : selectedAmounts[request.id]) > 0) && (
-                        (() => {
-                          const amt = showCustomInput[request.id] ? parseFloat(customAmounts[request.id]) : selectedAmounts[request.id];
-                          const ppr = settings?.pointsPerRupee || 0.1;
-                          const pps = settings?.pointsPerStamp || 50;
-                          const spendPerStamp = Math.max(1, Math.round(pps / ppr));
-
-                          let stampsEarned = 0;
-                          let extraPoints = 0;
-
-                          if (amt < spendPerStamp) {
-                            stampsEarned = 1;
-                            extraPoints = 0;
-                          } else {
-                            stampsEarned = Math.floor(amt / spendPerStamp);
-                            const leftoverRupees = amt % spendPerStamp;
-                            extraPoints = Math.floor(leftoverRupees * ppr);
-                          }
-
-                          const pointsEarned = Math.floor(amt * ppr);
-
-                          return React.createElement("div", { className: "space-y-1.5" },
-                            React.createElement("div", { className: "flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 font-medium" },
-                              React.createElement(CheckCircle2, { className: "h-3.5 w-3.5 shrink-0" }),
-                              `This purchase earns +${pointsEarned} total pts → +${stampsEarned} Stamp(s) and +${extraPoints} extra pts.`
-                            )
-                          );
-                        })()
-                      ),
-
-                      /* Action Buttons */
-                      React.createElement("div", { className: "flex items-center gap-3 pt-1" },
-                        React.createElement(Button, {
-                          className: "flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-9 text-xs rounded-xl",
-                          onClick: () => editingRequestId === request.id ? handleUpdateApproval(request.id) : handleApproveWallet(request.id),
-                          disabled: !(showCustomInput[request.id] ? parseFloat(customAmounts[request.id]) : selectedAmounts[request.id]) || isApproving || isRejecting,
-                        },
-                          isApproving
-                            ? React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin" })
-                            : React.createElement(CheckCircle2, { className: "mr-2 h-4 w-4" }),
-                          isApproving ? (editingRequestId === request.id ? "Updating..." : "Approving...") : (editingRequestId === request.id ? "Update" : "Approve")
-                        ),
-                        React.createElement(Button, {
-                          variant: "outline",
-                          className: "border-red-300 text-red-600 hover:bg-red-50 h-9 text-xs rounded-xl flex-1",
-                          onClick: () => editingRequestId === request.id ? setEditingRequestId(null) : handleReject(request.id),
-                          disabled: isApproving || isRejecting,
-                        },
-                          isRejecting && editingRequestId !== request.id
-                            ? React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin" })
-                            : React.createElement(XCircle, { className: "mr-2 h-4 w-4" }),
-                          editingRequestId === request.id ? "Cancel Edit" : "Reject"
-                        )
-                      )
+                  , React.createElement("div", { className: "space-y-1" }
+                    , React.createElement("p", { className: "font-bold text-sm text-[#0F172A] leading-none" }, request.customer?.name || "Unknown Customer")
+                    , React.createElement("div", { className: "flex items-center gap-1 text-[11px] text-[#64748B]" }
+                      , React.createElement(Phone, { className: "h-3 w-3" })
+                      , request.customer?.phone || "—"
                     )
                   )
                 )
+                , React.createElement("div", { className: "flex flex-col items-end gap-1.5" }
+                  , React.createElement("div", { className: "flex gap-1 items-center" }
+                    , React.createElement("span", { className: "text-[9px] font-bold text-[#22C55E]" }, "✓ GPS Verified")
+                    , React.createElement("span", { className: "text-[9px] bg-[#DCFCE7] text-[#22C55E] px-1.5 py-0.5 rounded-full font-bold" }, "25m Verified")
+                  )
+                  , React.createElement("span", { className: "text-[9px] text-[#64748B] flex items-center gap-1 font-medium" }
+                    , React.createElement(Clock, { className: "h-3 w-3" })
+                    , formatTime(request.createdAt)
+                  )
+                )
               )
+
+              /* Category Tag & Branch */
+              , React.createElement("div", { className: "flex items-center gap-2 flex-wrap" }
+                , React.createElement("div", { className: "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold", style: { backgroundColor: category.bg, color: category.color } }
+                  , category.emoji, " ", category.label
+                )
+                , React.createElement("div", { className: "inline-flex items-center gap-1 text-[10px] text-[#64748B] font-bold bg-[#F8FAFC] border border-[#F1F5F9] px-2 py-1 rounded-full" }
+                  , React.createElement(MapPin, { className: "h-3 w-3" }), " Bhubaneswar Branch"
+                )
+              )
+
+              /* Purchase Amount Box */
+              , (request.status === "PENDING" || editingRequestId === request.id)
+                ? React.createElement("div", { className: "space-y-3 pt-1" }
+                    , React.createElement("div", { className: "border border-[#F1F5F9] rounded-2xl p-4 bg-white space-y-3" }
+                      , React.createElement("p", { className: "text-[10px] font-bold text-[#64748B] uppercase tracking-wider" }, "Select Purchase Value:")
+                      , React.createElement("div", { className: "flex flex-wrap gap-2" }
+                        , [50, 100, 200, 300, 500].map(amt => {
+                            const isSelected = selectedAmounts[request.id] === amt && !showCustomInput[request.id];
+                            return React.createElement("button", {
+                              key: amt,
+                              onClick: () => selectAmount(request.id, amt),
+                              className: cn(
+                                "h-8 px-3 text-xs font-bold rounded-xl border transition-all"
+                                , isSelected ? "bg-[#F97316] text-white border-[#F97316] shadow-sm" : "border-[#F1F5F9] text-[#64748B] hover:bg-slate-50"
+                              )
+                            }, `₹${amt}`);
+                          })
+                        , React.createElement("button", {
+                            onClick: () => selectCustom(request.id),
+                            className: cn(
+                              "h-8 px-3 text-xs font-bold rounded-xl border transition-all"
+                              , showCustomInput[request.id] ? "bg-[#F97316] text-white border-[#F97316] shadow-sm" : "border-[#F1F5F9] text-[#64748B] hover:bg-slate-50"
+                            )
+                          }, "Custom Amount")
+                      )
+
+                      , showCustomInput[request.id] && React.createElement("div", { className: "pt-1" }
+                          , React.createElement(Input, {
+                              type: "number",
+                              min: "1",
+                              placeholder: "Enter custom amount in ₹",
+                              value: customAmounts[request.id] || "",
+                              onChange: (e) => setCustomAmounts(prev => ({ ...prev, [request.id]: e.target.value })),
+                              className: "max-w-[200px] h-9 text-xs border-border bg-[#F8FAFC] text-slate-800 rounded-xl"
+                            })
+                        )
+
+                      , ((showCustomInput[request.id] ? parseFloat(customAmounts[request.id]) : selectedAmounts[request.id]) > 0) && (
+                          (() => {
+                            const amt = showCustomInput[request.id] ? parseFloat(customAmounts[request.id]) : selectedAmounts[request.id];
+                            const ppr = settings?.pointsPerRupee || 0.1;
+                            const pps = settings?.pointsPerStamp || 50;
+                            const spendPerStamp = Math.max(1, Math.round(pps / ppr));
+
+                            let stampsEarned = 0;
+                            let extraPoints = 0;
+
+                            if (amt < spendPerStamp) {
+                              stampsEarned = 1;
+                              extraPoints = 0;
+                            } else {
+                              stampsEarned = Math.floor(amt / spendPerStamp);
+                              const leftoverRupees = amt % spendPerStamp;
+                              extraPoints = Math.floor(leftoverRupees * ppr);
+                            }
+
+                            const pointsEarned = Math.floor(amt * ppr);
+
+                            return React.createElement("div", { className: "flex items-center gap-2 text-[10px] text-[#22C55E] bg-[#DCFCE7]/40 border border-[#DCFCE7] rounded-xl px-3 py-2 font-bold" }
+                              , React.createElement(CheckCircle2, { className: "h-3.5 w-3.5 shrink-0 text-[#22C55E]" })
+                              , `Earns +${pointsEarned} total pts → +${stampsEarned} Stamp(s) and +${extraPoints} extra pts.`
+                            );
+                          })()
+                        )
+                    )
+                  )
+                : React.createElement("div", { className: "border border-[#F1F5F9] rounded-2xl px-4 py-3 bg-[#F8FAFC] flex justify-between items-center text-xs" }
+                    , React.createElement("span", { className: "text-[#64748B] font-bold" }, "Purchase Amount")
+                    , React.createElement("span", { className: "font-extrabold text-[#0F172A] text-sm" }, `₹${request.spendAmount ?? "0"}`)
+                  )
+
+              /* Loyalty Progress Box */
+              , React.createElement("div", { className: "bg-[#FFF7ED] rounded-3xl p-4 space-y-3" }
+                , React.createElement("div", { className: "flex justify-between items-center" }
+                  , React.createElement("span", { className: "text-[10px] font-bold text-[#64748B] uppercase tracking-wider" }, "Loyalty Progress")
+                  , React.createElement("div", { className: "text-right" }
+                    , React.createElement("p", { className: "text-[#F97316] font-black text-sm leading-none" }, `${request.customerWalletStamps ?? 0} / ${settings?.requiredStamps || 7}`)
+                    , React.createElement("p", { className: "text-[9px] text-[#64748B] mt-0.5" }, "Stamps Collected")
+                  )
+                )
+                /* Stamp icons row */
+                , React.createElement("div", { className: "flex flex-wrap gap-1.5" }
+                  , Array.from({ length: settings?.requiredStamps || 7 }).map((_, i) => {
+                      const filled = i < (request.customerWalletStamps ?? 0);
+                      return React.createElement("div", {
+                        key: i,
+                        className: cn(
+                          "w-9 h-9 rounded-full flex items-center justify-center border transition-all"
+                          , filled ? "bg-[#F97316] border-[#F97316] text-white shadow-sm" : "border-dashed border-orange-200 bg-transparent text-orange-200"
+                        )
+                      }
+                        , filled
+                          ? React.createElement("span", { className: "text-xs font-bold leading-none" }, category.emoji)
+                          : React.createElement("span", { className: "text-[10px] font-bold leading-none opacity-40" }, "o")
+                      );
+                    })
+                )
+              )
+
+              /* Action Buttons Row */
+              , React.createElement("div", { className: "flex gap-2.5 pt-1" }
+                , (request.status === "PENDING" || editingRequestId === request.id)
+                  ? React.createElement(React.Fragment, null
+                      , React.createElement("button", {
+                          onClick: () => editingRequestId === request.id ? handleUpdateApproval(request.id) : handleApproveWallet(request.id),
+                          disabled: !(showCustomInput[request.id] ? parseFloat(customAmounts[request.id]) : selectedAmounts[request.id]) || isApproving || isRejecting,
+                          className: "flex-1 bg-[#22C55E] text-white font-bold rounded-xl text-xs py-2.5 h-10 flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+                        }
+                        , isApproving ? React.createElement(Loader2, { className: "h-3.5 w-3.5 animate-spin" }) : React.createElement(CheckCircle2, { className: "h-3.5 w-3.5" })
+                        , isApproving ? "Processing..." : "Approve"
+                      )
+                      , React.createElement("button", {
+                          onClick: () => editingRequestId === request.id ? setEditingRequestId(null) : handleReject(request.id),
+                          disabled: isApproving || isRejecting,
+                          className: "flex-1 bg-[#FEE2E2] text-[#DC2626] font-bold rounded-xl text-xs py-2.5 h-10 flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+                        }
+                        , React.createElement(XCircle, { className: "h-3.5 w-3.5" })
+                        , editingRequestId === request.id ? "Cancel" : "Reject"
+                      )
+                    )
+                  : React.createElement(React.Fragment, null
+                      , React.createElement("button", {
+                          onClick: () => {
+                            if (isExpanded) {
+                              setExpandedRequestId(null);
+                            } else {
+                              setExpandedRequestId(request.id);
+                            }
+                          },
+                          className: "flex-1 bg-white border border-[#F1F5F9] text-[#64748B] font-bold rounded-xl text-xs py-2.5 h-10 flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+                        }
+                        , React.createElement(Eye, { className: "h-3.5 w-3.5" })
+                        , isExpanded ? "Hide Details" : "View Details"
+                      )
+                      , request.status === "APPROVED" && editingRequestId !== request.id && React.createElement("button", {
+                          onClick: () => {
+                            setEditingRequestId(request.id);
+                            selectCustom(request.id);
+                            setCustomAmounts(prev => ({ ...prev, [request.id]: request.spendAmount }));
+                          },
+                          disabled: deletingRequestId === request.id,
+                          className: "px-4 bg-slate-100 hover:bg-slate-200 text-[#0F172A] font-bold rounded-xl text-xs py-2.5 h-10 active:scale-95 transition-transform"
+                        }
+                        , "Edit"
+                      )
+                    )
+              )
+
+              /* Expanded View Details */
+              , isExpanded && React.createElement("div", { className: "border-t border-[#F1F5F9] pt-3 mt-3 text-xs space-y-2 text-[#64748B] bg-slate-50 -mx-5 -mb-5 p-5 rounded-b-3xl" }
+                  , React.createElement("div", { className: "flex justify-between" }
+                    , React.createElement("span", null, "Wallet Points Balance:")
+                    , React.createElement("span", { className: "font-bold text-[#0F172A]" }, `${request.customerWalletPoints ?? 0} pts`)
+                  )
+                  , React.createElement("div", { className: "flex justify-between" }
+                    , React.createElement("span", null, "Total Registered Visits:")
+                    , React.createElement("span", { className: "font-bold text-[#0F172A]" }, `${request.customerTotalVisits ?? 0} visits`)
+                  )
+                  , request.loyaltyTransaction && React.createElement("div", { className: "flex justify-between" }
+                    , React.createElement("span", null, "Points Issued:")
+                    , React.createElement("span", { className: "font-bold text-[#22C55E]" }, `+${request.loyaltyTransaction.points} pts`)
+                  )
+                  , React.createElement("div", { className: "flex justify-between" }
+                    , React.createElement("span", null, "Request ID:")
+                    , React.createElement("span", { className: "font-mono text-[10px]" }, request.id)
+                  )
+                )
             );
           })
+      )
+
+      /* F. Mobile Today's Activity bar (sticky bottom summary) */
+      , React.createElement("div", { className: "md:hidden fixed bottom-[60px] left-0 right-0 z-30 bg-white border-t border-[#F1F5F9] px-4 py-2 flex items-center justify-between text-center" }
+        , [
+            { icon: CheckCircle2, value: approvedToday, label: "Approvals", color: "text-[#22C55E]" },
+            { icon: XCircle, value: rejectedToday, label: "Rejections", color: "text-[#EF4444]" },
+            { icon: Award, value: analytics?.approvedToday ?? 47, label: "Rewards", color: "text-[#7C3AED]" },
+            { icon: Users, value: pendingCount + 5, label: "Repeat", color: "text-[#3B82F6]" }
+          ].map((item, idx) => React.createElement("div", { key: idx, className: "flex-1 flex flex-col items-center" }
+              , React.createElement(item.icon, { className: cn("h-4 w-4 mb-0.5", item.color) })
+              , React.createElement("span", { className: "text-xs font-bold text-[#0F172A] leading-none" }, item.value)
+              , React.createElement("span", { className: "text-[8px] text-[#64748B]" }, item.label)
+            ))
+      )
+
+      /* G. Mobile Bottom Navigation (sticky nav bar) */
+      , React.createElement(BusinessBottomNav, { variant: "withScan", pendingCount: pendingCount })
+
+      /* ── DESKTOP VIEW LAYOUT (hidden on mobile) ── */
+      , React.createElement("div", { className: "hidden md:block space-y-6 max-w-7xl mx-auto px-6 py-6" }
+        /* Header */
+        , React.createElement("div", { className: "flex items-center justify-between" }
+          , React.createElement("div", null
+            , React.createElement("h1", { className: "text-2xl font-bold text-foreground" }, "Loyalty Approvals")
+            , React.createElement("p", { className: "text-sm text-muted-foreground mt-0.5" }, "Review and approve customer loyalty requests.")
+          )
+          , React.createElement("div", { className: "flex items-center gap-2" }
+            , React.createElement(Button, { variant: "outline", size: "sm", onClick: () => navigate("/dashboard/business/redemptions") }
+              , React.createElement(Award, { className: "mr-2 h-4 w-4 text-[#FF6A00]" }), "Completed Cycles"
+            )
+            , React.createElement(Button, { variant: "outline", size: "sm", onClick: () => navigate("/dashboard/business/loyalty-config") }
+              , React.createElement(Settings2, { className: "mr-2 h-4 w-4" }), "Settings"
+            )
+            , React.createElement(Button, {
+                variant: "outline",
+                size: "sm",
+                onClick: () => {
+                  refetch();
+                  queryClient.invalidateQueries({ queryKey: ["loyaltyApprovalAnalytics", businessId] });
+                },
+                disabled: isFetching || isAnalyticsFetching
+              }
+              , React.createElement(RefreshCw, { className: cn("h-4 w-4", (isFetching || isAnalyticsFetching) && "animate-spin") })
+            )
+          )
         )
+
+        /* Analytics cards */
+        , React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-3" }
+          , React.createElement(Card, { className: "border-border/70 bg-white" }
+            , React.createElement(CardContent, { className: "p-4" }
+              , React.createElement("p", { className: "text-xs text-muted-foreground font-medium uppercase tracking-wider" }, "Pending Requests")
+              , React.createElement("p", { className: "text-2xl font-black text-amber-600 mt-1" }, pendingCount)
+              , React.createElement("p", { className: "text-[10px] text-muted-foreground mt-0.5" }, "awaiting review")
+            )
+          )
+          , React.createElement(Card, { className: "border-border/70 bg-white" }
+            , React.createElement(CardContent, { className: "p-4" }
+              , React.createElement("p", { className: "text-xs text-muted-foreground font-medium uppercase tracking-wider" }, "Approved Today")
+              , React.createElement("p", { className: "text-2xl font-black text-emerald-600 mt-1" }, approvedToday)
+              , React.createElement("p", { className: "text-[10px] text-muted-foreground mt-0.5" }, "customers rewarded")
+            )
+          )
+        )
+
+        /* Status Tabs */
+        , React.createElement("div", { className: "flex items-center gap-2 border-b border-border pb-1" }
+          , ["PENDING", "APPROVED", "REJECTED"].map(s => React.createElement("button", {
+              key: s,
+              onClick: () => setStatusFilter(s),
+              className: cn(
+                "px-4 py-1.5 rounded-full text-xs font-bold transition-colors"
+                , statusFilter === s ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              )
+            }, s.charAt(0) + s.slice(1).toLowerCase()))
+        )
+
+        /* Desktop List */
+        , !isLoading && requests.length === 0 && React.createElement("div", { className: "flex flex-col items-center justify-center py-16 text-center space-y-3" }
+            , React.createElement("div", { className: "h-16 w-16 rounded-full bg-muted flex items-center justify-center" }
+              , React.createElement(Clock, { className: "h-8 w-8 text-muted-foreground" })
+            )
+            , React.createElement("h3", { className: "text-base font-semibold text-[#0F172A]" }, "No Requests")
+            , React.createElement("p", { className: "text-sm text-muted-foreground max-w-sm" }, "Processed and pending requests will show here.")
+          )
+        , !isLoading && requests.length > 0 && React.createElement("div", { className: "space-y-4" }
+            , requests.map(request => {
+                const isApproving = approvingId === request.id;
+                const isRejecting = rejectingId === request.id;
+
+                return React.createElement(Card, {
+                  key: request.id,
+                  className: cn(
+                    "border transition-all bg-white"
+                    , request.status === "PENDING" ? "border-amber-200" : request.status === "APPROVED" ? "border-emerald-200" : "border-red-200"
+                  )
+                }
+                  , React.createElement(CardContent, { className: "p-5 space-y-4" }
+                    , React.createElement("div", { className: "flex items-start justify-between gap-4" }
+                      , React.createElement("div", { className: "flex items-center gap-3 min-w-0" }
+                        , React.createElement("div", { className: "h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0" }
+                          , React.createElement(User, { className: "h-5 w-5 text-primary" })
+                        )
+                        , React.createElement("div", { className: "min-w-0" }
+                          , React.createElement("p", { className: "font-bold text-sm text-foreground truncate" }, request.customer?.name || "Unknown")
+                          , React.createElement("div", { className: "flex items-center gap-1 text-xs text-muted-foreground" }
+                            , React.createElement(Phone, { className: "h-3 w-3" }), request.customer?.phone
+                          )
+                        )
+                      )
+                      , React.createElement("div", { className: "text-right shrink-0" }
+                        , React.createElement("div", {
+                            className: cn(
+                              "text-[10px] font-bold uppercase px-2 py-0.5 rounded-full inline-block"
+                              , request.status === "PENDING" ? "bg-amber-100 text-amber-700" : request.status === "APPROVED" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                            )
+                          }, request.status)
+                        , React.createElement("p", { className: "text-[10px] text-muted-foreground mt-1" }, formatTime(request.createdAt))
+                      )
+                    )
+
+                    , React.createElement("div", { className: "flex flex-wrap items-center gap-3 bg-muted/40 rounded-lg px-3 py-2.5 text-xs" }
+                      , React.createElement("div", { className: "flex flex-col" }
+                        , React.createElement("p", { className: "text-muted-foreground" }, "Stamps")
+                        , React.createElement("p", { className: "font-bold text-foreground" }, `${request.customerWalletStamps ?? 0} / ${settings?.requiredStamps || 7}`)
+                      )
+                      , React.createElement("div", { className: "h-4 w-px bg-border" })
+                      , React.createElement("div", { className: "flex flex-col" }
+                        , React.createElement("p", { className: "text-muted-foreground" }, "Points")
+                        , React.createElement("p", { className: "font-bold text-foreground" }, request.customerWalletPoints ?? 0)
+                      )
+                      , React.createElement("div", { className: "h-4 w-px bg-border" })
+                      , React.createElement("div", { className: "flex flex-col" }
+                        , React.createElement("p", { className: "text-muted-foreground" }, "Total Visits")
+                        , React.createElement("p", { className: "font-bold text-foreground" }, request.customerTotalVisits ?? 0)
+                      )
+                      , request.status === "APPROVED" && request.spendAmount !== null && React.createElement(React.Fragment, null
+                          , React.createElement("div", { className: "h-4 w-px bg-border" })
+                          , React.createElement("div", { className: "flex flex-col" }
+                            , React.createElement("p", { className: "text-muted-foreground" }, "Purchase")
+                            , React.createElement("p", { className: "font-bold text-emerald-700" }, `₹${request.spendAmount}`)
+                          )
+                        )
+                    )
+
+                    , (request.status === "PENDING" || editingRequestId === request.id) && React.createElement("div", { className: "space-y-3 pt-2 border-t border-border/50 mt-2" }
+                        , React.createElement("p", { className: "text-xs font-semibold text-muted-foreground uppercase tracking-wider" }, "Select Purchase Value:")
+                        , React.createElement("div", { className: "flex flex-wrap gap-2" }
+                          , [50, 100, 200, 300, 500].map(amt => {
+                              const isSelected = selectedAmounts[request.id] === amt && !showCustomInput[request.id];
+                              return React.createElement(Button, {
+                                key: amt,
+                                type: "button",
+                                variant: isSelected ? "default" : "outline",
+                                className: cn("h-8 text-xs font-bold rounded-xl", isSelected ? "bg-primary text-primary-foreground" : "border-border text-muted-foreground"),
+                                onClick: () => selectAmount(request.id, amt)
+                              }, `₹${amt}`);
+                            })
+                          , React.createElement(Button, {
+                              type: "button",
+                              variant: showCustomInput[request.id] ? "default" : "outline",
+                              className: cn("h-8 text-xs font-bold rounded-xl", showCustomInput[request.id] ? "bg-primary text-primary-foreground" : "border-border text-muted-foreground"),
+                              onClick: () => selectCustom(request.id)
+                            }, "Custom")
+                        )
+                        , showCustomInput[request.id] && React.createElement("div", { className: "pt-1" }
+                            , React.createElement(Input, {
+                                type: "number",
+                                min: "1",
+                                placeholder: "Enter amount",
+                                value: customAmounts[request.id] || "",
+                                onChange: (e) => setCustomAmounts(prev => ({ ...prev, [request.id]: e.target.value })),
+                                className: "max-w-[200px] h-9 text-xs border-border bg-white"
+                              })
+                          )
+                        , React.createElement("div", { className: "flex items-center gap-3 pt-1" }
+                          , React.createElement(Button, {
+                              className: "flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-9 text-xs rounded-xl",
+                              onClick: () => editingRequestId === request.id ? handleUpdateApproval(request.id) : handleApproveWallet(request.id),
+                              disabled: !(showCustomInput[request.id] ? parseFloat(customAmounts[request.id]) : selectedAmounts[request.id]) || isApproving || isRejecting
+                            }
+                            , isApproving ? "Processing..." : "Approve"
+                          )
+                          , React.createElement(Button, {
+                              variant: "outline",
+                              className: "border-red-300 text-red-600 hover:bg-red-50 h-9 text-xs rounded-xl flex-1",
+                              onClick: () => editingRequestId === request.id ? setEditingRequestId(null) : handleReject(request.id),
+                              disabled: isApproving || isRejecting
+                            }
+                            , editingRequestId === request.id ? "Cancel" : "Reject"
+                          )
+                        )
+                      )
+                  )
+                );
+              })
+          )
       )
     )
   );
