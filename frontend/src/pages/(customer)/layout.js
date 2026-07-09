@@ -4,7 +4,7 @@ const _jsxFileName = "src\\pages\\(customer)\\layout.tsx";"use client";
 import React, { useEffect, useState } from "react";
 
 import { useAuthStore } from "@/store/authStore";
-import { Home, Scan, History, User, LogOut, Loader2, Bell, Award } from "lucide-react";
+import { Home, Scan, History, User, LogOut, Loader2, Bell, Award, Star } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -133,87 +133,102 @@ export default function CustomerLayout({
   const navItems = [
     { label: "Home", icon: Home, href: "/dashboard" },
     { label: "History", icon: History, href: "/history" },
-    { label: "Points", icon: Award, href: "/loyalty-history" },
+    { label: "Scan", icon: Scan, href: "/checkin", isCenter: true },
+    { label: "Points", icon: Star, href: "/loyalty-history" },
     { label: "Profile", icon: User, href: "/profile" },
   ];
 
+  const initials = user?.name ? user.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "SL";
+
+  const getActiveColor = (href) => {
+    if (href === "/dashboard" || href === "/profile") return "text-[#16A34A]";
+    return "text-[#F97316]";
+  };
+
+  const getSubtext = () => {
+    if (pathname === "/history") return "Loyalty that rewards you";
+    if (pathname === "/profile") return "Scan • Collect • Earn";
+    return "Scan • Earn • Redeem";
+  };
+
   return (
-    React.createElement('div', { className: "min-h-screen bg-[#f8fafc] bg-dots safe-top safe-bottom text-foreground"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 55}}
-      , React.createElement('div', { className: "mx-auto min-h-screen max-w-md bg-white border-x border-border shadow-sm relative flex flex-col pb-28"          , __self: this, __source: {fileName: _jsxFileName, lineNumber: 56}}
+    React.createElement('div', { className: "min-h-screen bg-[#f8fafc] bg-dots safe-top safe-bottom text-foreground" }
+      , React.createElement('div', { className: "mx-auto min-h-screen max-w-md bg-white border-x border-border shadow-sm relative flex flex-col pb-28" }
 
         /* Header Bar */
-        , React.createElement('header', { className: "sticky top-0 z-30 flex items-center justify-between border-b border-border bg-white/80 p-4 backdrop-blur-md"          , __self: this, __source: {fileName: _jsxFileName, lineNumber: 59}}
-          , React.createElement('div', { className: "flex items-center space-x-2" }
-            , React.createElement('img', { src: "/new.png", alt: "LogiSaar Logo", className: "h-6 w-auto object-contain" })
+        , React.createElement('header', { className: "sticky top-0 z-30 flex items-center justify-between border-b border-border bg-white/80 p-4 backdrop-blur-md" }
+          , React.createElement('div', { className: "flex items-center space-x-2.5" }
+            , React.createElement('div', { className: "w-10 h-10 bg-black rounded-2xl flex items-center justify-center font-bold text-white text-base tracking-tight shrink-0 shadow-sm" }, "SL")
             , React.createElement('div', { className: "flex flex-col justify-center" }
-              , React.createElement('span', { className: "text-xs font-extrabold tracking-tight text-foreground leading-tight" }, "LogiSaar")
-              , React.createElement('span', { className: "text-[8px] font-black text-[#FF6A00] uppercase tracking-wider leading-none" }, "ScanLoyal")
+              , React.createElement('div', { className: "flex items-baseline font-bold leading-none" }
+                , React.createElement('span', { className: "text-[#0F172A] text-sm font-black" }, "Scan")
+                , React.createElement('span', { className: "text-[#F97316] text-sm font-black" }, "Loyal")
+              )
+              , React.createElement('span', { className: "text-[8px] font-medium text-slate-500 tracking-wider mt-0.5" }, getSubtext())
             )
           )
-          , React.createElement('div', { className: "flex items-center space-x-1" }
+          , React.createElement('div', { className: "flex items-center space-x-3" }
             , React.createElement('button', {
                 onClick: () => {
                   setShowNotifications(true);
                   fetchNotifications();
                 },
-                className: "relative rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                className: "relative w-9 h-9 rounded-full bg-slate-50 flex items-center justify-center text-[#0F172A] hover:bg-slate-100 transition-colors"
               }
-              , React.createElement(Bell, { className: "h-4 w-4" })
-              , unreadCount > 0 && (
-                  React.createElement('span', { className: "absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-primary" })
-                )
+              , React.createElement(Bell, { className: "h-4.5 w-4.5" })
+              , React.createElement('span', { className: "absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-[#F97316] text-white text-[8px] font-black rounded-full flex items-center justify-center border border-white" }, unreadCount > 0 ? unreadCount : "3")
             )
-            , React.createElement('button', {
-                onClick: logout,
-                className: "rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            , React.createElement(Link, {
+                to: "/profile",
+                className: "w-9 h-9 rounded-full bg-[#FFEDD5] border border-[#FED7AA] flex items-center justify-center text-[#F97316] text-xs font-black shadow-sm transition-transform active:scale-95"
               }
-              , React.createElement(LogOut, { className: "h-4 w-4" })
+              , initials
             )
           )
         )
 
         /* Core Content */
-        , React.createElement('main', { className: "flex-1 p-4 overflow-y-auto"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 76}}
+        , React.createElement('main', { className: "flex-1 p-4 overflow-y-auto" }
           , React.createElement(Outlet, null)
         )
 
-        /* Floating Scan QR Button - Right side, upper the navbar */
-        , React.createElement('div', { className: "fixed bottom-24 left-4 right-4 z-40 mx-auto max-w-sm flex justify-end pointer-events-none pr-6" }
-          , React.createElement(Link, {
-              to: "/checkin",
-              className: cn(
-                "pointer-events-auto h-12 w-12 rounded-full flex items-center justify-center transition-all duration-300 transform active:scale-95 shadow-[0_8px_32px_0_rgba(255,106,0,0.25)] border border-primary/35 backdrop-blur-md ring-4 ring-primary/20",
-                pathname === "/checkin"
-                  ? "bg-primary/85 text-white scale-105"
-                  : "bg-white/65 text-primary hover:bg-white/80 hover:scale-110"
-              )
-            }
-            , React.createElement(Scan, { className: "h-5 w-5" })
-          )
-        )
-
-        /* Bottom PWA Navbar - Floating Pill Design */
-        , React.createElement('nav', { className: "fixed bottom-4 left-4 right-4 z-40 mx-auto max-w-sm border border-[#FF6A00]/25 bg-white/70 py-2.5 px-4 backdrop-blur-xl flex justify-between items-center shadow-[0_8px_32px_0_rgba(255,106,0,0.15)] rounded-full transition-all duration-300 hover:shadow-[0_12px_40px_0_rgba(255,106,0,0.25)]" }
+        /* Bottom PWA Navbar - Floating Pill Design with Raised Scan button */
+        , React.createElement('nav', { className: "fixed bottom-4 left-4 right-4 z-40 mx-auto max-w-sm border border-[#DCFCE7] bg-[#F0FDF4]/90 py-2 px-3 backdrop-blur-xl flex justify-between items-center shadow-[0_8px_32px_0_rgba(22,163,74,0.08)] rounded-full transition-all duration-300 hover:shadow-[0_12px_40px_0_rgba(22,163,74,0.15)]" }
           , navItems.map((item) => {
-            const isActive = pathname === item.href;
-            const Icon = item.icon;
+              const isActive = pathname === item.href;
+              const Icon = item.icon;
 
-            return (
-              React.createElement(Link, {
-                key: item.href,
-                to: item.href,
-                className: cn(
-                  "flex flex-col items-center space-y-1 transition-all duration-300 py-1.5 px-3 rounded-full min-w-[62px] transform active:scale-95",
-                  isActive 
-                    ? "bg-gradient-to-r from-[#FF6A00] to-[#FF8E3C] text-white font-bold shadow-lg shadow-[#FF6A00]/25 scale-105 -translate-y-1" 
-                    : "text-[#5A4E46] hover:text-[#FF6A00] hover:bg-white/40 hover:scale-105"
-                )
+              if (item.isCenter) {
+                return React.createElement(Link, {
+                  key: item.href,
+                  to: item.href,
+                  className: "relative -translate-y-4 flex flex-col items-center z-50 shrink-0"
+                }
+                  , React.createElement('div', {
+                      className: "w-12 h-12 rounded-full bg-[#F97316] hover:bg-[#EA580C] text-white flex items-center justify-center shadow-[0_8px_24px_0_rgba(249,115,22,0.35)] border-4 border-white transition-all transform active:scale-95"
+                    }
+                    , React.createElement(Scan, { className: "h-5 w-5 text-white" })
+                  )
+                  , React.createElement('span', { className: "text-[9px] font-bold text-slate-500 mt-0.5" }, item.label)
+                );
               }
-                , React.createElement(Icon, { className: "h-4 w-4" })
-                , React.createElement('span', { className: "text-[9px] font-bold" }, item.label)
-              )
-            );
-          })
+
+              return (
+                React.createElement(Link, {
+                  key: item.href,
+                  to: item.href,
+                  className: cn(
+                    "flex flex-col items-center space-y-0.5 transition-all duration-300 py-1.5 rounded-xl min-w-[50px] transform active:scale-95",
+                    isActive 
+                      ? `${getActiveColor(item.href)} font-extrabold scale-105` 
+                      : "text-[#64748B] hover:text-[#16A34A]"
+                  )
+                }
+                  , React.createElement(Icon, { className: cn("h-4.5 w-4.5", isActive ? getActiveColor(item.href) : "text-[#64748B]") })
+                  , React.createElement('span', { className: "text-[9px]" }, item.label)
+                )
+              );
+            })
         )
         /* Notifications Modal Dialog */
         , showNotifications && (

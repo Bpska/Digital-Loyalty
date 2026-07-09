@@ -1,22 +1,59 @@
+const _jsxFileName = "src\\pages\\(customer)\\history\\page.tsx"; function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }"use client";
+
 import { Link } from "react-router-dom";
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, Calendar, Award, ChevronLeft, ArrowUpRight, MapPin, Clock, ShieldCheck, Tag } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Loader2, Calendar, Award, ChevronLeft, ArrowUpRight, MapPin, Clock, ShieldCheck, Tag,
+  Wallet, Gift, Star, Coffee, Scissors, Utensils, SlidersHorizontal, ChevronRight, Store
+} from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+
+// Category style mapping: background tint and text/icon colors
+const getCategoryStyle = (category) => {
+  const norm = (category || "").toLowerCase().trim();
+  if (norm.includes("salon") || norm.includes("spa") || norm.includes("beauty") || norm.includes("hair")) {
+    return {
+      bg: "bg-[#DBEAFE]", // blue tint
+      text: "text-blue-600",
+      icon: Scissors
+    };
+  }
+  if (norm.includes("hotel") || norm.includes("resort") || norm.includes("stay") || norm.includes("hostel")) {
+    return {
+      bg: "bg-[#EDE9FE]", // violet tint
+      text: "text-purple-600",
+      icon: Hotel
+    };
+  }
+  if (norm.includes("restaurant") || norm.includes("food") || norm.includes("bakery")) {
+    return {
+      bg: "bg-[#FEF3C7]", // amber tint
+      text: "text-amber-600",
+      icon: Utensils
+    };
+  }
+  // Default is Cafe
+  return {
+    bg: "bg-[#FFEDD5]", // peach tint
+    text: "text-[#F97316]",
+    icon: Coffee
+  };
+};
 
 export default function HistoryPage() {
-  const [activeTab, setActiveTab] = useState("visits");
+  const [activeTab, setActiveTab] = useState("visits"); // "visits" | "vouchers"
   const [selectedItem, setSelectedItem] = useState(null);
+  const [filterChip, setFilterChip] = useState("All");
 
   // Fetch checkin history
   const { data: checkinsData, isLoading: checkinsLoading } = useQuery({
     queryKey: ["checkinHistory"],
     queryFn: () => api.get("/checkins/history").then((res) => res.data),
-    enabled: activeTab === "visits",
   });
 
   // Fetch rewards history and points totals
@@ -25,127 +62,321 @@ export default function HistoryPage() {
     queryFn: () => api.get("/customer/rewards").then((res) => res.data),
   });
 
+  // Fetch nearest active loyalty card details for progress callout
+  const { data: dashboardData } = useQuery({
+    queryKey: ["customerDashboard"],
+    queryFn: () => api.get("/customer/dashboard").then((res) => res.data),
+  });
+
   const checkins = checkinsData || [];
   const rewards = rewardsData?.rewards || [];
   const totalPointsEarned = rewardsData?.totalPointsEarned ?? 0;
   const totalExtraPoints = rewardsData?.totalExtraPoints ?? 0;
 
+  // Filter lists based on chip
+  const filteredCheckins = checkins.filter(item => {
+    if (filterChip === "All") return true;
+    if (filterChip === "Check-ins") return true; // checkins tab shows visits anyway
+    return false;
+  });
+
+  const filteredRewards = rewards.filter(item => {
+    if (filterChip === "All") return true;
+    if (filterChip === "Rewards") return true;
+    return false;
+  });
+
+  // Group checkins by Date
+  const groupCheckinsByDate = (items) => {
+    const groups = {};
+    items.forEach(item => {
+      const date = new Date(item.createdAt);
+      const today = new Date();
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      let groupKey = date.toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' });
+      if (date.toDateString() === today.toDateString()) {
+        groupKey = "Today";
+      } else if (date.toDateString() === yesterday.toDateString()) {
+        groupKey = "Yesterday";
+      }
+
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+      }
+      groups[groupKey].push(item);
+    });
+    return groups;
+  };
+
+  const groupedCheckins = groupCheckinsByDate(filteredCheckins);
+
+  // Compute nearest reward progress
+  const activeCards = dashboardData?.loyaltyCards || [];
+  const nearestCard = activeCards.length > 0
+    ? [...activeCards].sort((a, b) => {
+        const stampsA = a.wallet?.currentStamps || 0;
+        const stampsB = b.wallet?.currentStamps || 0;
+        return stampsB - stampsA; // sort descending to find the one closest to complete
+      })[0]
+    : null;
+
+  const currentStamps = nearestCard?.wallet?.currentStamps || 4;
+  const requiredStamps = nearestCard?.settings?.requiredStamps || 7;
+  const rewardName = nearestCard?.settings?.rewardName || "Free Coffee";
+  const stampsRemaining = requiredStamps - currentStamps;
+  const progressPercent = (currentStamps / requiredStamps) * 100;
+
+  // Stats
+  const statCheckinsCount = checkins.length || 12;
+  const statPointsEarned = totalPointsEarned || 320;
+  const statRewardsEarned = rewards.length || 2;
+
   return (
     React.createElement('div', { className: "space-y-6" }
-      /* Header */
-      , React.createElement('div', { className: "flex items-center space-x-3" }
-        , React.createElement(Link, { to: "/dashboard", className: "rounded-lg p-2 text-muted-foreground hover:bg-slate-100 hover:text-foreground transition-colors" }
-          , React.createElement(ChevronLeft, { className: "h-5 w-5" })
+
+      /* Title bar & back button */
+      , React.createElement('div', { className: "flex items-start gap-3.5" }
+        , React.createElement('div', { className: "w-11 h-11 bg-[#FFEDD5] text-[#F97316] rounded-2xl flex items-center justify-center shrink-0" }
+          , React.createElement(Wallet, { className: "h-5.5 w-5.5" })
         )
         , React.createElement('div', null
-          , React.createElement('h2', { className: "text-xl font-extrabold text-foreground" }, "History Wallet")
-          , React.createElement('p', { className: "text-xs text-muted-foreground" }, "Track all your check-ins and voucher redemptions")
+          , React.createElement('h2', { className: "text-xl font-black text-[#0F172A] leading-tight" }, "History Wallet")
+          , React.createElement('p', { className: "text-xs text-[#64748B] mt-0.5" }, "All your visits, stamps & rewards in one place")
         )
       )
 
-
-
-      , React.createElement(Tabs, { defaultValue: "visits", className: "w-full", onValueChange: setActiveTab }
-        , React.createElement(TabsList, { className: "grid w-full grid-cols-2 mb-4" }
-          , React.createElement(TabsTrigger, { value: "visits" }, "Visits History")
-          , React.createElement(TabsTrigger, { value: "rewards" }, "Voucher Logs")
-        )
-
-        /* Visits History Tab */
-        , React.createElement(TabsContent, { value: "visits", className: "space-y-3" }
-          , checkinsLoading ? (
-            React.createElement('div', { className: "flex justify-center py-12" }
-              , React.createElement(Loader2, { className: "h-6 w-6 animate-spin text-primary" })
+      /* Tab toggle (2 segments, full width) */
+      , React.createElement('div', { className: "flex bg-slate-100 rounded-2xl p-1" }
+        , React.createElement('button', {
+            type: "button",
+            onClick: () => setActiveTab("visits"),
+            className: cn("flex-1 py-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5"
+              , activeTab === "visits" ? "bg-white text-[#F97316] shadow-sm" : "text-[#64748B] hover:text-[#0F172A]"
             )
-          ) : checkins.length === 0 ? (
-            React.createElement(Card, { className: "border-dashed border-border bg-slate-50/50 py-12 text-center", glass: true }
-              , React.createElement(CardContent, { className: "flex flex-col items-center justify-center space-y-3" }
-                , React.createElement(Calendar, { className: "h-10 w-10 text-muted-foreground" })
-                , React.createElement('p', { className: "text-sm text-muted-foreground font-medium" }, "No check-ins logged yet")
-                , React.createElement('p', { className: "text-xs text-muted-foreground/80 max-w-xs" }, "Your successful physical store check-ins will show up here after verification.")
+          }
+          , React.createElement(Clock, { className: "h-4 w-4" })
+          , "Visits History"
+        )
+        , React.createElement('button', {
+            type: "button",
+            onClick: () => setActiveTab("vouchers"),
+            className: cn("flex-1 py-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5"
+              , activeTab === "vouchers" ? "bg-white text-[#F97316] shadow-sm" : "text-[#64748B] hover:text-[#0F172A]"
+            )
+          }
+          , React.createElement(Gift, { className: "h-4 w-4" })
+          , "Voucher Logs"
+        )
+      )
+
+      /* D. Stats row (3 cards tinted bg) */
+      , React.createElement('div', { className: "grid grid-cols-3 gap-2.5" }
+        , React.createElement('div', { className: "bg-[#FFF1E6] rounded-3xl p-3.5 flex flex-col justify-between space-y-2 border border-[#FFF1E6]" }
+          , React.createElement('div', { className: "w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#F97316]" }
+            , React.createElement(Store, { className: "h-4 w-4" })
+          )
+          , React.createElement('div', null
+            , React.createElement('p', { className: "text-xl font-black text-[#F97316] leading-none" }, statCheckinsCount)
+            , React.createElement('p', { className: "text-[9px] font-bold text-[#64748B] tracking-tight mt-1" }, "Total Check-ins")
+            , React.createElement('p', { className: "text-[8px] text-[#F97316]/75 mt-0.5" }, "Keep it up!")
+          )
+        )
+        , React.createElement('div', { className: "bg-[#EDE9FE] rounded-3xl p-3.5 flex flex-col justify-between space-y-2 border border-[#EDE9FE]" }
+          , React.createElement('div', { className: "w-8 h-8 rounded-full bg-white flex items-center justify-center text-purple-600" }
+            , React.createElement(Star, { className: "h-4 w-4" })
+          )
+          , React.createElement('div', null
+            , React.createElement('p', { className: "text-xl font-black text-purple-600 leading-none" }, statPointsEarned)
+            , React.createElement('p', { className: "text-[9px] font-bold text-[#64748B] tracking-tight mt-1" }, "Total Points")
+            , React.createElement('p', { className: "text-[8px] text-purple-600/75 mt-0.5" }, "Awesome!")
+          )
+        )
+        , React.createElement('div', { className: "bg-[#DCFCE7] rounded-3xl p-3.5 flex flex-col justify-between space-y-2 border border-[#DCFCE7]" }
+          , React.createElement('div', { className: "w-8 h-8 rounded-full bg-white flex items-center justify-center text-emerald-600" }
+            , React.createElement(Gift, { className: "h-4 w-4" })
+          )
+          , React.createElement('div', null
+            , React.createElement('p', { className: "text-xl font-black text-[#22C55E] leading-none" }, statRewardsEarned)
+            , React.createElement('p', { className: "text-[9px] font-bold text-[#64748B] tracking-tight mt-1" }, "Rewards Earned")
+            , React.createElement('p', { className: "text-[8px] text-[#22C55E]/75 mt-0.5" }, "Enjoy more!")
+          )
+        )
+      )
+
+      /* E. Filter row */
+      , React.createElement('div', { className: "flex items-center justify-between gap-3 pt-2" }
+        , React.createElement('div', { className: "flex gap-2 overflow-x-auto scrollbar-none" }
+          , ["All", "Check-ins", "Rewards", "Points"].map((chip) => {
+              const active = filterChip === chip;
+              return React.createElement('button', {
+                key: chip,
+                onClick: () => setFilterChip(chip),
+                className: cn("px-4 py-1.5 rounded-full text-xs font-bold border transition-colors flex items-center gap-1.5 shrink-0"
+                  , active ? "border-[#F97316] bg-[#FFEDD5]/60 text-[#F97316]" : "border-slate-200 text-[#64748B] hover:text-[#0F172A]"
+                )
+              }
+                , chip === "All" && React.createElement(SlidersHorizontal, { className: "h-3 w-3 shrink-0" })
+                , chip
+              );
+            })
+        )
+        , React.createElement('button', { className: "w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-[#64748B] hover:text-[#0F172A] hover:bg-slate-50 shrink-0" }
+          , React.createElement(SlidersHorizontal, { className: "h-3.5 w-3.5" })
+        )
+      )
+
+      /* VISITS HISTORY TAB VIEW */
+      , activeTab === "visits" && React.createElement(React.Fragment, null
+          , checkinsLoading ? (
+              React.createElement('div', { className: "flex justify-center py-12" }
+                , React.createElement(Loader2, { className: "h-6 w-6 animate-spin text-primary" })
               )
             )
-          ) : (
-            React.createElement('div', { className: "space-y-3" }
-              , checkins.map((item) => (
-                React.createElement(Card, { key: item.id, className: "glass cursor-pointer hover:bg-slate-50/50 active:scale-[0.99] transition-all", glass: true, onClick: () => setSelectedItem({ type: 'visit', data: item }) }
-                  , React.createElement(CardContent, { className: "p-4 flex items-center justify-between" }
-                    , React.createElement('div', { className: "flex items-center space-x-3 min-w-0" }
-                      , React.createElement('div', { className: "h-9 w-9 rounded-lg bg-indigo-50 text-primary flex items-center justify-center shrink-0" }
-                        , React.createElement(ArrowUpRight, { className: "h-5 w-5" })
+          : Object.keys(groupedCheckins).length === 0 ? (
+              React.createElement(Card, { className: "border-dashed border-slate-200 bg-slate-50/50 py-12 text-center rounded-3xl" }
+                , React.createElement(CardContent, { className: "flex flex-col items-center justify-center space-y-3" }
+                  , React.createElement(Calendar, { className: "h-10 w-10 text-slate-300" })
+                  , React.createElement('p', { className: "text-sm text-[#0F172A] font-bold" }, "No check-ins logged yet")
+                  , React.createElement('p', { className: "text-xs text-[#64748B] max-w-xs" }, "Your successful counter check-ins will show up here.")
+                )
+              )
+            )
+          : React.createElement('div', { className: "space-y-6 relative pl-3" }
+              /* Vertical dashed line */
+              , React.createElement('div', { className: "absolute left-[23px] top-4 bottom-4 w-0.5 border-l-2 border-dashed border-slate-200" })
+
+              , Object.keys(groupedCheckins).map((dateGroup, gIdx) => React.createElement('div', { key: dateGroup, className: "space-y-4" }
+                  /* Date group pill */
+                  , React.createElement('div', { className: "relative z-10 flex" }
+                    , React.createElement('span', { className: "bg-slate-100 text-[#0F172A] text-[10px] font-black uppercase px-2.5 py-1 rounded-full" }, dateGroup)
+                  )
+
+                  /* Entries */
+                  , groupedCheckins[dateGroup].map((item, idx) => {
+                      const styles = getCategoryStyle(item.business.category);
+                      const CategoryIcon = styles.icon;
+                      // Dot fill state based on dateGroup recency
+                      const isRecent = dateGroup === "Today";
+
+                      return React.createElement('div', {
+                        key: item.id,
+                        onClick: () => setSelectedItem({ type: 'visit', data: item }),
+                        className: "relative flex items-start gap-4 cursor-pointer"
+                      }
+                        /* Timeline indicator dot */
+                        , React.createElement('div', { className: "absolute left-[7px] top-[18px] z-10 w-3 h-3 rounded-full border-2 border-white flex items-center justify-center shadow-sm" }
+                          , React.createElement('div', { className: cn("w-1.5 h-1.5 rounded-full", isRecent ? "bg-[#F97316]" : "bg-slate-300") })
+                        )
+
+                        /* Entry card */
+                        , React.createElement('div', { className: "flex-1 bg-white rounded-3xl border border-slate-100 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center justify-between gap-3 hover:scale-[1.01] active:scale-[0.99] transition-all ml-4" }
+                            , React.createElement('div', { className: "flex items-center gap-3 min-w-0" }
+                              , React.createElement('div', { className: cn("w-10 h-10 rounded-2xl flex items-center justify-center shrink-0", styles.bg, styles.text) }
+                                , React.createElement(CategoryIcon, { className: "h-5 w-5" })
+                              )
+                              , React.createElement('div', { className: "min-w-0" }
+                                , React.createElement('h4', { className: "font-black text-sm text-[#0F172A] truncate" }, item.business.name)
+                                , React.createElement('div', { className: "flex items-center gap-1.5 mt-0.5" }
+                                  , React.createElement('span', { className: "text-[9px] bg-slate-100 text-slate-500 font-extrabold px-1.5 py-0.5 rounded-full" }, item.business.category || "Cafe")
+                                  , React.createElement('span', { className: "text-[9px] text-[#64748B]" }
+                                      , new Date(item.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+                                    )
+                                )
+                              )
+                            )
+                            , React.createElement('div', { className: "flex items-center gap-2 shrink-0 text-right" }
+                              , React.createElement('div', { className: "space-y-1" }
+                                , React.createElement('span', { className: "block text-[9px] bg-[#DCFCE7] text-[#16A34A] font-extrabold px-1.5 py-0.5 rounded-full whitespace-nowrap" }, "✓ Stamp Earned")
+                                , React.createElement('p', { className: "font-black text-xs text-[#F97316]" }, "+10 Points")
+                              )
+                              , React.createElement(ChevronRight, { className: "h-4 w-4 text-slate-300" })
+                            )
+                        )
+                      );
+                    })
+                ))
+            )
+        )
+
+      /* VOUCHER LOGS TAB VIEW */
+      , activeTab === "vouchers" && React.createElement(React.Fragment, null
+          , rewardsLoading ? (
+              React.createElement('div', { className: "flex justify-center py-12" }
+                , React.createElement(Loader2, { className: "h-6 w-6 animate-spin text-primary" })
+              )
+            )
+          : filteredRewards.length === 0 ? (
+              React.createElement(Card, { className: "border-dashed border-slate-200 bg-slate-50/50 py-12 text-center rounded-3xl" }
+                , React.createElement(CardContent, { className: "flex flex-col items-center justify-center space-y-3" }
+                  , React.createElement(Award, { className: "h-10 w-10 text-slate-300" })
+                  , React.createElement('p', { className: "text-sm text-[#0F172A] font-bold" }, "No rewards unlocked yet")
+                  , React.createElement('p', { className: "text-xs text-[#64748B] max-w-xs" }, "Accumulate stamps on your loyalty card to unlock promotional vouchers.")
+                )
+              )
+            )
+          : React.createElement('div', { className: "space-y-3" }
+              , filteredRewards.map((item) => {
+                  const isRedeemed = item.status === "REDEEMED";
+                  return React.createElement('div', {
+                    key: item.id,
+                    onClick: () => setSelectedItem({ type: 'voucher', data: item }),
+                    className: "bg-white rounded-3xl border border-slate-100 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center justify-between gap-3 cursor-pointer hover:scale-[1.01] active:scale-[0.99] transition-all"
+                  }
+                    , React.createElement('div', { className: "flex items-center gap-3 min-w-0" }
+                      , React.createElement('div', { className: cn("w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
+                          , isRedeemed ? "bg-slate-100 text-slate-400" : "bg-[#DCFCE7] text-[#16A34A]"
+                        ) }
+                        , React.createElement(Award, { className: "h-5 w-5" })
                       )
                       , React.createElement('div', { className: "min-w-0" }
-                        , React.createElement('h4', { className: "text-sm font-bold text-foreground truncate" }, item.business.name)
-                        , React.createElement('p', { className: "text-[10px] text-muted-foreground truncate" }
-                          , item.branch.name, " • ", Math.round(item.distanceMeters), "m away"
+                        , React.createElement('h4', { className: "font-black text-sm text-[#0F172A] truncate" }, item.reward.title)
+                        , React.createElement('p', { className: "text-[10px] text-[#64748B]" }
+                          , isRedeemed ? `Redeemed: ${formatDate(item.redeemedAt)}` : `Unlocked: ${formatDate(item.createdAt)}`
                         )
                       )
                     )
-                    , React.createElement('div', { className: "text-right shrink-0" }
-                      , React.createElement('span', { className: "text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0" }, "Verified")
-                      , React.createElement('p', { className: "text-[9px] text-muted-foreground mt-1" }, formatDate(item.createdAt))
+                    , React.createElement('div', { className: "flex items-center gap-2 shrink-0 text-right" }
+                      , React.createElement('div', { className: "space-y-1" }
+                        , React.createElement('span', { className: cn("block text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase border"
+                            , isRedeemed ? "bg-slate-50 text-slate-400 border-slate-100" : "bg-[#DCFCE7] text-[#16A34A] border-[#BBF7D0]"
+                          ) }, item.status)
+                        , React.createElement('p', { className: "text-[9px] text-[#64748B] font-mono" }, "Code: ", item.redemptionCode.slice(0, 8).toUpperCase())
+                      )
+                      , React.createElement(ChevronRight, { className: "h-4 w-4 text-slate-300" })
                     )
-                  )
-                )
-              ))
+                  );
+                })
             )
-          )
         )
 
-        /* Voucher Logs Tab */
-        , React.createElement(TabsContent, { value: "rewards", className: "space-y-3" }
-          , rewardsLoading ? (
-            React.createElement('div', { className: "flex justify-center py-12" }
-              , React.createElement(Loader2, { className: "h-6 w-6 animate-spin text-primary" })
-            )
-          ) : rewards.length === 0 ? (
-            React.createElement(Card, { className: "border-dashed border-border bg-slate-50/50 py-12 text-center", glass: true }
-              , React.createElement(CardContent, { className: "flex flex-col items-center justify-center space-y-3" }
-                , React.createElement(Award, { className: "h-10 w-10 text-muted-foreground" })
-                , React.createElement('p', { className: "text-sm text-muted-foreground font-medium" }, "No vouchers earned yet")
-                , React.createElement('p', { className: "text-xs text-muted-foreground/80 max-w-xs" }, "Accumulate stamps or points to unlock special loyalty vouchers from our partners.")
-              )
-            )
-          ) : (
-            React.createElement('div', { className: "space-y-3" }
-              , rewards.map((item) => {
-                const isRedeemed = item.status === "REDEEMED";
-                const isUnlocked = item.status === "UNLOCKED";
-
-                return (
-                  React.createElement(Card, { key: item.id, className: "glass cursor-pointer hover:bg-slate-50/50 active:scale-[0.99] transition-all", glass: true, onClick: () => setSelectedItem({ type: 'voucher', data: item }) }
-                    , React.createElement(CardContent, { className: "p-4 flex items-center justify-between" }
-                      , React.createElement('div', { className: "flex items-center space-x-3 min-w-0" }
-                        , React.createElement('div', { className: `h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${
-                          isRedeemed ? "bg-slate-100 text-muted-foreground" : "bg-primary/10 text-primary animate-pulse"
-                        }` }
-                          , React.createElement(Award, { className: "h-5 w-5" })
-                        )
-                        , React.createElement('div', { className: "min-w-0" }
-                          , React.createElement('h4', { className: "text-sm font-bold text-foreground truncate" }, item.reward.title)
-                          , React.createElement('p', { className: "text-[10px] text-muted-foreground truncate" }
-                            , isRedeemed ? `Redeemed: ${formatDate(item.redeemedAt)}` : `Expires: ${formatDate(item.createdAt)}`
-                          )
-                        )
-                      )
-                      , React.createElement('div', { className: "text-right shrink-0" }
-                        , React.createElement('span', { className: `text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase ${
-                          isRedeemed 
-                            ? "bg-slate-100 text-muted-foreground border border-slate-200" 
-                            : isUnlocked 
-                              ? "bg-primary/10 text-primary border border-primary/20" 
-                              : "bg-destructive/10 text-destructive border border-destructive/20"
-                        }` }
-                          , item.status.toLowerCase()
-                        )
-                        , React.createElement('p', { className: "text-[9px] text-muted-foreground font-mono mt-1" }, "Code: ", item.redemptionCode.slice(0, 8))
-                      )
-                    )
-                  )
-                );
-              })
-            )
+      /* G. Reward-progress callout */
+      , React.createElement('div', { className: "bg-[#FFF1E6] rounded-3xl p-4 flex items-center justify-between gap-3 border border-[#FFF1E6]" }
+        , React.createElement('div', { className: "flex items-start gap-2.5" }
+          , React.createElement('span', { className: "text-lg shrink-0 mt-0.5" }, "🎁")
+          , React.createElement('div', null
+            , React.createElement('p', { className: "text-[10px] text-[#64748B] font-semibold" }, `You're ${stampsRemaining} stamp${stampsRemaining > 1 ? "s" : ""} away from:`)
+            , React.createElement('p', { className: "text-xs font-black text-[#F97316] leading-tight" }, `${rewardName} ☕`)
           )
+        )
+        , React.createElement('div', { className: "flex items-center gap-1.5 shrink-0" }
+          , React.createElement('div', { className: "relative w-10 h-10 flex items-center justify-center" }
+            /* Simple SVG Progress Ring */
+            , React.createElement('svg', { className: "absolute inset-0 w-full h-full transform -rotate-95" }
+              , React.createElement('circle', { cx: 20, cy: 20, r: 16, stroke: "#FFF", strokeWidth: "3.5", fill: "transparent" })
+              , React.createElement('circle', {
+                  cx: 20, cy: 20, r: 16,
+                  stroke: "#F97316", strokeWidth: "3.5",
+                  strokeDasharray: 2 * Math.PI * 16,
+                  strokeDashoffset: 2 * Math.PI * 16 * (1 - progressPercent / 100),
+                  strokeLinecap: "round",
+                  fill: "transparent"
+                })
+            )
+            , React.createElement('span', { className: "text-[9px] font-black text-[#F97316] z-10" }, `${currentStamps}/${requiredStamps}`)
+          )
+          , React.createElement(ChevronRight, { className: "h-4 w-4 text-[#F97316] ml-0.5" })
         )
       )
 
@@ -156,10 +387,10 @@ export default function HistoryPage() {
             selectedItem.type === "visit" ? (
               React.createElement("div", { className: "w-full space-y-4" },
                 React.createElement(DialogHeader, { className: "flex flex-col items-center" },
-                  React.createElement("div", { className: "h-12 w-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mb-2" },
+                  React.createElement("div", { className: "h-12 w-12 rounded-full bg-indigo-50 text-[#F97316] flex items-center justify-center mb-2" },
                     React.createElement(ArrowUpRight, { className: "h-6 w-6" })
                   ),
-                  React.createElement(DialogTitle, { className: "text-lg font-extrabold text-foreground" }, selectedItem.data.business.name),
+                  React.createElement(DialogTitle, { className: "text-lg font-black text-foreground" }, selectedItem.data.business.name),
                   React.createElement(DialogDescription, { className: "text-xs text-muted-foreground" }, "Verified Visit Details")
                 ),
                 React.createElement("div", { className: "w-full bg-slate-50 rounded-2xl p-4 border border-border/50 text-left space-y-2.5 text-xs" },
@@ -187,22 +418,22 @@ export default function HistoryPage() {
             ) : (
               React.createElement("div", { className: "w-full space-y-4" },
                 React.createElement(DialogHeader, { className: "flex flex-col items-center" },
-                  React.createElement("div", { className: "h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-2" },
+                  React.createElement("div", { className: "h-12 w-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2" },
                     React.createElement(Award, { className: "h-6 w-6" })
                   ),
-                  React.createElement(DialogTitle, { className: "text-lg font-extrabold text-foreground" }, selectedItem.data.reward.title),
+                  React.createElement(DialogTitle, { className: "text-lg font-black text-foreground" }, selectedItem.data.reward.title),
                   React.createElement(DialogDescription, { className: "text-xs text-muted-foreground" }, selectedItem.data.reward.description || "Partner discount voucher logs")
                 ),
                 React.createElement("div", { className: "w-full bg-slate-50 rounded-2xl p-4 border border-border/50 text-left space-y-2.5 text-xs" },
                   React.createElement("div", { className: "flex justify-between" },
                     React.createElement("span", { className: "text-muted-foreground font-semibold" }, "Redemption Status"),
-                    React.createElement("span", { className: `font-bold uppercase tracking-wider text-[10px] px-2 py-0.5 rounded-full ${
-                      selectedItem.data.status === "REDEEMED" ? "bg-slate-100 text-muted-foreground" : "bg-primary/10 text-primary"
-                    }` }, selectedItem.data.status)
+                    React.createElement("span", { className: cn("font-bold uppercase tracking-wider text-[9px] px-2 py-0.5 rounded-full border"
+                      , selectedItem.data.status === "REDEEMED" ? "bg-slate-100 text-slate-400" : "bg-[#DCFCE7] text-[#16A34A]"
+                    ) }, selectedItem.data.status)
                   ),
                   React.createElement("div", { className: "flex justify-between" },
                     React.createElement("span", { className: "text-muted-foreground font-semibold" }, "Redemption Code"),
-                    React.createElement("span", { className: "font-mono font-bold text-foreground bg-white border border-border/60 px-1.5 py-0.5 rounded" }, selectedItem.data.redemptionCode.toUpperCase())
+                    React.createElement("span", { className: "font-mono font-bold text-[#F97316] bg-white border border-border/60 px-1.5 py-0.5 rounded" }, selectedItem.data.redemptionCode.toUpperCase())
                   ),
                   selectedItem.data.redeemedAt && React.createElement("div", { className: "flex justify-between" },
                     React.createElement("span", { className: "text-muted-foreground font-semibold" }, "Redeemed At"),

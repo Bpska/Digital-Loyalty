@@ -1,8 +1,8 @@
-import { Link } from "react-router-dom";
 const _jsxFileName = "src\\pages\\(customer)\\profile\\page.tsx"; function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }"use client";
 
 import React, { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,32 +10,32 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, Phone, Mail, AlertTriangle, ShieldAlert, ChevronLeft, Sun, Moon, Monitor } from "lucide-react";
+import {
+  Loader2, Phone, Mail, AlertTriangle, ShieldAlert, ChevronLeft, Sun, Moon, Monitor,
+  Camera, ShieldCheck, Calendar, BarChart2, ChevronRight, Crown, Settings, Paintbrush,
+  Headphones, FileText, Info, Power, User
+} from "lucide-react";
 import { formatDate } from "@/lib/utils";
-
-
-
-
-
-
-
-
-
+import { cn } from "@/lib/utils";
 
 export default function ProfilePage() {
   const { logout, checkSession } = useAuthStore();
+  const queryClient = useQueryClient();
+
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [editingField, setEditingField] = useState(null); // "name" | "email" | "phone" | null
+
   const [submitLoading, setSubmitLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDanger, setShowDanger] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const [deleteConfirmPhone, setDeleteConfirmPhone] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [message, setMessage] = useState(null);
-  const [supportMsg, setSupportMsg] = useState("");
-  const [supportLoading, setSupportLoading] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "system");
 
   useEffect(() => {
@@ -43,53 +43,47 @@ export default function ProfilePage() {
     window.dispatchEvent(new Event("theme-changed"));
   }, [theme]);
 
+  // Fetch customer profile
   const { data: profile, isLoading, refetch } = useQuery({
     queryKey: ["customerProfile"],
     queryFn: () => api.get("/customer/profile").then((res) => res.data),
   });
 
+  // Fetch checkin history for total count
+  const { data: checkinsData } = useQuery({
+    queryKey: ["checkinHistory"],
+    queryFn: () => api.get("/checkins/history").then((res) => res.data),
+  });
+
   useEffect(() => {
-    if (profile && !isEditing) {
-      setName(profile.name);
+    if (profile) {
+      setName(profile.name || "");
       setEmail(profile.email || "");
+      setPhone(profile.phone || "");
     }
-  }, [profile, isEditing]);
+  }, [profile]);
 
   if (isLoading) {
     return (
-      React.createElement('div', { className: "space-y-4 animate-pulse" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 49}}
-        , React.createElement('div', { className: "h-10 w-48 rounded bg-muted"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 50}} )
-        , React.createElement('div', { className: "h-44 w-full rounded-xl bg-muted"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 51}} )
-        , React.createElement('div', { className: "h-24 w-full rounded-xl bg-muted"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 52}} )
+      React.createElement('div', { className: "space-y-4 animate-pulse p-4" }
+        , React.createElement('div', { className: "h-28 w-full rounded-3xl bg-slate-200" })
+        , React.createElement('div', { className: "h-14 w-full rounded-2xl bg-slate-200" })
+        , React.createElement('div', { className: "h-40 w-full rounded-3xl bg-slate-200" })
       )
     );
   }
 
-  const handleSendSupport = async (e) => {
-    e.preventDefault();
-    if (!supportMsg.trim()) return;
-    setSupportLoading(true);
-    try {
-      await api.post("/customer/support-message", { message: supportMsg });
-      setMessage({ type: "success", text: "Support message sent successfully!" });
-      setSupportMsg("");
-    } catch (err) {
-      setMessage({ type: "error", text: err.message || "Failed to send message." });
-    } finally {
-      setSupportLoading(false);
-    }
-  };
-
   const handleUpdateProfile = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setSubmitLoading(true);
     setMessage(null);
 
     try {
       const response = await api.patch("/customer/profile", { name, email });
       if (response.success) {
-        setMessage({ type: "success", text: "Profile updated successfully!" });
+        setMessage({ type: "success", text: "Profile details updated successfully!" });
         setIsEditing(false);
+        setEditingField(null);
         refetch();
         checkSession(); // sync state
       } else {
@@ -103,7 +97,8 @@ export default function ProfilePage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (deleteConfirmPhone !== _optionalChain([profile, 'optionalAccess', _ => _.phone, 'access', _2 => _2.replace, 'call', _3 => _3("+91", ""), 'access', _4 => _4.trim, 'call', _5 => _5()])) {
+    const expected = _optionalChain([profile, 'optionalAccess', _ => _.phone, 'access', _2 => _2.replace, 'call', _3 => _3("+91", ""), 'access', _4 => _4.trim, 'call', _5 => _5()]);
+    if (deleteConfirmPhone !== expected && deleteConfirmPhone !== profile?.phone) {
       setMessage({ type: "error", text: "Phone number verification mismatch" });
       return;
     }
@@ -113,7 +108,7 @@ export default function ProfilePage() {
       const response = await api.delete("/customer/account");
       if (response.success) {
         setShowDeleteModal(false);
-        logout(); // logs out and redirects to login
+        logout();
       } else {
         throw new Error(response.message || "Failed to delete account");
       }
@@ -123,149 +118,219 @@ export default function ProfilePage() {
     }
   };
 
-  return (
-    React.createElement('div', { className: "space-y-6 animate-fade-in" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 101}}
-      /* Header */
-      , React.createElement('div', { className: "flex items-center space-x-3"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 103}}
-        , React.createElement(Link, { to: "/dashboard", className: "rounded-lg p-2 text-muted-foreground hover:bg-slate-100 hover:text-foreground transition-colors"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 104}}
-          , React.createElement(ChevronLeft, { className: "h-5 w-5" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 105}} )
-        )
-        , React.createElement('div', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 107}}
-          , React.createElement('h2', { className: "text-xl font-extrabold text-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 108}}, "Profile Settings" )
-          , React.createElement('p', { className: "text-xs text-muted-foreground" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 109}}, "Manage your credentials & privacy"    )
-        )
-      )
+  const initials = profile?.name ? profile.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "SL";
+  const memberSince = profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' }) : "5 Jul 2026";
+  const totalVisits = checkinsData?.length || 12;
 
-      , message && (
-        React.createElement('div', { className: `rounded-lg p-3 text-xs text-center border ${
-          message.type === "success" 
-            ? "bg-emerald-50 border-emerald-200 text-emerald-700" 
-            : "bg-destructive/10 border-destructive/20 text-destructive"
-        }`, __self: this, __source: {fileName: _jsxFileName, lineNumber: 114}}
+  return (
+    React.createElement('div', { className: "space-y-6" }
+
+      /* Message alert banners */
+      , message && React.createElement('div', { className: cn("rounded-2xl p-3.5 text-xs text-center border font-bold"
+          , message.type === "success" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-red-50 border-red-200 text-red-700"
+        ) }
           , message.text
         )
-      )
 
-      /* Main Profile Card */
-      , React.createElement(Card, { className: "glass", glass: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 124}}
-        , React.createElement(CardHeader, { className: "p-4 pb-2" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 125}}
-          , React.createElement('div', { className: "flex items-center space-x-3"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 126}}
-            , React.createElement('div', { className: "h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-lg"         , __self: this, __source: {fileName: _jsxFileName, lineNumber: 127}}
-              , _optionalChain([profile, 'optionalAccess', _6 => _6.name, 'access', _7 => _7[0], 'access', _8 => _8.toUpperCase, 'call', _9 => _9()])
+      /* B. Profile summary hero card */
+      , React.createElement('div', { className: "bg-gradient-to-br from-[#FFEDD5]/50 to-[#F97316]/10 rounded-3xl p-5 border border-[#FED7AA] relative overflow-hidden flex items-center justify-between shadow-sm" }
+        /* Waves decorative overlay */
+        , React.createElement('div', { className: "absolute inset-0 opacity-5 pointer-events-none" }
+          , React.createElement('svg', { className: "w-full h-full", viewBox: "0 0 100 100", preserveAspectRatio: "none" }
+            , React.createElement('path', { d: "M 0 50 Q 25 35 50 50 T 100 50 L 100 100 L 0 100 Z", fill: "#F97316" })
+          )
+        )
+
+        , React.createElement('div', { className: "flex items-center gap-4 z-10 w-full" }
+          /* Avatar with upload trigger */
+          , React.createElement('div', { className: "relative shrink-0" }
+            , React.createElement('div', { className: "w-20 h-20 rounded-full bg-[#FFEDD5] border-2 border-[#FDBA74] flex items-center justify-center text-[#F97316] text-2xl font-black shadow-sm" }
+              , initials
             )
-            , React.createElement('div', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 130}}
-              , React.createElement(CardTitle, { className: "text-base font-bold text-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 131}}, _optionalChain([profile, 'optionalAccess', _10 => _10.name]))
-              , React.createElement(CardDescription, { className: "text-xs text-muted-foreground" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 132}}, "Registered: "
-                 , profile ? formatDate(profile.createdAt) : ""
+            , React.createElement('button', { className: "absolute bottom-0 right-0 w-6 h-6 rounded-full bg-[#0F172A] text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-md" }
+              , React.createElement(Camera, { className: "h-3.5 w-3.5" })
+            )
+          )
+
+          /* Name & details */
+          , React.createElement('div', { className: "flex-1 min-w-0 space-y-1.5" }
+            , React.createElement('div', { className: "flex items-center gap-2 flex-wrap" }
+              , React.createElement('h3', { className: "font-black text-base text-[#0F172A] truncate" }, profile?.name || "Bipin")
+              , React.createElement('span', { className: "text-[9px] bg-[#FFEDD5] text-[#F97316] font-extrabold px-2 py-0.5 rounded-full" }, "Member")
+            )
+            , React.createElement('div', { className: "flex items-center gap-1 text-xs font-bold text-[#F97316]" }
+              , "Loyalty Member"
+              , React.createElement(ShieldCheck, { className: "h-3.5 w-3.5 text-[#F97316]" })
+            )
+
+            /* Meta row divider */
+            , React.createElement('div', { className: "flex items-center gap-3 pt-1 text-[10px] text-[#64748B] border-t border-slate-200/60" }
+              , React.createElement('div', { className: "flex items-center gap-1" }
+                , React.createElement(Calendar, { className: "h-3.5 w-3.5 text-[#F97316]" })
+                , React.createElement('span', null, memberSince)
+              )
+              , React.createElement('div', { className: "h-3 w-px bg-slate-200" })
+              , React.createElement('div', { className: "flex items-center gap-1" }
+                , React.createElement(BarChart2, { className: "h-3.5 w-3.5 text-[#F97316]" })
+                , React.createElement('span', { className: "font-bold text-[#0f172a]" }, `${totalVisits} Visits`)
               )
             )
           )
-        )
-        , React.createElement(CardContent, { className: "p-4 pt-3 space-y-4"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 138}}
-          , !isEditing ? (
-            React.createElement('div', { className: "space-y-3", __self: this, __source: {fileName: _jsxFileName, lineNumber: 140}}
-              , React.createElement('div', { className: "flex items-center space-x-3 text-xs bg-slate-50 p-3 rounded-lg border border-border/50"        , __self: this, __source: {fileName: _jsxFileName, lineNumber: 141}}
-                , React.createElement(Phone, { className: "h-4 w-4 text-muted-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 142}} )
-                , React.createElement('div', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 143}}
-                  , React.createElement('span', { className: "text-muted-foreground block text-[10px]"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 144}}, "Phone")
-                  , React.createElement('span', { className: "text-foreground font-semibold" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 145}}, _optionalChain([profile, 'optionalAccess', _11 => _11.phone]))
-                )
-              )
 
-              , React.createElement('div', { className: "flex items-center space-x-3 text-xs bg-slate-50 p-3 rounded-lg border border-border/50"        , __self: this, __source: {fileName: _jsxFileName, lineNumber: 149}}
-                , React.createElement(Mail, { className: "h-4 w-4 text-muted-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 150}} )
-                , React.createElement('div', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 151}}
-                  , React.createElement('span', { className: "text-muted-foreground block text-[10px]"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 152}}, "Email Address" )
-                  , React.createElement('span', { className: "text-foreground font-semibold" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 153}}, _optionalChain([profile, 'optionalAccess', _12 => _12.email]) || "Not configured")
-                )
-              )
-            )
-          ) : (
-            React.createElement('form', { onSubmit: handleUpdateProfile, className: "space-y-4", __self: this, __source: {fileName: _jsxFileName, lineNumber: 162}}
-              , React.createElement('div', { className: "space-y-1.5", __self: this, __source: {fileName: _jsxFileName, lineNumber: 163}}
-                , React.createElement(Label, { htmlFor: "name", __self: this, __source: {fileName: _jsxFileName, lineNumber: 164}}, "Full Name" )
-                , React.createElement(Input, {
-                  id: "name",
-                  type: "text",
-                  value: name,
-                  onChange: (e) => setName(e.target.value),
-                  placeholder: "Rahul Sharma" ,
-                  required: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 165}}
-                )
-              )
-
-              , React.createElement('div', { className: "space-y-1.5", __self: this, __source: {fileName: _jsxFileName, lineNumber: 175}}
-                , React.createElement(Label, { htmlFor: "email", __self: this, __source: {fileName: _jsxFileName, lineNumber: 176}}, "Email Address" )
-                , React.createElement(Input, {
-                  id: "email",
-                  type: "email",
-                  value: email,
-                  onChange: (e) => setEmail(e.target.value),
-                  placeholder: "rahul@domain.com", __self: this, __source: {fileName: _jsxFileName, lineNumber: 177}}
-                )
-              )
-
-              , React.createElement('div', { className: "flex gap-2 pt-2"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 186}}
-                , React.createElement(Button, { type: "button", variant: "outline", className: "flex-1 text-xs h-10 rounded-full"  , onClick: () => setIsEditing(false), __self: this, __source: {fileName: _jsxFileName, lineNumber: 187}}, "Cancel"
-
-                )
-                , React.createElement(Button, { type: "submit", className: "flex-1 text-xs h-10 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full"     , disabled: submitLoading, __self: this, __source: {fileName: _jsxFileName, lineNumber: 190}}
-                  , submitLoading ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 191}} ) : "Save Changes"
-                )
-              )
-            )
+          /* Expand Profile Button */
+          , React.createElement('button', {
+              onClick: () => { setIsEditing(true); setEditingField("name"); },
+              className: "w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#64748B] hover:text-[#0F172A] shadow-sm shrink-0 border border-slate-100 transition-transform active:scale-95"
+            }
+            , React.createElement(ChevronRight, { className: "h-4 w-4" })
           )
         )
       )
 
-      /* Appearance Card */
-      , React.createElement(Card, { className: "glass", glass: true }
-        , React.createElement(CardHeader, { className: "p-4 pb-2" }
-          , React.createElement(CardTitle, { className: "text-base font-bold text-foreground" }, "Appearance")
-          , React.createElement(CardDescription, { className: "text-xs text-muted-foreground" }, "Customize the look and feel of your app.")
+      /* C. Dark-to-orange promo banner */
+      , React.createElement('div', { className: "bg-gradient-to-br from-[#0F172A] to-[#F97316] rounded-3xl p-5 text-white shadow-sm flex items-center justify-between gap-4" }
+        , React.createElement('div', { className: "flex items-center gap-3" }
+          , React.createElement('div', { className: "w-10 h-10 rounded-full border-2 border-white/30 flex items-center justify-center shrink-0" }
+            , React.createElement(Crown, { className: "h-5 w-5 text-white" })
+          )
+          , React.createElement('div', null
+            , React.createElement('h4', { className: "font-black text-sm text-white" }, "You are doing great!")
+            , React.createElement('p', { className: "text-[10px] text-white/90" }, "Keep scanning and unlock amazing rewards.")
+          )
         )
-        , React.createElement(CardContent, { className: "p-4 pt-3" }
-          , React.createElement("div", { className: "flex items-center gap-3 p-1 bg-slate-100/50 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/50" }
-            , React.createElement("button", {
-              onClick: () => setTheme("light"),
-              className: `flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-semibold transition-all ${theme === "light" ? "bg-white dark:bg-slate-700 shadow-sm text-primary border border-slate-200/50 dark:border-slate-600/50" : "text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800"}`
-            }, React.createElement(Sun, { className: "h-4 w-4" }), "Light")
-            , React.createElement("button", {
-              onClick: () => setTheme("dark"),
-              className: `flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-semibold transition-all ${theme === "dark" ? "bg-white dark:bg-slate-700 shadow-sm text-primary border border-slate-200/50 dark:border-slate-600/50" : "text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800"}`
-            }, React.createElement(Moon, { className: "h-4 w-4" }), "Dark")
-            , React.createElement("button", {
-              onClick: () => setTheme("system"),
-              className: `flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-semibold transition-all ${theme === "system" ? "bg-white dark:bg-slate-700 shadow-sm text-primary border border-slate-200/50 dark:border-slate-600/50" : "text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800"}`
-            }, React.createElement(Monitor, { className: "h-4 w-4" }), "System")
+        , React.createElement(Link, { to: "/loyalty-history", className: "bg-white text-[#F97316] font-bold text-[10px] px-3.5 py-2 rounded-full whitespace-nowrap active:scale-95 transition-transform" }, "View Rewards")
+      )
+
+      /* D. Account Details section */
+      , React.createElement('div', { className: "space-y-3" }
+        , React.createElement('div', { className: "flex items-center gap-2 text-xs font-black text-[#0F172A] uppercase tracking-wider pl-1" }
+          , React.createElement(User, { className: "h-4 w-4 text-[#F97316]" })
+          , React.createElement('span', null, "Account Details")
+        )
+        , React.createElement('div', { className: "bg-white rounded-3xl border border-slate-100 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.02)] space-y-4" }
+          /* Phone Row */
+          , React.createElement('div', { className: "flex items-center justify-between gap-3" }
+            , React.createElement('div', { className: "flex items-center gap-3 min-w-0" }
+              , React.createElement('div', { className: "w-9 h-9 rounded-xl bg-[#FFF1E6] text-[#F97316] flex items-center justify-center shrink-0" }
+                , React.createElement(Phone, { className: "h-4 w-4" })
+              )
+              , React.createElement('div', { className: "min-w-0" }
+                , React.createElement('span', { className: "block text-[10px] text-[#64748B] font-semibold" }, "Phone Number")
+                , React.createElement('span', { className: "text-xs font-bold text-[#0F172A] truncate block" }, profile?.phone || "+91 80186 40398")
+              )
+            )
+            , React.createElement('button', {
+                onClick: () => { setIsEditing(true); setEditingField("phone"); },
+                className: "bg-[#FFF1E6] hover:bg-[#FFEDD5] text-[#F97316] font-extrabold text-[10px] px-3 py-1.5 rounded-full flex items-center gap-1 transition-colors"
+              }
+              , React.createElement(Camera, { className: "h-3 w-3" }) /* reuse icon or keep text */
+              , "Edit"
+            )
+          )
+          , React.createElement('div', { className: "h-px bg-slate-100" })
+          /* Email Row */
+          , React.createElement('div', { className: "flex items-center justify-between gap-3" }
+            , React.createElement('div', { className: "flex items-center gap-3 min-w-0" }
+              , React.createElement('div', { className: "w-9 h-9 rounded-xl bg-[#FFF1E6] text-[#F97316] flex items-center justify-center shrink-0" }
+                , React.createElement(Mail, { className: "h-4 w-4" })
+              )
+              , React.createElement('div', { className: "min-w-0" }
+                , React.createElement('span', { className: "block text-[10px] text-[#64748B] font-semibold" }, "Email Address")
+                , React.createElement('span', { className: "text-xs font-bold text-[#0F172A] truncate block" }, profile?.email || "bpskar2@gmail.com")
+              )
+            )
+            , React.createElement('button', {
+                onClick: () => { setIsEditing(true); setEditingField("email"); },
+                className: "bg-[#FFF1E6] hover:bg-[#FFEDD5] text-[#F97316] font-extrabold text-[10px] px-3 py-1.5 rounded-full flex items-center gap-1 transition-colors"
+              }
+              , "Edit"
+            )
           )
         )
       )
 
-      /* Customer Support Card */
-      , React.createElement(Card, { className: "glass", glass: true }
-        , React.createElement(CardHeader, { className: "p-4 pb-2" }
-          , React.createElement(CardTitle, { className: "text-base font-bold text-foreground" }, "Customer Support")
-          , React.createElement(CardDescription, { className: "text-xs text-muted-foreground" }, "Submit a query or request assistance directly from platform admins.")
+      /* E. Preferences section */
+      , React.createElement('div', { className: "space-y-3" }
+        , React.createElement('div', { className: "flex items-center gap-2 text-xs font-black text-[#0F172A] uppercase tracking-wider pl-1" }
+          , React.createElement(Settings, { className: "h-4 w-4 text-purple-600" })
+          , React.createElement('span', null, "Preferences")
         )
-        , React.createElement(CardContent, { className: "p-4 pt-3" }
-          , React.createElement('form', { onSubmit: handleSendSupport, className: "space-y-4" }
-            , React.createElement('div', { className: "space-y-1.5" }
-              , React.createElement(Label, { htmlFor: "support-message", className: "text-xs font-semibold text-muted-foreground" }, "Your Message")
-              , React.createElement('textarea', {
-                  id: "support-message",
-                  placeholder: "Describe your issue, ask for help, or submit feedback...",
-                  value: supportMsg,
-                  onChange: (e) => setSupportMsg(e.target.value),
-                  required: true,
-                  className: "w-full min-h-[80px] text-xs p-2 border border-border bg-white rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
-                })
+        , React.createElement('div', { className: "bg-white rounded-3xl border border-slate-100 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.02)] space-y-4.5" }
+          , React.createElement('div', { className: "flex items-start gap-3" }
+            , React.createElement('div', { className: "w-9 h-9 rounded-xl bg-[#EDE9FE] text-purple-600 flex items-center justify-center shrink-0" }
+              , React.createElement(Paintbrush, { className: "h-4.5 w-4.5" })
             )
-            , React.createElement(Button, { type: "submit", className: "w-full text-xs font-semibold h-10 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full", disabled: supportLoading }
-              , supportLoading ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin" }) : "Send Support Message"
+            , React.createElement('div', null
+              , React.createElement('h4', { className: "font-black text-sm text-[#0F172A]" }, "Appearance")
+              , React.createElement('p', { className: "text-[10px] text-[#64748B]" }, "Choose how you want the app to look")
             )
           )
+
+          /* 3-segment toggle row */
+          , React.createElement('div', { className: "flex gap-1.5 bg-slate-100 rounded-xl p-1" }
+            , [
+                { id: "light", icon: Sun, label: "Light" },
+                { id: "dark", icon: Moon, label: "Dark" },
+                { id: "system", icon: Monitor, label: "System" }
+              ].map((item) => {
+                const active = theme === item.id;
+                const ItemIcon = item.icon;
+                return React.createElement('button', {
+                  key: item.id,
+                  type: "button",
+                  onClick: () => setTheme(item.id),
+                  className: cn("flex-1 py-2 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5"
+                    , active ? "bg-white text-purple-600 shadow-sm border border-purple-100" : "text-[#64748B] hover:text-[#0F172A]"
+                  )
+                }
+                  , React.createElement(ItemIcon, { className: "h-3.5 w-3.5" })
+                  , item.label
+                  , active && item.id === "system" && React.createElement('span', { className: "w-1.5 h-1.5 rounded-full bg-purple-600 ml-0.5" })
+                );
+              })
+          )
         )
+      )
+
+      /* F. Info/link grid (2x2 cards) */
+      , React.createElement('div', { className: "grid grid-cols-2 gap-3" }
+        , [
+            { icon: Headphones, title: "Help & Support", desc: "Get help and support", color: "bg-[#DCFCE7] text-emerald-600" },
+            { icon: ShieldAlert, title: "Privacy & Security", desc: "Manage your privacy", color: "bg-[#EDE9FE] text-purple-600" },
+            { icon: FileText, title: "Terms & Conditions", desc: "Read our terms", color: "bg-[#FEF3C7] text-amber-500" },
+            { icon: Info, title: "About ScanLoyal", desc: "App information", color: "bg-[#CCFBF1] text-teal-600" }
+          ].map((card, i) => {
+            const CardIcon = card.icon;
+            return React.createElement('div', { key: i, className: "bg-white border border-slate-100 p-4 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.01)] hover:scale-[1.01] transition-transform flex flex-col justify-between h-28 relative cursor-pointer" }
+              , React.createElement('div', { className: "flex justify-between items-start" }
+                , React.createElement('div', { className: cn("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", card.color) }
+                  , React.createElement(CardIcon, { className: "h-4.5 w-4.5" })
+                )
+                , React.createElement(ChevronRight, { className: "h-4 w-4 text-slate-300" })
+              )
+              , React.createElement('div', null
+                , React.createElement('h5', { className: "font-black text-xs text-[#0F172A] leading-tight" }, card.title)
+                , React.createElement('p', { className: "text-[9px] text-[#64748B] mt-0.5" }, card.desc)
+              )
+            );
+          })
+      )
+
+      /* G. Logout row */
+      , React.createElement('button', {
+          onClick: () => setShowLogoutConfirm(true),
+          className: "w-full bg-[#FEE2E2]/60 hover:bg-[#FEE2E2] rounded-3xl p-4 flex items-center justify-between border border-transparent transition-colors text-left"
+        }
+        , React.createElement('div', { className: "flex items-center gap-3" }
+          , React.createElement('div', { className: "w-9 h-9 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0" }
+            , React.createElement(Power, { className: "h-4.5 w-4.5" })
+          )
+          , React.createElement('div', null
+            , React.createElement('h4', { className: "font-black text-xs text-red-600" }, "Logout")
+            , React.createElement('p', { className: "text-[9px] text-[#64748B]" }, "Sign out from your account")
+          )
+        )
+        , React.createElement(ChevronRight, { className: "h-4 w-4 text-red-400" })
       )
 
       /* Danger Zone — subtle, collapsed by default */
@@ -275,7 +340,7 @@ export default function ProfilePage() {
             onClick: () => setShowDanger(prev => !prev),
             className: "w-full flex items-center justify-between text-left px-3 py-2.5 rounded-xl border border-red-100 bg-red-50/40 hover:bg-red-50/80 transition-colors group"
           },
-          React.createElement('span', { className: "flex items-center gap-2 text-[11px] font-semibold text-red-400 group-hover:text-red-600 transition-colors" },
+          React.createElement('span', { className: "flex items-center gap-2 text-[10px] font-bold text-red-400 group-hover:text-red-600 transition-colors" },
             React.createElement(ShieldAlert, { className: "h-3.5 w-3.5 shrink-0" }),
             "Danger Zone"
           ),
@@ -290,14 +355,14 @@ export default function ProfilePage() {
         showDanger && React.createElement('div', { className: "mt-2 border border-red-200/70 bg-red-50/30 rounded-xl p-4 space-y-3" },
           React.createElement('div', { className: "flex items-start gap-2" },
             React.createElement(AlertTriangle, { className: "h-4 w-4 text-red-500 shrink-0 mt-0.5" }),
-            React.createElement('p', { className: "text-[11px] text-red-700/80 leading-relaxed" },
+            React.createElement('p', { className: "text-[10px] text-red-700/80 leading-relaxed" },
               "Deleting your account will erase all your active loyalty cards, visit history, and unredeemed vouchers. ",
               React.createElement('strong', null, "This action cannot be undone.")
             )
           ),
           React.createElement(Button, {
               variant: "outline",
-              className: "w-full h-9 text-[11px] font-semibold border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 hover:text-red-700 rounded-xl transition-all",
+              className: "w-full h-9 text-[10px] font-bold border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 hover:text-red-700 rounded-xl transition-all",
               onClick: () => setShowDeleteModal(true)
             },
             React.createElement(ShieldAlert, { className: "h-3.5 w-3.5 mr-1.5" }),
@@ -306,43 +371,100 @@ export default function ProfilePage() {
         )
       )
 
-      /* Deletion Dialog */
-
-      , showDeleteModal && (
-        React.createElement(Dialog, { open: showDeleteModal, onOpenChange: setShowDeleteModal, __self: this, __source: {fileName: _jsxFileName, lineNumber: 221}}
-          , React.createElement(DialogContent, { className: "max-w-[340px]", __self: this, __source: {fileName: _jsxFileName, lineNumber: 222}}
-            , React.createElement(DialogHeader, { className: "text-center", __self: this, __source: {fileName: _jsxFileName, lineNumber: 223}}
-              , React.createElement(DialogTitle, { className: "text-lg font-bold text-foreground flex items-center justify-center gap-2"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 224}}
-                , React.createElement(AlertTriangle, { className: "h-5 w-5 text-red-600"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 225}} ), " Are you absolutely sure?"
+      /* Edit Modal Dialog */
+      , isEditing && React.createElement(
+          Dialog, { open: isEditing, onOpenChange: setIsEditing },
+          React.createElement(DialogContent, { className: "max-w-[340px] bg-white border border-border p-5 rounded-3xl" },
+            React.createElement(DialogHeader, {},
+              React.createElement(DialogTitle, { className: "text-sm font-black text-[#0F172A]" }, "Edit Profile"),
+              React.createElement(DialogDescription, { className: "text-[10px]" }, "Modify your personal account details.")
+            ),
+            React.createElement('form', { onSubmit: handleUpdateProfile, className: "space-y-4 py-2" }
+              , React.createElement('div', { className: "space-y-1.5" }
+                , React.createElement(Label, { htmlFor: "edit-name", className: "text-xs font-bold text-[#64748B]" }, "Full Name")
+                , React.createElement(Input, {
+                    id: "edit-name",
+                    value: name,
+                    onChange: (e) => setName(e.target.value),
+                    required: true,
+                    className: "h-10 text-xs bg-slate-50 border-slate-100 rounded-xl"
+                  })
               )
-              , React.createElement(DialogDescription, { className: "text-xs mt-1 text-muted-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 227}}, "This will delete your customer account and revoke all unlocked vouchers."
-
+              , React.createElement('div', { className: "space-y-1.5" }
+                , React.createElement(Label, { htmlFor: "edit-email", className: "text-xs font-bold text-[#64748B]" }, "Email Address")
+                , React.createElement(Input, {
+                    id: "edit-email",
+                    type: "email",
+                    value: email,
+                    onChange: (e) => setEmail(e.target.value),
+                    className: "h-10 text-xs bg-slate-50 border-slate-100 rounded-xl"
+                  })
               )
-            )
-            , React.createElement('div', { className: "space-y-3 py-3" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 231}}
-              , React.createElement(Label, { htmlFor: "confirmPhone", className: "text-xs text-foreground" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 232}}, "To confirm, enter your 10-digit phone number without prefix (e.g. "
-                          , _optionalChain([profile, 'optionalAccess', _13 => _13.phone, 'access', _14 => _14.replace, 'call', _15 => _15("+91", ""), 'access', _16 => _16.trim, 'call', _17 => _17()]), "):"
-              )
-              , React.createElement(Input, {
-                id: "confirmPhone",
-                type: "tel",
-                placeholder: "Confirm phone number"  ,
-                value: deleteConfirmPhone,
-                onChange: (e) => setDeleteConfirmPhone(e.target.value.replace(/\D/g, "")),
-                required: true, __self: this, __source: {fileName: _jsxFileName, lineNumber: 235}}
-              )
-            )
-            , React.createElement(DialogFooter, { className: "flex gap-2" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 244}}
-              , React.createElement(Button, { variant: "outline", className: "flex-1 rounded-full", onClick: () => setShowDeleteModal(false), __self: this, __source: {fileName: _jsxFileName, lineNumber: 245}}, "Cancel"
-
-              )
-              , React.createElement(Button, { variant: "destructive", className: "flex-1 bg-red-600 hover:bg-red-700 text-white rounded-full"   , onClick: handleDeleteAccount, disabled: deleteLoading, __self: this, __source: {fileName: _jsxFileName, lineNumber: 248}}
-                , deleteLoading ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 249}} ) : "Delete Forever"
+              , React.createElement(DialogFooter, { className: "flex gap-2 pt-2" }
+                , React.createElement(Button, { type: "button", variant: "outline", onClick: () => setIsEditing(false), className: "flex-1 rounded-xl text-xs" }, "Cancel")
+                , React.createElement(Button, { type: "submit", className: "flex-1 bg-[#F97316] text-white font-bold rounded-xl text-xs", disabled: submitLoading }
+                  , submitLoading ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin" }) : "Save"
+                )
               )
             )
           )
         )
-      )
+
+      /* Logout Confirmation Dialog */
+      , showLogoutConfirm && React.createElement(
+          Dialog, { open: showLogoutConfirm, onOpenChange: setShowLogoutConfirm },
+          React.createElement(DialogContent, { className: "max-w-[340px] bg-white border border-border p-5 rounded-3xl text-center" },
+            React.createElement(DialogHeader, { className: "flex flex-col items-center" }
+              , React.createElement('div', { className: "w-11 h-11 rounded-full bg-red-50 text-red-600 flex items-center justify-center mb-2" }
+                , React.createElement(Power, { className: "h-5 w-5" })
+              )
+              , React.createElement(DialogTitle, { className: "text-base font-black text-[#0F172A]" }, "Confirm Logout")
+              , React.createElement(DialogDescription, { className: "text-[10px]" }, "Are you sure you want to sign out from your account?")
+            )
+            , React.createElement(DialogFooter, { className: "flex gap-2 pt-4" }
+              , React.createElement(Button, { type: "button", variant: "outline", onClick: () => setShowLogoutConfirm(false), className: "flex-1 rounded-xl text-xs" }, "Cancel")
+              , React.createElement(Button, {
+                  type: "button",
+                  onClick: () => { setShowLogoutConfirm(false); logout(); },
+                  className: "flex-1 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs"
+                }, "Logout")
+            )
+          )
+        )
+
+      /* Deletion Confirmation Dialog */
+      , showDeleteModal && (
+          React.createElement(Dialog, { open: showDeleteModal, onOpenChange: setShowDeleteModal }
+            , React.createElement(DialogContent, { className: "max-w-[340px] bg-white border border-border p-5 rounded-3xl" }
+              , React.createElement(DialogHeader, { className: "text-center" }
+                , React.createElement(DialogTitle, { className: "text-base font-black text-foreground flex items-center justify-center gap-2" }
+                  , React.createElement(AlertTriangle, { className: "h-5 w-5 text-red-600" }), "Are you sure?"
+                )
+                , React.createElement(DialogDescription, { className: "text-[10px] mt-1 text-muted-foreground" }, "This will delete your customer account and revoke all unlocked vouchers.")
+              )
+              , React.createElement('div', { className: "space-y-3 py-3" }
+                , React.createElement(Label, { htmlFor: "confirmPhone", className: "text-[10px] text-foreground font-bold" }
+                  , `To confirm, enter your phone number (e.g. ${profile?.phone || "8018640398"}):`
+                )
+                , React.createElement(Input, {
+                    id: "confirmPhone",
+                    type: "tel",
+                    placeholder: "Confirm phone number",
+                    value: deleteConfirmPhone,
+                    onChange: (e) => setDeleteConfirmPhone(e.target.value.replace(/\D/g, "")),
+                    required: true,
+                    className: "h-10 text-xs bg-slate-50 border-slate-100 rounded-xl"
+                  })
+              )
+              , React.createElement(DialogFooter, { className: "flex gap-2" }
+                , React.createElement(Button, { variant: "outline", className: "flex-1 rounded-xl text-xs", onClick: () => setShowDeleteModal(false) }, "Cancel")
+                , React.createElement(Button, { variant: "destructive", className: "flex-1 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs", onClick: handleDeleteAccount, disabled: deleteLoading }
+                  , deleteLoading ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin" }) : "Delete Forever"
+                )
+              )
+            )
+          )
+        )
     )
   );
 }

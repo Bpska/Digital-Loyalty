@@ -223,6 +223,8 @@ docker compose logs -f frontend
 
 ```
 # 4. Apply any new database migrations (just in case the schema changed)
+docker compose up -d --build
+
   docker compose exec backend npx prisma migrate deploy
 
 <!-- 1->a arro add in the Footer section click go to hero section . -->
