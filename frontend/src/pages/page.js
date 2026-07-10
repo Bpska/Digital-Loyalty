@@ -82,7 +82,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     // Dynamic SEO Configuration
-    document.title = "Logisaar (LoyaltySaar) - Loyalty Program Software India | QR Loyalty Card App for Cafes & Restaurants";
+    document.title = "Scanloyal - Loyalty Program Software India | QR Loyalty Card App for Cafes & Restaurants";
     
     let metaDesc = document.querySelector('meta[name="description"]');
     if (!metaDesc) {
@@ -90,7 +90,7 @@ export default function LandingPage() {
       metaDesc.setAttribute('name', 'description');
       document.head.appendChild(metaDesc);
     }
-    metaDesc.setAttribute('content', 'LoyaltySaar (also known as Logisaar) is the #1 QR loyalty program software in India. Enhance customer retention with digital stamp card apps for cafes, salons, and learn how to get more Google reviews for restaurants.');
+    metaDesc.setAttribute('content', 'Scanloyal is the #1 QR loyalty program software in India. Enhance customer retention with digital stamp card apps for cafes, salons, and learn how to get more Google reviews for restaurants.');
 
     let metaKeys = document.querySelector('meta[name="keywords"]');
     if (!metaKeys) {
@@ -98,7 +98,7 @@ export default function LandingPage() {
       metaKeys.setAttribute('name', 'keywords');
       document.head.appendChild(metaKeys);
     }
-    metaKeys.setAttribute('content', 'Logisaar, LoyaltySaar, loyalty program software India, QR loyalty card app for cafes, how to get more Google reviews for restaurant, customer retention app small business, customer loyalty India');
+    metaKeys.setAttribute('content', 'Scanloyal, loyalty program software India, QR loyalty card app for cafes, how to get more Google reviews for restaurant, customer retention app small business, customer loyalty India');
 
     // Add JSON-LD Schema markup
     const schemaData = {
@@ -106,11 +106,11 @@ export default function LandingPage() {
       "@graph": [
         {
           "@type": "Product",
-          "name": "Logisaar (LoyaltySaar) Loyalty Platform",
+          "name": "Scanloyal Loyalty Platform",
           "description": "QR-based loyalty program software in India featuring digital stamp cards, customer retention tools, and Google review automation.",
           "brand": {
             "@type": "Brand",
-            "name": "Logisaar"
+            "name": "Scanloyal"
           },
           "offers": {
             "@type": "Offer",
@@ -198,8 +198,8 @@ export default function LandingPage() {
         , React.createElement('div', { className: "max-w-7xl mx-auto px-6 h-20 flex items-center justify-between" }
           /* Left Logo */
           , React.createElement('div', { className: "flex items-center space-x-2.5" }
-            , React.createElement('div', { className: "w-9 h-9 bg-black rounded-lg flex items-center justify-center font-bold text-white text-sm" }, "LS")
-            , React.createElement('span', { className: "text-lg font-bold text-[#0F172A] tracking-tight" }, "LoyaltySaar")
+            , React.createElement('div', { className: "w-9 h-9 bg-black rounded-lg flex items-center justify-center font-bold text-white text-sm" }, "SL")
+            , React.createElement('span', { className: "text-lg font-bold text-[#0F172A] tracking-tight" }, "Scanloyal")
           )
           /* Middle Links (Hidden on mobile) */
           , React.createElement('nav', { className: "hidden md:flex items-center space-x-8 text-xs font-semibold text-[#64748B]" }
@@ -230,10 +230,7 @@ export default function LandingPage() {
           
           /* Left Column (span 7) */
           , React.createElement('div', { className: "lg:col-span-7 space-y-6 text-left" }
-            /* Badge */
-            , React.createElement('div', { className: "inline-flex items-center gap-2 bg-[#FFF3EB] rounded-full px-4.5 py-1.5 text-[11px] font-black text-[#F97316] uppercase tracking-wider" }
-              , "#1 QR Loyalty Platform in India (Last Updated: July 2026)"
-            )
+
 
             /* Headline */
             , React.createElement('h1', { className: "text-4xl sm:text-5xl md:text-[56px] font-black tracking-tight text-[#0F172A] leading-[1.08]" }
@@ -247,26 +244,10 @@ export default function LandingPage() {
 
             /* Description */
             , React.createElement('p', { className: "text-sm sm:text-base text-[#64748B] leading-relaxed max-w-xl" }
-              , "LoyaltySaar (also searched as Logisaar) is a QR-based loyalty and Google review automation platform that helps local stores build customer retention. Our loyalty program software India specializes as a QR loyalty card app for cafes, helping you understand how to get more Google reviews for restaurant operations and serve as a reliable customer retention app for small business merchants."
+              , "Scanloyal is a QR-based loyalty and Google review automation platform that helps local stores build customer retention."
             )
 
-            /* 2x2 Feature Grid */
-            , React.createElement('div', { className: "grid grid-cols-2 gap-4 max-w-md pt-2" }
-              , [
-                  { label: "No App Required", icon: Smartphone },
-                  { label: "GPS Verified", icon: MapPin },
-                  { icon: Star, label: "Auto Rewards" },
-                  { icon: Activity, label: "Ready in 5 Minutes" }
-                ].map((item, i) => {
-                  const ItemIcon = item.icon;
-                  return React.createElement('div', { key: i, className: "flex items-center gap-2 text-xs font-bold text-[#0F172A]" }
-                    , React.createElement('div', { className: "w-7 h-7 rounded-lg bg-[#FFF3EB] flex items-center justify-center text-[#F97316]" }
-                      , React.createElement(ItemIcon, { className: "h-4 w-4" })
-                    )
-                    , React.createElement('span', null, item.label)
-                  );
-                })
-            )
+
 
             /* CTA Buttons */
             , React.createElement('div', { className: "flex flex-wrap items-center gap-4 pt-2" }
@@ -286,6 +267,22 @@ export default function LandingPage() {
                 , Array.from({ length: 5 }).map((_, i) => React.createElement('span', { key: i }, "★"))
               )
               , React.createElement('span', { className: "text-xs font-bold text-[#64748B]" }, "4.9/5 from 500+ Google Reviews")
+            )
+
+            /* Live Business Counter */
+            , React.createElement('div', { className: "flex items-center gap-3 pt-4 animate-fade-in" }
+              , React.createElement('div', { className: "flex -space-x-3" }
+                , React.createElement('div', { className: "w-9 h-9 rounded-full border-[3px] border-white bg-blue-100 shadow-sm flex items-center justify-center text-[10px] font-bold text-blue-600 z-30" }, "C")
+                , React.createElement('div', { className: "w-9 h-9 rounded-full border-[3px] border-white bg-emerald-100 shadow-sm flex items-center justify-center text-[10px] font-bold text-emerald-600 z-20" }, "B")
+                , React.createElement('div', { className: "w-9 h-9 rounded-full border-[3px] border-white bg-purple-100 shadow-sm flex items-center justify-center text-[10px] font-bold text-purple-600 z-10" }, "R")
+              )
+              , React.createElement('div', { className: "text-xs font-semibold text-[#64748B] flex items-center gap-1.5" }
+                , "Join "
+                , React.createElement('span', { className: "text-[#0F172A] font-black text-base flex items-center gap-1" }
+                  , animatedBusinesses, "+"
+                )
+                , "businesses registered"
+              )
             )
           )
 
@@ -322,20 +319,7 @@ export default function LandingPage() {
                 )
             )
           )
-          /* Right: Stats Counter */
-          , React.createElement('div', { className: "lg:col-span-5 grid grid-cols-4 gap-4 text-center lg:border-l lg:border-slate-100 lg:pl-8" }
-            , [
-                { num: "500+", label: "Happy Businesses" },
-                { num: "10,000+", label: "QR Scans Every Month" },
-                { num: "92%", label: "Return Rate" },
-                { num: "₹4.8L+", label: "Rewards Issued" }
-              ].map((stat, i) =>
-                React.createElement('div', { key: i, className: "space-y-1" }
-                  , React.createElement('p', { className: "text-base font-black text-[#F97316]" }, stat.num)
-                  , React.createElement('p', { className: "text-[8px] font-bold text-[#64748B] uppercase tracking-wider leading-tight" }, stat.label)
-                )
-              )
-          )
+
         )
       )
 
@@ -489,7 +473,7 @@ export default function LandingPage() {
                   , React.createElement('div', { className: "flex items-center gap-2" }
                     , React.createElement('div', { className: "h-8 w-8 rounded-full bg-[#FF6A00]/10 border border-[#FF6A00]/20 text-[#FF6A00] flex items-center justify-center text-xs font-black shadow-sm" }, "S" )
                     , React.createElement('div', null
-                      , React.createElement('h4', { className: "text-xs font-black text-[#2B201A]" }, "ScanLoyal Live Demo" )
+                      , React.createElement('h4', { className: "text-xs font-black text-[#2B201A]" }, "Scanloyal Live Demo" )
                       , React.createElement('p', { className: "text-[8px] text-[#800020] font-semibold" }, "Coordinates: 20.2961, 85.8245" )
                     )
                   )
@@ -535,7 +519,7 @@ export default function LandingPage() {
                     )
                     , React.createElement('div', { className: "space-y-1" }
                       , React.createElement('h5', { className: "text-xs font-black text-emerald-800 uppercase tracking-wide" }, "Voucher Unlocked! 🎉" )
-                      , React.createElement('p', { className: "text-[10px] text-emerald-700" }, "Code: ", React.createElement('code', { className: "bg-emerald-100 font-mono px-2 py-0.5 rounded-lg font-bold text-emerald-900" }, "Logisaar-stamp-100"))
+                      , React.createElement('p', { className: "text-[10px] text-emerald-700" }, "Code: ", React.createElement('code', { className: "bg-emerald-100 font-mono px-2 py-0.5 rounded-lg font-bold text-emerald-900" }, "Scanloyal-stamp-100"))
                     )
                   )
                 ) : (
@@ -643,7 +627,7 @@ export default function LandingPage() {
           , React.createElement('h2', { className: "text-4xl sm:text-5xl font-black text-white tracking-tight leading-none"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 660}}, "Ready to Upgrade Your Customer Loyalty?"
 
           )
-          , React.createElement('p', { className: "text-sm sm:text-base text-[#FAF7F5]/80 leading-relaxed max-w-xl mx-auto"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 663}}, "Join other growing storefronts that trust ScanLoyal to incentivize return visits, prevent check-in fraud, and manage discount vouchers easily."
+          , React.createElement('p', { className: "text-sm sm:text-base text-[#FAF7F5]/80 leading-relaxed max-w-xl mx-auto"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 663}}, "Join other growing storefronts that trust Scanloyal to incentivize return visits, prevent check-in fraud, and manage discount vouchers easily."
 
           )
           , React.createElement('div', { className: "pt-2 flex flex-col sm:flex-row gap-4 justify-center animate-fade-in"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 666}}
@@ -754,10 +738,9 @@ export default function LandingPage() {
         , React.createElement('div', { className: "max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 683}}
           , React.createElement('div', { className: "space-y-5", __self: this, __source: {fileName: _jsxFileName, lineNumber: 684}}
             , React.createElement('div', { className: "flex items-center space-x-2.5" }
-              , React.createElement('img', { src: "/new.png", alt: "LogiSaar Logo", className: "h-8 w-auto object-contain" })
+              , React.createElement('img', { src: "/new.png", alt: "Scanloyal Logo", className: "h-8 w-auto object-contain" })
               , React.createElement('div', { className: "flex flex-col justify-center" }
-                , React.createElement('span', { className: "text-sm font-black tracking-tight text-[#2B201A] leading-tight" }, "LogiSaar")
-                , React.createElement('span', { className: "text-[9px] font-bold text-[#FF6A00] uppercase tracking-wider leading-none" }, "ScanLoyal")
+                , React.createElement('span', { className: "text-sm font-black tracking-tight text-[#2B201A] leading-tight" }, "Scanloyal")
               )
             )
             , React.createElement('p', { className: "text-xs leading-relaxed max-w-xs text-[#8C6553] font-medium"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 691}}, "Modern digital stamp cards and GPS location verification for storefront customer retention."
@@ -795,7 +778,7 @@ export default function LandingPage() {
 
         , React.createElement('div', { className: "max-w-7xl mx-auto px-6 pt-8 mt-8 border-t border-[#EAE3DF]/50 flex flex-col md:flex-row justify-between items-center text-xs font-medium"            , __self: this, __source: {fileName: _jsxFileName, lineNumber: 724}}
           , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 725}}
-              , "© " , new Date().getFullYear(), " ScanLoyal SaaS. Subsidiary of "
+              , "© " , new Date().getFullYear(), " Scanloyal SaaS. Subsidiary of "
               , React.createElement('a', { href: "https://logisaar.in", target: "_blank", rel: "noopener noreferrer", className: "text-[#FF6A00] hover:underline font-bold" }, "Logisaar Technologies Private Limited")
               , ". All rights reserved."
             )

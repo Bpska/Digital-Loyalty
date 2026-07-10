@@ -178,12 +178,16 @@ router.post('/admin-apply', authenticate, authorize(Role.BUSINESS_ADMIN, Role.SU
       });
       if (!coupon) throw new AppError('Coupon not found, expired, or inactive', 404);
 
-      // For general coupons, customerPhone is required to link the user usage
-      if (!customerPhone) {
-        throw new AppError('Customer phone number is required', 400);
+      let targetPhone = customerPhone;
+      let isWalkIn = false;
+      if (!targetPhone) {
+        isWalkIn = true;
+        // Generate a unique 10-digit number starting with 99
+        const rand = Math.floor(10000000 + Math.random() * 90000000);
+        targetPhone = `99${rand}`;
       }
 
-      const normalized = customerPhone.replace(/\D/g, '');
+      const normalized = targetPhone.replace(/\D/g, '');
       customer = await prisma.user.findFirst({
         where: {
           phone: { endsWith: normalized },
@@ -191,7 +195,21 @@ router.post('/admin-apply', authenticate, authorize(Role.BUSINESS_ADMIN, Role.SU
         },
         select: { id: true, name: true, phone: true, email: true, createdAt: true },
       });
-      if (!customer) throw new AppError('Customer not found with this phone number', 404);
+
+      if (!customer) {
+        if (isWalkIn) {
+          customer = await prisma.user.create({
+            data: {
+              phone: targetPhone,
+              name: "Walk-in Customer",
+              role: Role.CUSTOMER,
+            },
+            select: { id: true, name: true, phone: true, email: true, createdAt: true },
+          });
+        } else {
+          throw new AppError('Customer not found with this phone number', 404);
+        }
+      }
     }
 
     if (coupon.usageLimit && coupon.totalUsed >= coupon.usageLimit) {

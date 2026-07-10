@@ -39,10 +39,11 @@ import {
   Tag,
   ChevronDown,
   Ticket,
-  ScanLine
+  ScanLine,
+  ExternalLink
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { formatDate } from "@/lib/utils";
+import { formatDate, cn } from "@/lib/utils";
 
 const BrandIcon = ({ iconName, customUrl, defaultIcon: DefaultIcon, className = "h-5 w-5" }) => {
   if (customUrl && (customUrl.startsWith("/") || customUrl.startsWith("http"))) {
@@ -70,7 +71,7 @@ const BrandIcon = ({ iconName, customUrl, defaultIcon: DefaultIcon, className = 
   return React.createElement(DefaultIcon, { className: `${className} shrink-0` });
 };
 export default function BusinessDashboard() {
-  const { setShowNotifications, unreadCount, fetchNotifications } = useOutletContext() || {};
+  const { setShowNotifications, unreadCount, fetchNotifications, setShowRedeemModal, setScanningRedeem } = useOutletContext() || {};
   const { user } = useAuthStore();
   const businessId = _optionalChain([user, 'optionalAccess', _ => _.businessId]);
   const [statusLoading, setStatusLoading] = React.useState({});
@@ -526,7 +527,7 @@ export default function BusinessDashboard() {
   const checkins = checkinsData || [];
 
   const [undoingId, setUndoingId] = React.useState(null);
-  const [chartTimeRange, setChartTimeRange] = React.useState("This Week");
+  const [chartTimeRange, setChartTimeRange] = React.useState("Last Week");
   const { data: redemptionsData, isLoading: redemptionsLoading, refetch: refetchRedemptions } = useQuery({
     queryKey: ["businessRedemptions", businessId],
     queryFn: () => api.get(`/businesses/${businessId}/redemptions`).then((res) => res.data),
@@ -577,20 +578,20 @@ export default function BusinessDashboard() {
   // Build chart data based on selected time range
   const getChartData = () => {
     const baseCheckins = analytics?.totalCheckIns ?? 0;
-    if (chartTimeRange === "This Month") {
-      const monthWeeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
-      return monthWeeks.map((week, i) => ({
+    if (chartTimeRange === "Last Month") {
+      const weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+      return weeks.map((week, i) => ({
         day: week,
         value: Math.max(0, Math.round(baseCheckins * (0.15 + (i * 0.12) + (Math.cos(i) * 0.08))))
       }));
-    } else if (chartTimeRange === "This Year") {
-      const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
-      return quarters.map((quarter, i) => ({
-        day: quarter,
-        value: Math.max(0, Math.round(baseCheckins * (0.2 + (i * 0.15) + (Math.sin(i) * 0.1))))
+    } else if (chartTimeRange === "Last 3 Months") {
+      const months = ['Month 1', 'Month 2', 'Month 3'];
+      return months.map((month, i) => ({
+        day: month,
+        value: Math.max(0, Math.round(baseCheckins * (0.25 + (i * 0.18) + (Math.sin(i) * 0.1))))
       }));
     } else {
-      // This Week (default)
+      // Last Week (default)
       const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       return weekDays.map((day, i) => ({
         day,
@@ -635,7 +636,7 @@ export default function BusinessDashboard() {
             },
             className: "relative w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-[#64748B]"
           }
-            , React.createElement(Bell, { className: "h-4.5 w-4.5" })
+            , React.createElement(Bell, { className: "h-5.5 w-5.5" })
             , unreadCount > 0 && (
                 React.createElement('span', { className: "absolute top-0.5 right-0.5 w-4.5 h-4.5 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center leading-none shadow-sm" }
                   , String(unreadCount)
@@ -676,7 +677,7 @@ export default function BusinessDashboard() {
             size: "sm",
             className: "bg-gradient-to-r from-[#FF6A00] to-[#FF8E3C] text-white shadow-md font-bold transition-all"
           }
-            , React.createElement(Scan, { className: "mr-2 h-4 w-4" }), "Scan & Redeem"
+            , React.createElement(Scan, { className: "mr-2 h-5 w-5" }), "Scan & Redeem"
           )
           , React.createElement(Button, { variant: "outline", size: "sm", onClick: handleOpenSocialModal }, "🔗 Social Links")
         )
@@ -702,7 +703,7 @@ export default function BusinessDashboard() {
                   onClick: () => { setShowRedeemModal(true); setScanningRedeem(true); },
                   className: "flex items-center gap-1.5 bg-white text-[#0F172A] text-xs font-bold px-4 py-2 rounded-full shadow-md active:scale-95 transition-transform"
                 }
-                  , React.createElement(ScanLine, { className: "h-3.5 w-3.5" })
+                  , React.createElement(ScanLine, { className: "h-4.5 w-4.5" })
                   , "Scan & Redeem"
                 )
               )
@@ -752,7 +753,7 @@ export default function BusinessDashboard() {
             /* Customers */
             , React.createElement('div', { className: "flex flex-col items-center text-center gap-1.5" }
               , React.createElement('div', { className: "w-12 h-12 rounded-full flex items-center justify-center", style: { background: "#EDE9FF" } }
-                , React.createElement(Users, { className: "h-5 w-5", style: { color: "#6D5DD3" } })
+                , React.createElement(Users, { className: "h-6.5 w-6.5", style: { color: "#6D5DD3" } })
               )
               , React.createElement('span', { className: "text-lg font-bold text-[#0F172A] leading-none" }, (_optionalChain([analytics, 'optionalAccess', _ => _.totalCustomers]) ?? 0).toLocaleString())
               , React.createElement('span', { className: "text-[9px] text-[#64748B] font-medium leading-tight" }, "Customers")
@@ -761,7 +762,7 @@ export default function BusinessDashboard() {
             /* Check-ins */
             , React.createElement('div', { className: "flex flex-col items-center text-center gap-1.5" }
               , React.createElement('div', { className: "w-12 h-12 rounded-full flex items-center justify-center", style: { background: "#DCFCE7" } }
-                , React.createElement(ShieldCheck, { className: "h-5 w-5", style: { color: "#22C55E" } })
+                , React.createElement(ShieldCheck, { className: "h-6.5 w-6.5", style: { color: "#22C55E" } })
               )
               , React.createElement('span', { className: "text-lg font-bold text-[#0F172A] leading-none" }, (_optionalChain([analytics, 'optionalAccess', _2 => _2.totalCheckIns]) ?? 0).toLocaleString())
               , React.createElement('span', { className: "text-[9px] text-[#64748B] font-medium leading-tight" }, "Check-ins")
@@ -770,7 +771,7 @@ export default function BusinessDashboard() {
             /* Rewards Redeemed */
             , React.createElement('div', { className: "flex flex-col items-center text-center gap-1.5" }
               , React.createElement('div', { className: "w-12 h-12 rounded-full flex items-center justify-center", style: { background: "#FEF3E2" } }
-                , React.createElement(Gift, { className: "h-5 w-5", style: { color: "#F97316" } })
+                , React.createElement(Gift, { className: "h-6.5 w-6.5", style: { color: "#F97316" } })
               )
               , React.createElement('span', { className: "text-lg font-bold text-[#0F172A] leading-none" }, (redemptions?.length ?? 0).toLocaleString())
               , React.createElement('span', { className: "text-[9px] text-[#64748B] font-medium leading-tight" }, "Rewards")
@@ -779,7 +780,7 @@ export default function BusinessDashboard() {
             /* Active Coupons */
             , React.createElement('div', { className: "flex flex-col items-center text-center gap-1.5" }
               , React.createElement('div', { className: "w-12 h-12 rounded-full flex items-center justify-center", style: { background: "#DBEAFE" } }
-                , React.createElement(Tag, { className: "h-5 w-5", style: { color: "#3B82F6" } })
+                , React.createElement(Tag, { className: "h-6.5 w-6.5", style: { color: "#3B82F6" } })
               )
               , React.createElement('span', { className: "text-lg font-bold text-[#0F172A] leading-none" }, (_optionalChain([analytics, 'optionalAccess', _3 => _3.activeCoupons]) ?? 0).toLocaleString())
               , React.createElement('span', { className: "text-[9px] text-[#64748B] font-medium leading-tight" }, "Coupons")
@@ -789,31 +790,41 @@ export default function BusinessDashboard() {
         )
 
         /* E. Quick Actions */
-        , React.createElement('div', { className: "bg-white rounded-3xl shadow-sm p-4" }
-          , React.createElement('div', { className: "flex items-center justify-between mb-3" }
-            , React.createElement('span', { className: "text-sm font-bold text-[#0F172A]" }, "Quick Actions")
+        , React.createElement('div', { className: "bg-white rounded-3xl shadow-sm p-5" }
+          , React.createElement('div', { className: "flex items-center justify-between mb-4" }
+            , React.createElement('span', { className: "text-base font-extrabold text-[#0F172A]" }, "Quick Actions")
           )
-          , React.createElement('div', { className: "grid grid-cols-3 gap-1" }
+          , React.createElement('div', { className: "grid grid-cols-3 gap-3" }
             /* Create Coupon */
-            , React.createElement('a', { href: "/dashboard/business/coupons", className: "flex flex-col items-center gap-1.5 active:scale-95 transition-transform" }
-               , React.createElement('div', { className: "w-12 h-12 rounded-2xl flex items-center justify-center", style: { background: "#FEF3E2" } }
-                 , React.createElement(Ticket, { className: "h-5 w-5", style: { color: "#F97316" } })
+            , React.createElement('a', { href: "/dashboard/business/coupons", className: "flex flex-col items-center gap-2 active:scale-95 transition-transform" }
+               , React.createElement('div', { className: "w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm", style: { background: "#FEF3E2" } }
+                 , React.createElement(Ticket, { className: "h-7 w-7", style: { color: "#F97316" } })
                )
-               , React.createElement('span', { className: "text-[9px] text-[#64748B] font-medium text-center leading-tight" }, "Create", React.createElement('br', null), "Coupon")
+               , React.createElement('span', { className: "text-[11px] text-[#0F172A] font-bold text-center leading-tight" }, "Create Coupon")
             )
             /* Add Reward */
-            , React.createElement('a', { href: "/dashboard/business/loyalty-config", className: "flex flex-col items-center gap-1.5 active:scale-95 transition-transform" }
-               , React.createElement('div', { className: "w-12 h-12 rounded-2xl flex items-center justify-center", style: { background: "#FDE8F0" } }
-                 , React.createElement(Gift, { className: "h-5 w-5", style: { color: "#EC4899" } })
+            , React.createElement('a', { href: "/dashboard/business/loyalty-config", className: "flex flex-col items-center gap-2 active:scale-95 transition-transform" }
+               , React.createElement('div', { className: "w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm", style: { background: "#FDE8F0" } }
+                 , React.createElement(Gift, { className: "h-7 w-7", style: { color: "#EC4899" } })
                )
-               , React.createElement('span', { className: "text-[9px] text-[#64748B] font-medium text-center leading-tight" }, "Add", React.createElement('br', null), "Reward")
+               , React.createElement('span', { className: "text-[11px] text-[#0F172A] font-bold text-center leading-tight" }, "Add Reward")
             )
-            /* Review Settings */
-            , React.createElement('a', { href: "/dashboard/business/profile", className: "flex flex-col items-center gap-1.5 active:scale-95 transition-transform" }
-               , React.createElement('div', { className: "w-12 h-12 rounded-2xl flex items-center justify-center", style: { background: "#FEF3E2" } }
-                 , React.createElement(Star, { className: "h-5 w-5", style: { color: "#F97316" } })
+            /* Review Settings Quick Action */
+            , React.createElement('button', {
+                type: "button",
+                onClick: (e) => {
+                  e.preventDefault();
+                  setIsEditingReview(true);
+                  const isMobile = window.innerWidth < 768;
+                  const targetId = isMobile ? "review-settings-card" : "review-settings-desktop-card";
+                  document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth" });
+                },
+                className: "flex flex-col items-center gap-2 active:scale-95 transition-transform bg-transparent border-0 outline-none"
+              }
+               , React.createElement('div', { className: "w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm", style: { background: "#FEF3E2" } }
+                 , React.createElement(Star, { className: "h-7 w-7", style: { color: "#F97316" } })
                )
-               , React.createElement('span', { className: "text-[9px] text-[#64748B] font-medium text-center leading-tight" }, "Review", React.createElement('br', null), "Settings")
+               , React.createElement('span', { className: "text-[11px] text-[#0F172A] font-bold text-center leading-tight" }, "Review Settings")
             )
           )
         )
@@ -822,20 +833,20 @@ export default function BusinessDashboard() {
         , React.createElement('div', { className: "bg-white rounded-3xl shadow-sm p-4" }
           , React.createElement('div', { className: "flex items-center justify-between mb-3" }
             , React.createElement('div', { className: "flex items-center gap-1.5" }
-              , React.createElement(TrendingUp, { className: "h-4 w-4", style: { color: "#6D5DD3" } })
+              , React.createElement(TrendingUp, { className: "h-5.5 w-5.5", style: { color: "#6D5DD3" } })
               , React.createElement('span', { className: "text-sm font-bold text-[#0F172A]" }, "Check-in Overview")
             )
-            , React.createElement('div', { className: "flex items-center gap-1 px-3 py-1 rounded-full text-xs text-[#64748B] font-bold border border-slate-100 bg-[#F1F5F9] relative" }
-              , React.createElement('select', {
-                  value: chartTimeRange,
-                  onChange: (e) => setChartTimeRange(e.target.value),
-                  className: "bg-transparent outline-none cursor-pointer pr-1 font-bold text-[#64748B] appearance-none"
-                }
-                , React.createElement('option', { value: "This Week" }, "This Week")
-                , React.createElement('option', { value: "This Month" }, "This Month")
-                , React.createElement('option', { value: "This Year" }, "This Year")
+            , React.createElement('div', { className: "flex items-center gap-1" }
+              , ["Last Week", "Last Month", "Last 3 Months"].map(range =>
+                React.createElement('button', {
+                  key: range,
+                  onClick: () => setChartTimeRange(range),
+                  className: "text-[9px] px-2 py-1 rounded-full font-bold transition-all duration-200",
+                  style: chartTimeRange === range
+                    ? { background: "#6D5DD3", color: "white" }
+                    : { background: "#F1F5F9", color: "#64748B" }
+                }, range === "Last Week" ? "1W" : range === "Last Month" ? "1M" : "3M")
               )
-              , React.createElement(ChevronDown, { className: "h-3 w-3 ml-0.5 pointer-events-none" })
             )
           )
           , React.createElement('div', { style: { height: "140px" } }
@@ -877,7 +888,7 @@ export default function BusinessDashboard() {
         , React.createElement('div', { className: "bg-white rounded-3xl shadow-sm p-4" }
           , React.createElement('div', { className: "flex items-center justify-between mb-3" }
             , React.createElement('div', { className: "flex items-center gap-1.5" }
-              , React.createElement(Star, { className: "h-4 w-4", style: { color: "#6D5DD3" } })
+              , React.createElement(Star, { className: "h-5.5 w-5.5", style: { color: "#6D5DD3" } })
               , React.createElement('span', { className: "text-sm font-bold text-[#0F172A]" }, "Reviews & Social Links")
             )
             , React.createElement('button', {
@@ -888,30 +899,64 @@ export default function BusinessDashboard() {
               , "Manage"
             )
           )
-          , React.createElement('div', { className: "grid grid-cols-3 gap-2" }
-            /* Google */
-            , React.createElement('div', { className: "flex flex-col items-center gap-1.5 p-2 rounded-2xl border transition-all duration-300 relative overflow-hidden", style: { background: "#FFF8F4", borderColor: "rgba(249, 115, 22, 0.3)", boxShadow: "0 4px 12px rgba(249, 115, 22, 0.08)" } }
-              , React.createElement('div', { className: "absolute top-0 right-0 bg-[#F97316] text-white text-[6px] font-black px-1 rounded-bl" }, "POPULAR")
+          /* Google — full-width highlighted row */
+          , React.createElement('a', {
+              href: revGoogleUrl || undefined,
+              target: "_blank",
+              rel: "noopener noreferrer",
+              className: "flex items-center gap-3 p-3 rounded-2xl mb-2 border-2 transition-all duration-200",
+              style: {
+                background: revGoogleUrl ? "linear-gradient(135deg, #FFF8F4 0%, #FFF3EA 100%)" : "#F8FAFC",
+                borderColor: revGoogleUrl ? "#F97316" : "#E2E8F0",
+                boxShadow: revGoogleUrl ? "0 4px 16px rgba(249, 115, 22, 0.15)" : "none",
+                textDecoration: "none"
+              }
+            }
+            , React.createElement('div', { className: "relative shrink-0" }
               , React.createElement('img', { src: "/google-reviews-logo.png", alt: "Google", className: "w-10 h-10 object-contain rounded-full shadow-sm bg-white" })
-              , React.createElement('span', { className: "text-[9px] text-[#64748B] font-bold" }, "Google Review")
-              , React.createElement('span', { className: "text-[9px] font-bold flex items-center gap-0.5", style: { color: revGoogleUrl ? "#22C55E" : "#94A3B8" } }
-                , revGoogleUrl ? "✓ Connected" : "Not set"
+              , revGoogleUrl && React.createElement('div', {
+                  className: "absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-white flex items-center justify-center"
+                }
+                , React.createElement('span', { className: "text-white text-[7px] font-black" }, "✓")
               )
             )
-            /* Instagram */
-            , React.createElement('div', { className: "flex flex-col items-center gap-1.5 p-2 rounded-2xl", style: { background: "#F8FAFC" } }
-              , React.createElement('img', { src: "/Instagram_icon.png", alt: "Instagram", className: "w-10 h-10 object-contain rounded-full shadow-sm" })
-              , React.createElement('span', { className: "text-[9px] text-[#64748B] font-medium" }, "Instagram")
-              , React.createElement('span', { className: "text-[9px] font-bold flex items-center gap-0.5", style: { color: revInstagramUrl ? "#22C55E" : "#94A3B8" } }
-                , revInstagramUrl ? "✓ Connected" : "Not set"
+            , React.createElement('div', { className: "flex-1 min-w-0" }
+              , React.createElement('div', { className: "flex items-center gap-2" }
+                , React.createElement('span', { className: "text-[11px] font-extrabold text-[#0F172A]" }, "Google Reviews")
+                , React.createElement('span', { className: "text-[8px] font-black px-1.5 py-0.5 rounded-full", style: { background: "#F97316", color: "white" } }, "POPULAR")
+              )
+              , React.createElement('span', { className: "text-[9px] font-semibold", style: { color: revGoogleUrl ? "#22C55E" : "#94A3B8" } }
+                , revGoogleUrl ? "✓ Connected — Tap to open" : "Not set — Click Manage to connect"
               )
             )
-            /* Facebook */
-            , React.createElement('div', { className: "flex flex-col items-center gap-1.5 p-2 rounded-2xl", style: { background: "#F8FAFC" } }
-              , React.createElement('img', { src: "/Facebook_f_logo_(2021).svg.webp", alt: "Facebook", className: "w-10 h-10 object-contain rounded-full shadow-sm" })
-              , React.createElement('span', { className: "text-[9px] text-[#64748B] font-medium" }, "Facebook")
-              , React.createElement('span', { className: "text-[9px] font-bold flex items-center gap-0.5", style: { color: revFacebookUrl ? "#22C55E" : "#94A3B8" } }
-                , revFacebookUrl ? "✓ Connected" : "Not set"
+            , revGoogleUrl && React.createElement(ExternalLink, { className: "h-3.5 w-3.5 shrink-0", style: { color: "#F97316" } })
+          )
+          /* Instagram + Facebook — 2-col grid */
+          , React.createElement('div', { className: "grid grid-cols-2 gap-2" }
+            , React.createElement(revInstagramUrl ? 'a' : 'div', {
+                href: revInstagramUrl || undefined,
+                target: revInstagramUrl ? "_blank" : undefined,
+                rel: revInstagramUrl ? "noopener noreferrer" : undefined,
+                className: cn("flex items-center gap-2 p-2.5 rounded-2xl border transition-all duration-200", revInstagramUrl ? "hover:scale-[1.02] active:scale-98" : ""),
+                style: { background: revInstagramUrl ? "#FDE8F5" : "#F8FAFC", borderColor: revInstagramUrl ? "#E1306C" : "#E2E8F0", textDecoration: "none", cursor: revInstagramUrl ? "pointer" : "default" }
+              }
+              , React.createElement('img', { src: "/Instagram_icon.png", alt: "Instagram", className: "w-8 h-8 object-contain rounded-full shadow-sm shrink-0" })
+              , React.createElement('div', { className: "min-w-0" }
+                , React.createElement('p', { className: "text-[10px] font-bold text-[#0F172A] truncate" }, "Instagram")
+                , React.createElement('p', { className: "text-[9px] font-semibold", style: { color: revInstagramUrl ? "#E1306C" : "#94A3B8" } }, revInstagramUrl ? "✓ Set" : "Not set")
+              )
+            )
+            , React.createElement(revFacebookUrl ? 'a' : 'div', {
+                href: revFacebookUrl || undefined,
+                target: revFacebookUrl ? "_blank" : undefined,
+                rel: revFacebookUrl ? "noopener noreferrer" : undefined,
+                className: cn("flex items-center gap-2 p-2.5 rounded-2xl border transition-all duration-200", revFacebookUrl ? "hover:scale-[1.02] active:scale-98" : ""),
+                style: { background: revFacebookUrl ? "#E7F0FD" : "#F8FAFC", borderColor: revFacebookUrl ? "#1877F2" : "#E2E8F0", textDecoration: "none", cursor: revFacebookUrl ? "pointer" : "default" }
+              }
+              , React.createElement('img', { src: "/Facebook_f_logo_(2021).svg.webp", alt: "Facebook", className: "w-8 h-8 object-contain rounded-full shadow-sm shrink-0" })
+              , React.createElement('div', { className: "min-w-0" }
+                , React.createElement('p', { className: "text-[10px] font-bold text-[#0F172A] truncate" }, "Facebook")
+                , React.createElement('p', { className: "text-[9px] font-semibold", style: { color: revFacebookUrl ? "#1877F2" : "#94A3B8" } }, revFacebookUrl ? "✓ Set" : "Not set")
               )
             )
           )
@@ -920,7 +965,7 @@ export default function BusinessDashboard() {
         /* QR Code Card (mobile) */
         , primaryBranch && React.createElement('div', { className: "bg-white rounded-3xl shadow-sm p-4" }
           , React.createElement('div', { className: "flex items-center gap-2 mb-3" }
-            , React.createElement(QrCode, { className: "h-4 w-4", style: { color: "#F97316" } })
+            , React.createElement(QrCode, { className: "h-5.5 w-5.5", style: { color: "#F97316" } })
             , React.createElement('span', { className: "text-sm font-bold text-[#0F172A]" }, "Customer Check-in QR Code")
           )
           , React.createElement('div', { className: "flex flex-col items-center gap-3" }
@@ -960,16 +1005,9 @@ export default function BusinessDashboard() {
         )
 
         /* AI Review Settings (mobile compact) */
-        , React.createElement('div', { className: "bg-white rounded-3xl shadow-sm p-4" }
+        , React.createElement('div', { id: "review-settings-card", className: "bg-white rounded-3xl shadow-sm p-4" }
           , React.createElement('div', { className: "flex items-center justify-between mb-3" }
             , React.createElement('span', { className: "text-sm font-bold text-[#0F172A]" }, "⭐ AI Review Settings")
-            , !isEditingReview && React.createElement('button', {
-              onClick: () => setIsEditingReview(true),
-              className: "text-xs font-semibold px-3 py-1 rounded-full",
-              style: { background: "#EDE9FF", color: "#6D5DD3" }
-            }
-              , "Edit"
-            )
           )
           , !isEditingReview && (bizType || revGoogleUrl)
             ? React.createElement('div', { className: "grid grid-cols-2 gap-2 text-xs" }
@@ -1028,6 +1066,50 @@ export default function BusinessDashboard() {
           )
         )
 
+        /* F. Check-in Overview (Desktop) */
+        , React.createElement(Card, { className: "border-border shadow-sm rounded-xl overflow-hidden" }
+          , React.createElement(CardHeader, { className: "p-6 pb-2 border-b border-slate-100 flex flex-row items-center justify-between" }
+            , React.createElement('div', null
+              , React.createElement(CardTitle, { className: "text-base font-bold text-[#0F172A] flex items-center gap-2" }
+                , React.createElement(TrendingUp, { className: "h-4 w-4", style: { color: "#6D5DD3" } })
+                , "Check-in Overview"
+              )
+              , React.createElement(CardDescription, { className: "text-xs text-muted-foreground mt-1" }, "Check-in velocity and active engagement tracking")
+            )
+            , React.createElement('div', { className: "flex items-center gap-1 px-3 py-1.5 rounded-full text-xs text-[#64748B] font-bold border border-slate-200 bg-white shadow-sm relative cursor-pointer hover:bg-slate-50 transition-colors" }
+              , React.createElement('select', {
+                  value: chartTimeRange,
+                  onChange: (e) => setChartTimeRange(e.target.value),
+                  className: "bg-transparent outline-none cursor-pointer pr-4 font-bold text-[#64748B] appearance-none focus:outline-none"
+                }
+                , React.createElement('option', { value: "This Week" }, "This Week")
+                , React.createElement('option', { value: "This Month" }, "This Month")
+                , React.createElement('option', { value: "This Year" }, "This Year")
+              )
+              , React.createElement(ChevronDown, { className: "h-3.5 w-3.5 absolute right-2 pointer-events-none text-slate-400" })
+            )
+          )
+          , React.createElement(CardContent, { className: "p-6" }
+            , React.createElement('div', { style: { height: "240px" } }
+              , React.createElement(ResponsiveContainer, { width: "100%", height: "100%" }
+                , React.createElement(AreaChart, { data: chartData, margin: { top: 10, right: 10, bottom: 0, left: -20 } }
+                  , React.createElement('defs', null
+                    , React.createElement('linearGradient', { id: "checkinGradDesktop", x1: "0", y1: "0", x2: "0", y2: "1" }
+                      , React.createElement('stop', { offset: "5%", stopColor: "#6D5DD3", stopOpacity: 0.3 })
+                      , React.createElement('stop', { offset: "95%", stopColor: "#6D5DD3", stopOpacity: 0 })
+                    )
+                  )
+                  , React.createElement(CartesianGrid, { strokeDasharray: "3 3", stroke: "#F1F5F9", vertical: false })
+                  , React.createElement(XAxis, { dataKey: "day", tick: { fill: "#64748B", fontSize: 11, fontWeight: 500 }, axisLine: false, tickLine: false, dy: 10 })
+                  , React.createElement(YAxis, { tick: { fill: "#64748B", fontSize: 11, fontWeight: 500 }, axisLine: false, tickLine: false, ticks: [0, 25, 50, 75, 100] })
+                  , React.createElement(Tooltip, { contentStyle: { background: "white", border: "1px solid #E2E8F0", borderRadius: "12px", boxShadow: "0 10px 25px rgba(0,0,0,0.05)", fontSize: "12px", fontWeight: "bold", color: "#0F172A" }, itemStyle: { color: "#6D5DD3", fontWeight: "bold" }, cursor: { fill: "#F8FAFC" } })
+                  , React.createElement(Area, { type: "monotone", dataKey: "value", stroke: "#6D5DD3", strokeWidth: 3, fill: "url(#checkinGradDesktop)", dot: { fill: "white", r: 4, stroke: "#6D5DD3", strokeWidth: 2 }, activeDot: { r: 6, fill: "#6D5DD3", stroke: "white", strokeWidth: 2 } })
+                )
+              )
+            )
+          )
+        )
+
         /* Desktop 2-col panels */
         , React.createElement('div', { className: "grid grid-cols-1 lg:grid-cols-2 gap-6 items-start" }
           , React.createElement('div', { className: "space-y-6" }
@@ -1064,7 +1146,7 @@ export default function BusinessDashboard() {
             )
           )
           , React.createElement('div', { className: "space-y-6" }
-            , React.createElement(Card, { className: "glass" }
+            , React.createElement(Card, { id: "review-settings-desktop-card", className: "glass" }
               , !isEditingReview && (bizType || revGoogleUrl || revInstagramUrl || revFacebookUrl)
                 ? React.createElement(React.Fragment, null
                   , React.createElement(CardHeader, { className: "pb-4 border-b border-slate-100/50 flex flex-row items-center justify-between space-y-0" }
@@ -1072,7 +1154,6 @@ export default function BusinessDashboard() {
                       , React.createElement(CardTitle, { className: "text-base font-bold text-foreground flex items-center gap-2" }, "⭐ AI Review Settings")
                       , React.createElement(CardDescription, { className: "text-[10px] text-muted-foreground mt-0.5" }, "Currently active AI review generation settings")
                     )
-                    , React.createElement(Button, { size: "xs", variant: "outline", onClick: () => setIsEditingReview(true), className: "border-primary/20 text-primary hover:bg-primary/5 font-bold h-7 rounded-md px-2.5" }, "Edit Settings")
                   )
                   , React.createElement(CardContent, { className: "p-6 grid grid-cols-2 gap-4 text-xs" }
                     , React.createElement('div', { className: "bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 space-y-1" }

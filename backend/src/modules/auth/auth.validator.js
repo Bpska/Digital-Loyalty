@@ -77,9 +77,11 @@ export const registerBusinessSchema = z.object({
   bookingUrl: z.string().optional().nullable(),
 });
 
- 
-
-
+export const updateProfileSchema = z.object({
+  name: z.string().min(2).max(100).optional(),
+  email: z.string().email('Invalid email format').optional(),
+  phone: phoneSchema.optional(),
+});
 
 
 

@@ -491,113 +491,32 @@ export default function CouponsPage() {
 
             /* Apply Code tab panel */
             , approvalTab === "apply" && React.createElement('div', { className: "space-y-4" }
-              /* Hidden element for file-based QR scanning */
-              , React.createElement('div', {
-                  id: "reader-coupon-hidden-mob",
-                  style: { position: 'absolute', left: '-9999px', top: '-9999px', width: '1px', height: '1px', overflow: 'hidden' },
-                })
-              , scanningApply ? React.createElement('div', { className: "space-y-3" }
-                  , React.createElement('div', { className: "relative w-full aspect-square max-w-[240px] mx-auto rounded-2xl overflow-hidden border-2 border-primary/40 bg-black flex items-center justify-center" }
-                    , React.createElement('div', { id: "reader-coupon-apply-mob", className: "absolute inset-0 w-full h-full" })
-                    , React.createElement('div', { className: "absolute inset-x-4 top-1/2 h-[2px] bg-primary animate-pulse z-10" })
-                  )
-                  , React.createElement(Button, {
-                      type: "button",
-                      variant: "outline",
-                      onClick: () => setScanningApply(false),
-                      className: "w-full text-xs rounded-xl"
-                    }, "Cancel Scanning")
-                )
-              : React.createElement(React.Fragment, null
-                  /* Upload Box */
-                  , React.createElement('div', null
-                    , React.createElement('input', {
-                        ref: couponFileInputRef,
-                        type: "file",
-                        capture: "environment",
-                        accept: "image/*",
-                        onChange: handleCouponFileUpload,
-                        className: "hidden",
-                        id: "coupon-qr-file-input-mob"
+              /* Form Fields */
+              , React.createElement('form', { onSubmit: handleApplyCoupon, className: "space-y-3.5 pt-2" }
+                , React.createElement('div', { className: "space-y-1.5" }
+                  , React.createElement(Label, { htmlFor: "mob-app-code", className: "text-xs font-bold text-[#64748B]" }, "Coupon Code *")
+                  , React.createElement('div', { className: "relative" }
+                    , React.createElement(Input, {
+                        id: "mob-app-code",
+                        placeholder: "e.g. MONSOON30",
+                        value: approvalCode,
+                        onChange: (e) => { setApprovalCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "")); setApprovalResult(null); },
+                        className: "font-mono tracking-widest h-10 text-xs bg-[#F8FAFC] border-[#F1F5F9] rounded-xl pr-9",
+                        required: true
                       })
-                    , React.createElement('button', {
-                        type: "button",
-                        disabled: scanUploadLoading,
-                        onClick: () => { if (couponFileInputRef.current) couponFileInputRef.current.click(); },
-                        className: "w-full py-6 rounded-2xl border-2 border-dashed border-[#FDBA74] bg-[#FFEDD5]/20 hover:bg-[#FFEDD5]/40 flex flex-col items-center justify-center gap-1.5 transition-colors"
-                      }
-                      , scanUploadLoading
-                        ? React.createElement(Loader2, { className: "h-6 w-6 animate-spin text-[#F97316]" })
-                        : React.createElement('div', { className: "w-10 h-10 rounded-full bg-[#FFEDD5] flex items-center justify-center" }
-                            , React.createElement(Camera, { className: "h-5 w-5 text-[#F97316]" })
-                          )
-                      , React.createElement('span', { className: "text-xs font-bold text-[#0F172A]" }, "Upload / Take Photo of Coupon QR")
-                      , React.createElement('span', { className: "text-[10px] text-[#64748B]" }, "Tap to upload or use camera")
-                    )
-                  )
-
-                  /* OR divider */
-                  , React.createElement('div', { className: "flex items-center justify-center gap-3 text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider py-1" }
-                    , React.createElement('div', { className: "h-px flex-1 bg-[#F1F5F9]" })
-                    , "— OR —"
-                    , React.createElement('div', { className: "h-px flex-1 bg-[#F1F5F9]" })
-                  )
-
-                  /* Standalone live scanner row */
-                  , React.createElement('button', {
-                      type: "button",
-                      onClick: () => { setApprovalResult(null); setScanningApply(true); },
-                      className: "w-full bg-[#F8FAFC] border border-[#F1F5F9] rounded-2xl px-4 py-3 flex items-center justify-between text-left active:scale-95 transition-transform"
-                    }
-                    , React.createElement('div', { className: "flex items-center gap-2.5" }
-                      , React.createElement(Camera, { className: "h-4 w-4 text-[#F97316]" })
-                      , React.createElement('span', { className: "text-xs font-bold text-[#0F172A]" }, "Use Live Camera Scanner")
-                    )
-                    , React.createElement('span', { className: "text-[#64748B] text-xs" }, "→")
-                  )
-
-                  /* Form Fields */
-                  , React.createElement('form', { onSubmit: handleApplyCoupon, className: "space-y-3.5 pt-2" }
-                    , React.createElement('div', { className: "space-y-1.5" }
-                      , React.createElement(Label, { htmlFor: "mob-app-code", className: "text-xs font-bold text-[#64748B]" }, "Coupon Code *")
-                      , React.createElement('div', { className: "relative" }
-                        , React.createElement(Input, {
-                            id: "mob-app-code",
-                            placeholder: "e.g. MONSOON30",
-                            value: approvalCode,
-                            onChange: (e) => { setApprovalCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "")); setApprovalResult(null); },
-                            className: "font-mono tracking-widest h-10 text-xs bg-[#F8FAFC] border-[#F1F5F9] rounded-xl pr-9",
-                            required: true
-                          })
-                        , React.createElement(Tag, { className: "absolute right-3 top-3 h-4 w-4 text-[#94A3B8]" })
-                      )
-                    )
-                    , React.createElement('div', { className: "space-y-1.5" }
-                      , React.createElement(Label, { htmlFor: "mob-app-phone", className: "text-xs font-bold text-[#64748B]" }, "Customer Phone *")
-                      , React.createElement('div', { className: "relative" }
-                        , React.createElement(Input, {
-                            id: "mob-app-phone",
-                            type: "tel",
-                            placeholder: "e.g. 9876543210",
-                            value: approvalPhone,
-                            onChange: (e) => { setApprovalPhone(e.target.value.replace(/[^0-9+\-\s]/g, "")); setApprovalResult(null); },
-                            className: "h-10 text-xs bg-[#F8FAFC] border-[#F1F5F9] rounded-xl pr-9",
-                            required: true
-                          })
-                        , React.createElement(Phone, { className: "absolute right-3 top-3 h-4 w-4 text-[#94A3B8]" })
-                      )
-                    )
-                    , React.createElement(Button, {
-                        type: "submit",
-                        className: "w-full h-11 bg-[#F97316] text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
-                        , disabled: approvalLoading || !approvalCode.trim() || !approvalPhone.trim()
-                      }
-                      , approvalLoading
-                        ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin mr-2" })
-                        : React.createElement(React.Fragment, null, "Apply Coupon & Show Customer Details", React.createElement('span', null, "→"))
-                    )
+                    , React.createElement(Tag, { className: "absolute right-3 top-3 h-4 w-4 text-[#94A3B8]" })
                   )
                 )
+                , React.createElement(Button, {
+                    type: "submit",
+                    className: "w-full h-11 bg-[#F97316] text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+                    , disabled: approvalLoading || !approvalCode.trim()
+                  }
+                  , approvalLoading
+                    ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin mr-2" })
+                    : React.createElement(React.Fragment, null, "Apply Coupon & Show Customer Details", React.createElement('span', null, "→"))
+                )
+              )
 
               /* Result alerts */
               , approvalResult && (
@@ -611,23 +530,34 @@ export default function CouponsPage() {
             )
 
             /* Usage History tab panel */
-            , approvalTab === "history" && React.createElement('div', { className: "space-y-3 max-h-[300px] overflow-y-auto" }
+            , approvalTab === "history" && React.createElement('div', { className: "space-y-3 max-h-[300px] overflow-y-auto pr-1" }
               , historyLoading ? React.createElement(Loader2, { className: "h-5 w-5 animate-spin mx-auto text-[#F97316]" })
               : usageHistory.length === 0 ? React.createElement('p', { className: "text-xs text-center text-[#64748B] py-6" }, "No usage history yet.")
-              : usageHistory.map((u) => React.createElement('div', { key: u.id, className: "flex items-center justify-between p-3 rounded-2xl bg-[#F8FAFC] border border-[#F1F5F9] text-xs" }
-                  , React.createElement('div', { className: "space-y-0.5" }
-                    , React.createElement('div', { className: "flex items-center gap-1.5" }
-                      , React.createElement('span', { className: "font-mono font-bold text-[#F97316]" }, u.coupon.code)
-                      , React.createElement('span', { className: "text-[10px] text-[#64748B]" }, "·")
-                      , React.createElement('span', { className: "font-bold text-[#0F172A]" }, u.customer?.name || "Walk-in")
+              : usageHistory.map((u) => React.createElement('div', { key: u.id, className: "flex items-center justify-between p-3.5 rounded-2xl bg-white border border-[#F1F5F9] shadow-sm text-xs gap-3" }
+                  , React.createElement('div', { className: "flex items-center gap-3 min-w-0" }
+                    , React.createElement('div', { className: "w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0" }
+                      , React.createElement(User, { className: "h-5 w-5 text-slate-500" })
                     )
-                    , React.createElement('p', { className: "text-[10px] text-[#64748B]" }, u.customer?.phone || "—")
+                    , React.createElement('div', { className: "min-w-0 space-y-0.5" }
+                      , React.createElement('p', { className: "font-black text-[#0F172A] text-sm truncate" }, u.customer?.name || "Walk-in Customer")
+                      , React.createElement('p', { className: "text-[#64748B] font-semibold text-[11px] flex items-center gap-1 font-mono" }
+                        , React.createElement(Phone, { className: "h-3 w-3 text-slate-400" })
+                        , u.customer?.phone || "—"
+                      )
+                      , u.customer?.email && React.createElement('p', { className: "text-[#64748B] font-semibold text-[10px] flex items-center gap-1 truncate" }
+                        , React.createElement(Mail, { className: "h-3 w-3 text-slate-400" })
+                        , u.customer.email
+                      )
+                    )
                   )
-                  , React.createElement('div', { className: "text-right" }
-                    , React.createElement('p', { className: "font-bold text-[#0F172A]" }
+                  , React.createElement('div', { className: "text-right shrink-0 space-y-1 flex flex-col items-end" }
+                    , React.createElement('span', { className: "inline-block font-mono font-black text-[9px] text-[#F97316] bg-[#FFEDD5] px-2 py-0.5 rounded-full" }
+                      , u.coupon.code
+                    )
+                    , React.createElement('p', { className: "text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md inline-block leading-none" }
                       , u.coupon.discountType === "PERCENTAGE" ? `${u.coupon.discountValue}% OFF` : `₹${u.coupon.discountValue} OFF`
                     )
-                    , React.createElement('p', { className: "text-[9px] text-[#64748B]" }, new Date(u.usedAt).toLocaleDateString())
+                    , React.createElement('p', { className: "text-[9px] text-[#64748B] font-medium" }, new Date(u.usedAt).toLocaleDateString())
                   )
                 ))
             )
@@ -635,7 +565,7 @@ export default function CouponsPage() {
         )
 
         /* D. Your Active Coupons Section */
-        , React.createElement('div', { className: "px-4 space-y-4" }
+        , approvalTab !== "history" && React.createElement('div', { className: "px-4 space-y-4" }
           , React.createElement('div', { className: "flex items-center justify-between" }
             , React.createElement('div', null
               , React.createElement('h3', { className: "font-black text-base text-[#0F172A]" }, "Your Active Coupons")

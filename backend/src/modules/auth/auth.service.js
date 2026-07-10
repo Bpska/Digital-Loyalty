@@ -376,7 +376,10 @@ export async function loginWithGoogle(
       where: { ownerId: user.id, deletedAt: null },
       select: { id: true },
     });
-    businessId = biz?.id || null;
+    if (!biz) {
+      throw new AppError('Business not exist', 401);
+    }
+    businessId = biz.id;
   } else if (user.role === Role.STAFF) {
     const staff = await prisma.staff.findFirst({
       where: { userId: user.id },
@@ -446,7 +449,10 @@ export async function passwordLogin(
       where: { ownerId: user.id, deletedAt: null },
       select: { id: true, status: true },
     });
-    tokenUser.businessId = _nullishCoalesce(_optionalChain([business, 'optionalAccess', _10 => _10.id]), () => ( null));
+    if (!business) {
+      throw new AppError('Business not exist', 401);
+    }
+    tokenUser.businessId = business.id;
   }
 
   logger.info('Password login successful', { userId: user.id, role: user.role });
@@ -505,7 +511,10 @@ export async function refreshTokens(
       where: { ownerId: user.id, deletedAt: null },
       select: { id: true, status: true },
     });
-    businessId = _nullishCoalesce(_optionalChain([biz, 'optionalAccess', _13 => _13.id]), () => ( null));
+    if (!biz) {
+      throw new AppError('Business not exist', 401);
+    }
+    businessId = biz.id;
   }
 
   const tokenUser = {
@@ -601,7 +610,10 @@ export async function getMeProfile(userId) {
       where: { ownerId: user.id, deletedAt: null },
       select: { id: true },
     });
-    businessId = business?.id || null;
+    if (!business) {
+      throw new AppError('Business not exist', 401);
+    }
+    businessId = business.id;
   }
 
   return {

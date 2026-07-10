@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building2, Plus, Loader2, ToggleLeft, ToggleRight, Star, ExternalLink, MessageSquareText, BarChart3, Settings2, CheckCircle2, XCircle } from "lucide-react";
+import { Building2, Plus, Loader2, ToggleLeft, ToggleRight, Star, ExternalLink, MessageSquareText, BarChart3, Settings2, CheckCircle2, XCircle, Trash2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 export default function BusinessesManagementPage() {
   const queryClient = useQueryClient();
@@ -72,6 +72,7 @@ export default function BusinessesManagementPage() {
   // Business Create/Edit modal state
   const [showBusinessModal, setShowBusinessModal] = useState(false);
   const [editingBusiness, setEditingBusiness_state] = useState(null);
+  const [businessToDelete, setBusinessToDelete] = useState(null);
   const [businessForm, setBusinessForm] = useState({
     name: "",
     phone: "",
@@ -733,9 +734,7 @@ export default function BusinessesManagementPage() {
                         size: "sm",
                         className: "text-xs text-red-500 hover:text-red-750 hover:bg-red-50/50 mt-1 flex items-center justify-center",
                         onClick: () => {
-                          if (window.confirm(`Are you sure you want to delete the business "${business.name}"? This will soft-delete the business.`)) {
-                            deleteBusinessMutation.mutate(business.id);
-                          }
+                          setBusinessToDelete(business);
                         },
                         disabled: deleteBusinessMutation.isPending && _optionalChain([deleteBusinessMutation, 'access', _x => _x.variables]) === business.id
                       }
@@ -1452,6 +1451,50 @@ export default function BusinessesManagementPage() {
                     ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin" })
                     : "Save Description"
                 )
+              )
+            )
+          )
+        )
+      )
+      
+      /* Delete Business Confirmation Dialog */
+      , !!businessToDelete && (
+        React.createElement(Dialog, {
+          open: !!businessToDelete,
+          onOpenChange: (open) => !open && setBusinessToDelete(null),
+        }
+          , React.createElement(DialogContent, { className: "max-w-[400px] bg-white border border-border" }
+            , React.createElement(DialogHeader, null
+              , React.createElement(DialogTitle, { className: "text-red-600 flex items-center gap-2" }
+                , React.createElement(Trash2, { className: "h-5 w-5" })
+                , "Confirm Deletion"
+              )
+              , React.createElement(DialogDescription, { className: "text-sm text-slate-600 mt-2" }
+                , "Are you sure you want to delete the business "
+                , React.createElement("strong", { className: "text-foreground" }, businessToDelete.name)
+                , "? This will soft-delete the business and its owner will no longer be able to log in."
+              )
+            )
+            , React.createElement(DialogFooter, { className: "pt-4" }
+              , React.createElement(Button, {
+                  type: "button",
+                  variant: "outline",
+                  onClick: () => setBusinessToDelete(null)
+                }
+                , "No, Cancel"
+              )
+              , React.createElement(Button, {
+                  type: "button",
+                  className: "bg-red-600 hover:bg-red-700 text-white font-bold",
+                  onClick: () => {
+                    deleteBusinessMutation.mutate(businessToDelete.id);
+                    setBusinessToDelete(null);
+                  },
+                  disabled: deleteBusinessMutation.isPending
+                }
+                , deleteBusinessMutation.isPending
+                  ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin" })
+                  : "Yes, Delete"
               )
             )
           )

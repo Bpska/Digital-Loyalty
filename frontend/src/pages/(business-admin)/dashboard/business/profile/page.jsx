@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { 
   Loader2, User, Mail, Phone, MapPin, Calendar, 
   Building, CreditCard, ShieldCheck, LogOut, Sparkles, 
@@ -65,6 +66,7 @@ export default function BusinessProfilePage() {
 
   // Unified Page main tab system: "profile" or "branding"
   const [activeSettingsTab, setActiveSettingsTab] = useState("profile");
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   // --- Profile Page States ---
   const [isEditing, setIsEditing] = useState(false);
@@ -75,6 +77,12 @@ export default function BusinessProfilePage() {
   const [profileBookingUrl, setProfileBookingUrl] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
   const [message, setMessage] = useState(null);
+
+  const [isEditingOwner, setIsEditingOwner] = useState(false);
+  const [ownerName, setOwnerName] = useState("");
+  const [ownerEmail, setOwnerEmail] = useState("");
+  const [ownerPhone, setOwnerPhone] = useState("");
+  const [ownerSaving, setOwnerSaving] = useState(false);
 
   // --- Branding Page States ---
   const [savingBrand, setSavingBrand] = useState(false);
@@ -131,8 +139,40 @@ export default function BusinessProfilePage() {
       setProfileAddress(business.address || "");
       setProfileCategory(business.category || "Cafe");
       setProfileBookingUrl(business.bookingUrl || "");
+
+      setOwnerName(business.owner?.name || "");
+      setOwnerEmail(business.owner?.email || "");
+      setOwnerPhone(business.owner?.phone || "");
     }
   }, [business]);
+
+  const handleUpdateOwnerDetails = async (e) => {
+    e.preventDefault();
+    if (!ownerName.trim()) {
+      setMessage({ type: "error", text: "Owner Name cannot be empty." });
+      return;
+    }
+    if (!ownerEmail.trim()) {
+      setMessage({ type: "error", text: "Owner Email cannot be empty." });
+      return;
+    }
+    setOwnerSaving(true);
+    setMessage(null);
+    try {
+      await api.patch('/auth/profile', {
+        name: ownerName,
+        email: ownerEmail,
+        phone: ownerPhone || null,
+      });
+      await refetchProfile();
+      setIsEditingOwner(false);
+      setMessage({ type: "success", text: "Owner profile details updated successfully!" });
+    } catch (err) {
+      setMessage({ type: "error", text: err.response?.data?.message || err.message || "Failed to update owner profile details." });
+    } finally {
+      setOwnerSaving(false);
+    }
+  };
 
   useEffect(() => {
     if (brandData) {
@@ -432,15 +472,13 @@ export default function BusinessProfilePage() {
           </div>
         )}
 
-        {/* C. Quick Actions Row (5 tiles) */}
+        {/* C. Quick Actions Row (3 tiles) */}
         <div className="px-4">
-          <div className="grid grid-cols-5 gap-1.5">
+          <div className="grid grid-cols-3 gap-1.5">
             {[
               { label: "My Profile", sub: "View & edit", action: () => setIsEditing(true), icon: User, color: "text-[#7C3AED] bg-[#EDE9FE]", borderColor: "border-[#7C3AED]/20 hover:border-[#7C3AED]" },
-              { label: "Business", sub: "Details", action: () => { setIsEditing(true); setActiveSettingsTab("profile"); }, icon: Store, color: "text-[#3B82F6] bg-[#DBEAFE]", borderColor: "border-[#3B82F6]/20 hover:border-[#3B82F6]" },
               { label: "Brand & Look", sub: "Customize", action: () => setActiveSettingsTab("branding"), icon: Palette, color: "text-[#22C55E] bg-[#DCFCE7]", borderColor: "border-[#22C55E]/20 hover:border-[#22C55E]" },
-              { label: "Security", sub: "Change password", action: () => {}, icon: ShieldCheck, color: "text-[#F59E0B] bg-[#FEF3C7]", borderColor: "border-[#F59E0B]/20 hover:border-[#F59E0B]" },
-              { label: "Notifications", sub: "Manage alerts", action: () => {}, icon: Bell, color: "text-[#EC4899] bg-[#FCE7F3]", borderColor: "border-[#EC4899]/20 hover:border-[#EC4899]" }
+              { label: "Security & Privacy", sub: "Privacy policy", action: () => setShowPrivacyModal(true), icon: ShieldCheck, color: "text-[#F59E0B] bg-[#FEF3C7]", borderColor: "border-[#F59E0B]/20 hover:border-[#F59E0B]" }
             ].map((tile, i) => (
               <button 
                 key={i} 
@@ -461,83 +499,49 @@ export default function BusinessProfilePage() {
         {activeSettingsTab === "profile" ? (
           <div className="px-4 space-y-5 pb-24">
             
-            {/* D. Business Details Card */}
-            <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#F1F5F9] space-y-4">
-              <div className="flex justify-between items-center pb-2 border-b border-[#F8FAFC]">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-[#FFF0E6] flex items-center justify-center">
-                    <Building className="h-4 w-4 text-[#F97316]" />
-                  </div>
-                  <span className="font-black text-sm text-[#0F172A]">Business Details</span>
+            {/* Collapsible Edit Business Profile dropdown card */}
+            {isEditing && (
+              <div className="bg-[#FFF9F5] border border-orange-100 rounded-3xl p-5 shadow-sm space-y-4 animate-fade-in">
+                <div className="flex justify-between items-center pb-2 border-b border-orange-100/50">
+                  <span className="font-extrabold text-sm text-[#0F172A]">Edit Business Profile</span>
+                  <button onClick={() => setIsEditing(false)} className="text-xs font-bold text-slate-400">Cancel</button>
                 </div>
-                <button 
-                  onClick={() => setIsEditing(true)} 
-                  className="text-xs font-bold text-[#F97316] flex items-center gap-1 border border-[#FFD8C2] px-2.5 py-1 rounded-full bg-orange-50/20"
-                >
-                  Edit
-                </button>
-              </div>
-
-              {isEditing ? (
-                <form onSubmit={handleUpdateProfile} className="space-y-4 pt-1">
+                <form onSubmit={handleUpdateProfile} className="space-y-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="mob-biz-name" className="text-xs font-bold text-slate-500">Business Name</Label>
-                    <Input id="mob-biz-name" value={profileName} onChange={(e) => setProfileName(e.target.value)} className="bg-slate-50 border-[#F1F5F9] rounded-xl text-xs h-10" required />
+                    <Input id="mob-biz-name" value={profileName} onChange={(e) => setProfileName(e.target.value)} className="bg-white border-slate-200 rounded-xl text-xs h-10" required />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="mob-biz-phone" className="text-xs font-bold text-slate-500">Contact Phone</Label>
-                    <Input id="mob-biz-phone" value={profilePhone} onChange={(e) => setProfilePhone(e.target.value)} className="bg-slate-50 border-[#F1F5F9] rounded-xl text-xs h-10" />
+                    <Input id="mob-biz-phone" value={profilePhone} onChange={(e) => setProfilePhone(e.target.value)} className="bg-white border-slate-200 rounded-xl text-xs h-10" />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="mob-biz-address" className="text-xs font-bold text-slate-500">Address</Label>
-                    <Input id="mob-biz-address" value={profileAddress} onChange={(e) => setProfileAddress(e.target.value)} className="bg-slate-50 border-[#F1F5F9] rounded-xl text-xs h-10" />
+                    <Input id="mob-biz-address" value={profileAddress} onChange={(e) => setProfileAddress(e.target.value)} className="bg-white border-slate-200 rounded-xl text-xs h-10" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="mob-biz-category" className="text-xs font-bold text-slate-500">Category</Label>
+                    <select id="mob-biz-category" value={profileCategory} onChange={(e) => setProfileCategory(e.target.value)} className="w-full h-10 border border-slate-200 rounded-xl bg-white text-xs px-2.5 outline-none text-slate-800">
+                      <option value="Cafe">Café</option>
+                      <option value="Restaurant">Restaurant</option>
+                      <option value="Salon">Salon</option>
+                      <option value="Retail">Retail</option>
+                      <option value="Bakery">Bakery</option>
+                      <option value="Hotels">Hotels</option>
+                      <option value="Other">Other</option>
+                    </select>
                   </div>
                   <div className="flex gap-2.5 pt-2">
                     <Button type="button" variant="outline" className="flex-1 rounded-xl text-xs h-10" onClick={() => setIsEditing(false)}>Cancel</Button>
                     <Button type="submit" className="flex-1 bg-[#F97316] text-white font-bold rounded-xl text-xs h-10" disabled={profileSaving}>
-                      {profileSaving ? "Saving..." : "Save"}
+                      {profileSaving ? "Saving..." : "Save Details"}
                     </Button>
                   </div>
                 </form>
-              ) : (
-                <div className="space-y-3.5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#FFF0E6] flex items-center justify-center shrink-0">
-                      <Store className="h-4 w-4 text-[#F97316]" />
-                    </div>
-                    <div className="space-y-0.5">
-                      <p className="text-[9px] text-[#64748B] font-bold uppercase tracking-wider">Business Name</p>
-                      <p className="text-xs font-extrabold text-[#0F172A]">{business?.name || "—"}</p>
-                    </div>
-                  </div>
+              </div>
+            )}
 
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#DCFCE7] flex items-center justify-center shrink-0">
-                      <Phone className="h-4 w-4 text-[#22C55E]" />
-                    </div>
-                    <div className="space-y-0.5">
-                      <p className="text-[9px] text-[#64748B] font-bold uppercase tracking-wider">Contact Phone</p>
-                      <p className="text-xs font-extrabold text-[#0F172A] font-mono">{business?.phone || "—"}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center pr-2">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[#EDE9FE] flex items-center justify-center shrink-0">
-                        <MapPin className="h-4 w-4 text-[#7C3AED]" />
-                      </div>
-                      <div className="space-y-0.5">
-                        <p className="text-[9px] text-[#64748B] font-bold uppercase tracking-wider">Location Address</p>
-                        <p className="text-xs font-extrabold text-[#0F172A]">{business?.address || "No address specified"}</p>
-                      </div>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-slate-300" />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* E. Account & Owner Card */}
+            {/* E. Owner Details Card */}
             <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#F1F5F9] space-y-4">
               <div className="flex justify-between items-center pb-2 border-b border-[#F8FAFC]">
                 <div className="space-y-0.5">
@@ -545,35 +549,67 @@ export default function BusinessProfilePage() {
                     <div className="w-8 h-8 rounded-full bg-[#DBEAFE] flex items-center justify-center">
                       <User className="h-4 w-4 text-[#3B82F6]" />
                     </div>
-                    <span className="font-black text-sm text-[#0F172A]">Account & Owner</span>
+                    <span className="font-black text-sm text-[#0F172A]">Owner Details</span>
                   </div>
                 </div>
-                <button 
-                  onClick={() => setIsEditing(true)} 
-                  className="text-xs font-bold text-[#3B82F6] flex items-center gap-1 border border-blue-200 px-2.5 py-1 rounded-full bg-blue-50/20"
-                >
-                  Edit
-                </button>
+                {!isEditingOwner && (
+                  <button 
+                    onClick={() => setIsEditingOwner(true)} 
+                    className="text-xs font-bold text-[#3B82F6] flex items-center gap-1 border border-blue-200 px-2.5 py-1 rounded-full bg-blue-50/20"
+                  >
+                    Edit
+                  </button>
+                )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-2.5 p-3 rounded-2xl border border-slate-100 bg-[#F8FAFC]">
-                  <User className="h-4.5 w-4.5 text-[#3B82F6] shrink-0" />
-                  <div className="min-w-0">
-                    <span className="text-[8px] text-[#64748B] font-bold uppercase tracking-wider block">Owner Name</span>
-                    <span className="text-xs font-extrabold text-[#0F172A] block truncate">{business?.owner?.name || "—"}</span>
+              {isEditingOwner ? (
+                <form onSubmit={handleUpdateOwnerDetails} className="space-y-4 pt-1">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="mob-owner-name" className="text-xs font-bold text-slate-500">Owner Name</Label>
+                    <Input id="mob-owner-name" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} className="bg-slate-50 border-[#F1F5F9] rounded-xl text-xs h-10" required />
                   </div>
-                </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="mob-owner-email" className="text-xs font-bold text-slate-500">Owner Email</Label>
+                    <Input id="mob-owner-email" type="email" value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} className="bg-slate-50 border-[#F1F5F9] rounded-xl text-xs h-10" required />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="mob-owner-phone" className="text-xs font-bold text-slate-500">Contact Number</Label>
+                    <Input id="mob-owner-phone" value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} className="bg-slate-50 border-[#F1F5F9] rounded-xl text-xs h-10" />
+                  </div>
+                  <div className="flex gap-2.5 pt-2">
+                    <Button type="button" variant="outline" className="flex-1 rounded-xl text-xs h-10" onClick={() => setIsEditingOwner(false)}>Cancel</Button>
+                    <Button type="submit" className="flex-1 bg-[#3B82F6] text-white font-bold rounded-xl text-xs h-10" disabled={ownerSaving}>
+                      {ownerSaving ? "Saving..." : "Save Details"}
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-2.5 p-3 rounded-2xl border border-slate-100 bg-[#F8FAFC]">
+                    <User className="h-4.5 w-4.5 text-[#3B82F6] shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-[8px] text-[#64748B] font-bold uppercase tracking-wider block">Owner Name</span>
+                      <span className="text-xs font-extrabold text-[#0F172A] block truncate">{business?.owner?.name || "—"}</span>
+                    </div>
+                  </div>
 
-                <div className="flex items-center gap-2.5 p-3 rounded-2xl border border-slate-100 bg-[#F8FAFC] relative">
-                  <Mail className="h-4.5 w-4.5 text-[#22C55E] shrink-0" />
-                  <div className="min-w-0 pr-4">
-                    <span className="text-[8px] text-[#64748B] font-bold uppercase tracking-wider block">Owner Email</span>
-                    <span className="text-xs font-extrabold text-[#0F172A] block truncate">{business?.owner?.email || "—"}</span>
+                  <div className="flex items-center gap-2.5 p-3 rounded-2xl border border-slate-100 bg-[#F8FAFC]">
+                    <Mail className="h-4.5 w-4.5 text-[#22C55E] shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-[8px] text-[#64748B] font-bold uppercase tracking-wider block">Owner Email</span>
+                      <span className="text-xs font-extrabold text-[#0F172A] block truncate">{business?.owner?.email || "—"}</span>
+                    </div>
                   </div>
-                  <ChevronRight className="h-3.5 w-3.5 text-slate-300 absolute right-1.5 top-1/2 -translate-y-1/2" />
+
+                  <div className="col-span-2 flex items-center gap-2.5 p-3 rounded-2xl border border-slate-100 bg-[#F8FAFC]">
+                    <Phone className="h-4.5 w-4.5 text-[#EC4899] shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-[8px] text-[#64748B] font-bold uppercase tracking-wider block">Contact Number</span>
+                      <span className="text-xs font-extrabold text-[#0F172A] block truncate font-mono">{business?.owner?.phone || "—"}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* F. Plan & Subscription Card */}
@@ -880,105 +916,71 @@ export default function BusinessProfilePage() {
         {activeSettingsTab === "profile" ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
+              {/* Owner Credentials */}
               <Card className="glass" glass>
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="text-lg font-bold flex items-center gap-2">
-                        <Building className="h-5 w-5 text-primary" />
-                        Business Details
+                        <User className="h-5 w-5 text-primary" />
+                        Owner Details
                       </CardTitle>
-                      <CardDescription>Overview of your current business details</CardDescription>
+                      <CardDescription>Primary administrative account information</CardDescription>
                     </div>
-                    <Button onClick={() => setIsEditing(!isEditing)} variant="outline" size="xs" className="border-primary/20 text-primary hover:bg-primary/5 font-bold h-8 rounded-lg">
-                      {isEditing ? "Cancel" : "Edit Settings"}
+                    <Button onClick={() => setIsEditingOwner(!isEditingOwner)} variant="outline" size="xs" className="border-primary/20 text-primary hover:bg-primary/5 font-bold h-8 rounded-lg">
+                      {isEditingOwner ? "Cancel" : "Edit Details"}
                     </Button>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {isEditing ? (
-                    <form onSubmit={handleUpdateProfile} className="space-y-4">
+                  {isEditingOwner ? (
+                    <form onSubmit={handleUpdateOwnerDetails} className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="dk-biz-name">Business Name</Label>
-                        <Input id="dk-biz-name" value={profileName} onChange={(e) => setProfileName(e.target.value)} className="bg-white border-border" required />
+                        <Label htmlFor="dk-owner-name">Owner Name</Label>
+                        <Input id="dk-owner-name" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} className="bg-white border-border" required />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="dk-biz-phone">Business Contact Phone</Label>
-                          <Input id="dk-biz-phone" value={profilePhone} onChange={(e) => setProfilePhone(e.target.value)} className="bg-white border-border" />
+                          <Label htmlFor="dk-owner-email">Owner Email</Label>
+                          <Input id="dk-owner-email" type="email" value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} className="bg-white border-border" required />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="dk-biz-category">Category</Label>
-                          <select id="dk-biz-category" value={profileCategory} onChange={(e) => setProfileCategory(e.target.value)} className="w-full h-9 border border-border rounded-md bg-white text-xs px-2.5 outline-none text-slate-800">
-                            <option value="Cafe">Café</option>
-                            <option value="Restaurant">Restaurant</option>
-                            <option value="Salon">Salon</option>
-                            <option value="Retail">Retail</option>
-                            <option value="Bakery">Bakery</option>
-                            <option value="Hotels">Hotels</option>
-                            <option value="Other">Other</option>
-                          </select>
+                          <Label htmlFor="dk-owner-phone">Contact Number</Label>
+                          <Input id="dk-owner-phone" value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} className="bg-white border-border" />
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="dk-biz-address">Address</Label>
-                        <Input id="dk-biz-address" value={profileAddress} onChange={(e) => setProfileAddress(e.target.value)} className="bg-white border-border" />
-                      </div>
                       <div className="flex justify-end gap-3 pt-2">
-                        <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
-                        <Button type="submit" className="bg-primary text-white font-bold" disabled={profileSaving}>Save Changes</Button>
+                        <Button type="button" variant="outline" onClick={() => setIsEditingOwner(false)}>Cancel</Button>
+                        <Button type="submit" className="bg-primary text-white font-bold" disabled={ownerSaving}>
+                          {ownerSaving ? "Saving..." : "Save Changes"}
+                        </Button>
                       </div>
                     </form>
                   ) : (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block">Business Name</span>
-                          <span className="text-sm font-semibold text-slate-800">{business?.name || "—"}</span>
-                        </div>
-                        <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block">Contact Phone</span>
-                          <span className="text-sm font-semibold text-slate-800 font-mono">{business?.phone || "—"}</span>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-100 bg-slate-50/50">
+                        <User className="h-5 w-5 text-muted-foreground shrink-0" />
+                        <div>
+                          <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider block">Owner Name</span>
+                          <span className="text-sm font-semibold text-slate-800">{business?.owner?.name || "—"}</span>
                         </div>
                       </div>
-                      <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                        <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block">Location Address</span>
-                        <span className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
-                          <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
-                          {business?.address || "No address specified"}
-                        </span>
+                      <div className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-100 bg-slate-50/50">
+                        <Mail className="h-5 w-5 text-muted-foreground shrink-0" />
+                        <div className="min-w-0">
+                          <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider block">Owner Email</span>
+                          <span className="text-sm font-semibold text-slate-800 truncate block">{business?.owner?.email || "—"}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-100 bg-slate-50/50">
+                        <Phone className="h-5 w-5 text-muted-foreground shrink-0" />
+                        <div>
+                          <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider block">Contact Number</span>
+                          <span className="text-sm font-semibold text-slate-800 font-mono">{business?.owner?.phone || "—"}</span>
+                        </div>
                       </div>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-
-              {/* Owner Credentials */}
-              <Card className="glass" glass>
-                <CardHeader>
-                  <CardTitle className="text-lg font-bold flex items-center gap-2">
-                    <User className="h-5 w-5 text-primary" />
-                    Account Credentials
-                  </CardTitle>
-                  <CardDescription>Primary administrative account information</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-100 bg-slate-50/50">
-                      <User className="h-5 w-5 text-muted-foreground shrink-0" />
-                      <div>
-                        <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider block">Owner Name</span>
-                        <span className="text-xs font-semibold text-slate-800">{business?.owner?.name || "—"}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-100 bg-slate-50/50">
-                      <Mail className="h-5 w-5 text-muted-foreground shrink-0" />
-                      <div className="min-w-0">
-                        <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider block">Owner Email</span>
-                        <span className="text-xs font-semibold text-slate-800 truncate block">{business?.owner?.email || "—"}</span>
-                      </div>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -1043,6 +1045,80 @@ export default function BusinessProfilePage() {
           </div>
         )}
       </div>
+
+      {/* Privacy Policy Popup Dialog */}
+      {showPrivacyModal && (
+        <Dialog open={showPrivacyModal} onOpenChange={(open) => !open && setShowPrivacyModal(false)}>
+          <DialogContent className="max-w-[600px] w-[95vw] bg-white border border-border p-6 rounded-3xl text-slate-800 flex flex-col max-h-[85vh]">
+            <DialogHeader className="pb-3 border-b border-border/60">
+              <DialogTitle className="text-lg font-extrabold text-[#2B201A] flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-primary" />
+                Privacy Policy & Addendum
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                Last Updated: June 23, 2026
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex-1 overflow-y-auto py-4 space-y-6 text-xs text-slate-600 leading-relaxed scrollbar-none pr-1">
+              <section className="space-y-2">
+                <h4 className="text-sm font-extrabold text-[#2B201A]">1. Data Collected</h4>
+                <p>The Smart Loyalty Solution collects the following user information to manage loyalty campaigns:</p>
+                <ul className="list-disc pl-5 space-y-1 mt-1 font-medium text-slate-800">
+                  <li>Customer Name</li>
+                  <li>Mobile Number</li>
+                  <li>Email Address</li>
+                  <li>Visit History</li>
+                  <li>Reward Points</li>
+                  <li>Redemption History</li>
+                  <li>Business Account Information</li>
+                  <li>Store Information</li>
+                  <li>Device Information</li>
+                </ul>
+              </section>
+
+              <section className="space-y-2">
+                <h4 className="text-sm font-extrabold text-[#2B201A]">2. Purpose</h4>
+                <p>Information collected is strictly utilized for the following functional purposes:</p>
+                <ul className="list-disc pl-5 space-y-1 mt-1 font-medium text-slate-800">
+                  <li>Loyalty Program Management</li>
+                  <li>Reward Tracking</li>
+                  <li>QR Code Validation</li>
+                  <li>Customer Engagement</li>
+                  <li>Analytics</li>
+                  <li>Fraud Prevention</li>
+                </ul>
+              </section>
+
+              <section className="space-y-2 bg-slate-50 border border-slate-200/60 rounded-xl p-3.5">
+                <h4 className="text-xs font-black text-primary uppercase tracking-wider">Google OAuth User Data disclosures</h4>
+                <p className="mt-1">To facilitate frictionless account creation and secure customer/merchant login, ScanLoyal allows authentication using Google Sign-In. By utilizing this integration, we retrieve your Google Profile details (Name, Email, and Profile Avatar picture).</p>
+                <p className="mt-1">Our use and transfer of information received from Google APIs to any other app will adhere to the Google API Services User Data Policy, including the Limited Use requirements. We do not sell or share Google OAuth credentials or profile information with third parties for commercial marketing.</p>
+              </section>
+
+              <section className="space-y-1">
+                <h4 className="text-sm font-extrabold text-[#2B201A]">3. Merchant Data Ownership</h4>
+                <p>Business owners remain the absolute owners of any customer data entered into the platform. Logisaar acts solely as a service provider (data processor) for processing such information under the instructions of the respective merchant.</p>
+              </section>
+
+              <section className="space-y-1">
+                <h4 className="text-sm font-extrabold text-[#2B201A]">4. Marketing Communications</h4>
+                <p>Merchants are solely responsible for obtaining explicit customer consent before sending marketing communications, promotional updates, SMS alerts, or emails via platform channels.</p>
+              </section>
+
+              <div className="pt-4 border-t border-dashed border-slate-200 text-[10px] text-slate-500 font-bold">
+                This Product Privacy Policy supplements the Master Policies of Logisaar Technologies Private Limited. In the event of a conflict, the product-specific terms shall prevail for the Smart Loyalty Solution.
+              </div>
+            </div>
+
+            <DialogFooter className="pt-3 border-t border-border/60">
+              <Button type="button" onClick={() => setShowPrivacyModal(false)} className="w-full rounded-xl text-xs font-bold bg-primary text-white">
+                Close Policy
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

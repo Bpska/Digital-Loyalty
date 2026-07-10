@@ -219,19 +219,100 @@ router.delete(
   auditLog('BUSINESS_DELETED', 'Business'),
   async (req, res, next) => {
     try {
-      await prisma.business.update({
-        where: { id: req.params.id },
-        data: {
-          deletedAt: new Date(),
-          status: 'DELETED',
-        },
+      const businessId = req.params.id;
+
+      // Verify business exists first
+      const exists = await prisma.business.findUnique({ where: { id: businessId }, select: { id: true } });
+      if (!exists) {
+        return res.status(404).json({ success: false, message: 'Business not found' });
+      }
+
+      // Hard-delete: remove all related data in dependency order, then the business itself
+      await prisma.$transaction(async (tx) => {
+        // 1. Delete wallet transactions first (depends on UserWallet)
+        await tx.walletTransaction.deleteMany({ where: { businessId } });
+
+        // 2. Delete loyalty points ledger
+        await tx.loyaltyPointsLedger.deleteMany({ where: { businessId } });
+
+        // 3. Delete loyalty transactions
+        await tx.loyaltyTransaction.deleteMany({ where: { businessId } });
+
+        // 4. Delete loyalty requests
+        await tx.loyaltyRequest.deleteMany({ where: { businessId } });
+
+        // 5. Delete customer rewards (redeemed/unlocked rewards)
+        await tx.customerReward.deleteMany({ where: { businessId } });
+
+        // 6. Delete customer loyalty wallets
+        await tx.customerLoyaltyWallet.deleteMany({ where: { businessId } });
+
+        // 7. Delete user wallets for this business
+        await tx.userWallet.deleteMany({ where: { businessId } });
+
+        // 8. Delete customer points
+        await tx.customerPoints.deleteMany({ where: { businessId } });
+
+        // 9. Delete review generations
+        await tx.reviewGeneration.deleteMany({ where: { businessId } });
+
+        // 10. Delete business review settings
+        await tx.businessReviewSettings.deleteMany({ where: { businessId } });
+
+        // 11. Delete notifications
+        await tx.notification.deleteMany({ where: { businessId } });
+
+        // 12. Delete check-ins (via branches or direct)
+        await tx.checkIn.deleteMany({ where: { businessId } });
+
+        // 13. Delete claimed coupons for this business's coupons
+        const couponIds = (await tx.coupon.findMany({ where: { businessId }, select: { id: true } })).map(c => c.id);
+        if (couponIds.length > 0) {
+          await tx.claimedCoupon.deleteMany({ where: { couponId: { in: couponIds } } });
+        }
+
+        // 14. Delete coupons
+        await tx.coupon.deleteMany({ where: { businessId } });
+
+        // 15. Delete loyalty levels
+        await tx.loyaltyLevel.deleteMany({ where: { businessId } });
+
+        // 16. Delete rewards
+        await tx.reward.deleteMany({ where: { businessId } });
+
+        // 17. Delete loyalty programs
+        await tx.loyaltyProgram.deleteMany({ where: { businessId } });
+
+        // 18. Delete loyalty program settings
+        await tx.loyaltyProgramSettings.deleteMany({ where: { businessId } });
+
+        // 19. Delete brand asset
+        await tx.businessBrandAsset.deleteMany({ where: { businessId } });
+
+        // 20. Delete staff (depends on branches so delete before branches)
+        await tx.staff.deleteMany({ where: { businessId } });
+
+        // 21. Delete branches (cascades check-ins via DB if set, but we already handled above)
+        await tx.branch.deleteMany({ where: { businessId } });
+
+        // 22. Delete subscription payments then subscription
+        const sub = await tx.subscription.findUnique({ where: { businessId }, select: { id: true } });
+        if (sub) {
+          await tx.payment.deleteMany({ where: { subscriptionId: sub.id } });
+          await tx.subscription.delete({ where: { businessId } });
+        }
+
+        // 23. Finally, hard-delete the business itself
+        await tx.business.delete({ where: { id: businessId } });
       });
-      sendSuccess(res, null, 'Business deleted successfully');
+
+      sendSuccess(res, null, 'Business permanently deleted from the database');
     } catch (err) {
       next(err);
     }
   }
 );
+
 
 // PATCH /admin/businesses/:id/description — update business description by super admin
 router.patch(

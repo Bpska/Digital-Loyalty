@@ -10,6 +10,7 @@ import {
   registerSchema,
   googleLoginSchema,
   registerBusinessSchema,
+  updateProfileSchema,
 } from './auth.validator.js';
 
 const router = Router();
@@ -34,5 +35,6 @@ router.post('/logout', controller.logoutHandler);
 
 // ── Authenticated user info ───────────────────────────────────
 router.get('/me', authenticate, controller.getMe);
+router.patch('/profile', authenticate, validate(updateProfileSchema), controller.updateProfile);
 
 export default router;

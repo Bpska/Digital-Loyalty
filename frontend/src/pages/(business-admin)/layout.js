@@ -42,7 +42,7 @@ import { api, getImageUrl } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { subscribeUserToPush } from "@/lib/pushSubscription";
 
-const BrandIcon = ({ iconName, customUrl, defaultIcon: DefaultIcon, className = "h-4.5 w-4.5" }) => {
+const BrandIcon = ({ iconName, customUrl, defaultIcon: DefaultIcon, className = "h-5.5 w-5.5" }) => {
   if (customUrl && (customUrl.startsWith("/") || customUrl.startsWith("http"))) {
     return React.createElement("img", {
       src: getImageUrl(customUrl),
@@ -313,14 +313,37 @@ export default function BusinessAdminLayout({
     setRedeemError("");
     setRedeemResult(null);
     try {
+      // 1. Try to redeem as a loyalty reward first
       const res = await api.post("/checkins/redeem", { redemptionCode: codeToRedeem });
-      setRedeemResult(res.data);
+      setRedeemResult({
+        type: "reward",
+        title: res.data.reward.title,
+        customerName: res.data.customerName
+      });
       setRedeemCode("");
       queryClient.invalidateQueries(["businessCheckins", businessId]);
       queryClient.invalidateQueries(["businessAnalytics", businessId]);
       queryClient.invalidateQueries(["businessRedemptions", businessId]);
     } catch (err) {
-      setRedeemError(err.response?.data?.message || err.message || "Failed to redeem reward. Please check the code and try again.");
+      // 2. If it fails, try applying as a coupon code
+      try {
+        const couponRes = await api.post("/coupons/admin-apply", {
+          code: codeToRedeem.trim(),
+          businessId
+        });
+        setRedeemResult({
+          type: "coupon",
+          title: couponRes.data.coupon.title,
+          customerName: couponRes.data.customer?.name || "Walk-in Customer"
+        });
+        setRedeemCode("");
+        queryClient.invalidateQueries(["couponUsageHistory", businessId]);
+        queryClient.invalidateQueries(["businessCoupons", businessId]);
+      } catch (couponErr) {
+        // Show original error or coupon error
+        const errMsg = couponErr.response?.data?.message || err.response?.data?.message || "Failed to process code. Not a valid reward or coupon.";
+        setRedeemError(errMsg);
+      }
     } finally {
       setRedeemLoading(false);
     }
@@ -753,7 +776,7 @@ export default function BusinessAdminLayout({
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 ), __self: this, __source: {fileName: _jsxFileName, lineNumber: 77}}
 
-                , React.createElement(BrandIcon, { iconName: business?.brandAsset?.[item.iconKey], customUrl: business?.brandAsset?.[item.iconKey], defaultIcon: Icon, className: "h-4.5 w-4.5 shrink-0" })
+                , React.createElement(BrandIcon, { iconName: business?.brandAsset?.[item.iconKey], customUrl: business?.brandAsset?.[item.iconKey], defaultIcon: Icon, className: "h-5.5 w-5.5 shrink-0" })
                 , React.createElement('span', { className: "whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200", __self: this, __source: {fileName: _jsxFileName, lineNumber: 88}}, item.label)
                 , item.badge > 0 && React.createElement('span', { className: "ml-auto bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200" }, item.badge)
               )
@@ -766,7 +789,7 @@ export default function BusinessAdminLayout({
             title: "Sign Out",
             className: "flex items-center space-x-3 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors min-w-[240px]"           , __self: this, __source: {fileName: _jsxFileName, lineNumber: 94}}
 
-            , React.createElement(LogOut, { className: "h-4.5 w-4.5 shrink-0" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 98}} )
+            , React.createElement(LogOut, { className: "h-5.5 w-5.5 shrink-0" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 98}} )
             , React.createElement('span', { className: "whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200", __self: this, __source: {fileName: _jsxFileName, lineNumber: 99}}, "Sign Out" )
           )
         )
@@ -812,7 +835,7 @@ export default function BusinessAdminLayout({
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 ), __self: this, __source: {fileName: _jsxFileName, lineNumber: 133}}
 
-                , React.createElement(BrandIcon, { iconName: business?.brandAsset?.[item.iconKey], customUrl: business?.brandAsset?.[item.iconKey], defaultIcon: Icon, className: "h-4.5 w-4.5 shrink-0" })
+                , React.createElement(BrandIcon, { iconName: business?.brandAsset?.[item.iconKey], customUrl: business?.brandAsset?.[item.iconKey], defaultIcon: Icon, className: "h-5.5 w-5.5 shrink-0" })
                 , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 145}}, item.label)
                 , item.badge > 0 && React.createElement('span', { className: "ml-auto bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center" }, item.badge)
               )
@@ -826,14 +849,14 @@ export default function BusinessAdminLayout({
               onClick: () => setMobileOpen(false),
               className: "flex items-center space-x-3 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             }
-            , React.createElement(Settings, { className: "h-4.5 w-4.5" })
+            , React.createElement(Settings, { className: "h-5.5 w-5.5" })
             , React.createElement('span', null, "Settings & Profile")
           )
           , React.createElement('button', {
             onClick: logout,
             className: "flex items-center space-x-3 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"           , __self: this, __source: {fileName: _jsxFileName, lineNumber: 151}}
 
-            , React.createElement(LogOut, { className: "h-4.5 w-4.5" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 155}} )
+            , React.createElement(LogOut, { className: "h-5.5 w-5.5" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 155}} )
             , React.createElement('span', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 156}}, "Sign Out" )
           )
         )
@@ -851,7 +874,7 @@ export default function BusinessAdminLayout({
               onClick: () => setMobileOpen(true),
               className: "md:hidden p-1.5 rounded-lg text-muted-foreground hover:bg-muted transition-colors"
             }
-              , React.createElement(Menu, { className: "h-5 w-5" })
+              , React.createElement(Menu, { className: "h-6 w-6" })
             )
             , React.createElement('h2', { className: "text-sm font-semibold text-muted-foreground", __self: this, __source: {fileName: _jsxFileName, lineNumber: 172}}, "Business Portal")
           )
@@ -866,7 +889,7 @@ export default function BusinessAdminLayout({
                 __self: this,
                 __source: {fileName: _jsxFileName, lineNumber: 178}
               }
-              , React.createElement(Bell, { className: "h-4.5 w-4.5" })
+              , React.createElement(Bell, { className: "h-5.5 w-5.5" })
               , unreadCount > 0 && (
                   React.createElement('span', { className: "absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-primary" })
                 )
@@ -891,7 +914,7 @@ export default function BusinessAdminLayout({
 
         /* Content Box */
         , React.createElement('main', { className: "flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto relative z-10", __self: this, __source: {fileName: _jsxFileName, lineNumber: 196}}
-          , React.createElement(Outlet, { context: { setShowNotifications, notifications, unreadCount, fetchNotifications } })
+          , React.createElement(Outlet, { context: { setShowNotifications, notifications, unreadCount, fetchNotifications, setShowRedeemModal, setScanningRedeem } })
         )
         /* Notifications Modal Dialog */
         , showNotifications && (
@@ -1073,8 +1096,8 @@ export default function BusinessAdminLayout({
                   )
                 , redeemResult && (
                   React.createElement('div', { className: "rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-xs text-emerald-800 space-y-1" }
-                    , React.createElement('p', { className: "font-bold" }, "✅ Redemption Successful!")
-                    , React.createElement('p', null, "Voucher: ", React.createElement('strong', null, redeemResult.reward.title))
+                    , React.createElement('p', { className: "font-bold" }, redeemResult.type === "coupon" ? "✅ Coupon Applied Successfully!" : "✅ Redemption Successful!")
+                    , React.createElement('p', null, redeemResult.type === "coupon" ? "Coupon: " : "Voucher: ", React.createElement('strong', null, redeemResult.title))
                     , React.createElement('p', null, "Customer: ", React.createElement('strong', null, redeemResult.customerName))
                   )
                 )
@@ -1097,14 +1120,14 @@ export default function BusinessAdminLayout({
               /* Dashboard */
               , React.createElement(Link, { to: "/dashboard/business", className: "flex flex-col items-center gap-1 py-1 px-3 min-w-[56px]" }
                 , React.createElement('div', { className: cn("flex items-center justify-center w-12 h-7 rounded-full transition-all", pathname === "/dashboard/business" ? "bg-[#FFF0E6]" : "bg-transparent") }
-                  , React.createElement(Home, { className: cn("h-5 w-5 transition-colors", pathname === "/dashboard/business" ? "text-[#F97316]" : "text-[#94A3B8]") })
+                  , React.createElement(Home, { className: cn("h-6 w-6 transition-colors", pathname === "/dashboard/business" ? "text-[#F97316]" : "text-[#94A3B8]") })
                 )
                 , React.createElement('span', { className: cn("text-[10px] font-semibold transition-colors", pathname === "/dashboard/business" ? "text-[#F97316]" : "text-[#94A3B8]") }, "Dashboard")
               )
               /* Approvals */
               , React.createElement(Link, { to: "/dashboard/business/approvals", className: "flex flex-col items-center gap-1 py-1 px-3 min-w-[56px] relative" }
                 , React.createElement('div', { className: cn("flex items-center justify-center w-12 h-7 rounded-full transition-all", pathname === "/dashboard/business/approvals" ? "bg-[#FFF0E6]" : "bg-transparent") }
-                  , React.createElement(ClipboardCheck, { className: cn("h-5 w-5 transition-colors", pathname === "/dashboard/business/approvals" ? "text-[#F97316]" : "text-[#94A3B8]") })
+                  , React.createElement(ClipboardCheck, { className: cn("h-6 w-6 transition-colors", pathname === "/dashboard/business/approvals" ? "text-[#F97316]" : "text-[#94A3B8]") })
                   , pendingApprovals > 0 && React.createElement('span', { className: "absolute top-0 right-1 bg-amber-500 text-white text-[8px] font-black h-3.5 min-w-[14px] flex items-center justify-center px-1 rounded-full shadow-sm" }, pendingApprovals)
                 )
                 , React.createElement('span', { className: cn("text-[10px] font-semibold transition-colors", pathname === "/dashboard/business/approvals" ? "text-[#F97316]" : "text-[#94A3B8]") }, "Approvals")
@@ -1120,21 +1143,21 @@ export default function BusinessAdminLayout({
                     },
                     className: "w-14 h-14 rounded-full bg-[#F97316] flex items-center justify-center shadow-lg shadow-[#F97316]/40 active:scale-95 transition-transform border-4 border-white"
                   }
-                  , React.createElement(QrCode, { className: "h-6 w-6 text-white" })
+                  , React.createElement(QrCode, { className: "h-7 w-7 text-white" })
                 )
                 , React.createElement('span', { className: "text-[10px] font-semibold text-[#94A3B8] mt-1" }, "Scan")
               )
               /* Coupons */
               , React.createElement(Link, { to: "/dashboard/business/coupons", className: "flex flex-col items-center gap-1 py-1 px-3 min-w-[56px]" }
                 , React.createElement('div', { className: cn("flex items-center justify-center w-12 h-7 rounded-full transition-all", pathname === "/dashboard/business/coupons" ? "bg-[#FFF0E6]" : "bg-transparent") }
-                  , React.createElement(Ticket, { className: cn("h-5 w-5 transition-colors", pathname === "/dashboard/business/coupons" ? "text-[#F97316]" : "text-[#94A3B8]") })
+                  , React.createElement(Ticket, { className: cn("h-6 w-6 transition-colors", pathname === "/dashboard/business/coupons" ? "text-[#F97316]" : "text-[#94A3B8]") })
                 )
                 , React.createElement('span', { className: cn("text-[10px] font-semibold transition-colors", pathname === "/dashboard/business/coupons" ? "text-[#F97316]" : "text-[#94A3B8]") }, "Coupons")
               )
               /* Profile */
               , React.createElement(Link, { to: "/dashboard/business/profile", className: "flex flex-col items-center gap-1 py-1 px-3 min-w-[56px]" }
                 , React.createElement('div', { className: cn("flex items-center justify-center w-12 h-7 rounded-full transition-all", pathname === "/dashboard/business/profile" ? "bg-[#FFF0E6]" : "bg-transparent") }
-                  , React.createElement(Settings, { className: cn("h-5 w-5 transition-colors", pathname === "/dashboard/business/profile" ? "text-[#F97316]" : "text-[#94A3B8]") })
+                  , React.createElement(Settings, { className: cn("h-6 w-6 transition-colors", pathname === "/dashboard/business/profile" ? "text-[#F97316]" : "text-[#94A3B8]") })
                 )
                 , React.createElement('span', { className: cn("text-[10px] font-semibold transition-colors", pathname === "/dashboard/business/profile" ? "text-[#F97316]" : "text-[#94A3B8]") }, "Profile")
               )

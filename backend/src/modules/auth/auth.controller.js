@@ -1,8 +1,8 @@
- function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }
 import * as authService from './auth.service.js';
 import { sendSuccess, sendCreated, Responses } from '../../utils/response.js';
 import { setTokenCookies, clearTokenCookies } from '../../middlewares/auth.middleware.js';
 import { getClientIp } from '../../utils/ip.js';
+import prisma from '../../config/prisma.js';
 
 // ─────────────────────────────────────────────────────────────
 // Customer OTP Auth
@@ -254,6 +254,45 @@ export async function getMe(req, res, next) {
   try {
     const profile = await authService.getMeProfile(req.user.sub);
     sendSuccess(res, profile, 'Current user');
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateProfile(req, res, next) {
+  try {
+    const { name, email, phone } = req.body;
+    const userId = req.user.sub;
+
+    if (email) {
+      const existing = await prisma.user.findFirst({
+        where: { email, id: { not: userId } }
+      });
+      if (existing) {
+        return res.status(400).json({ success: false, message: 'Email address is already in use by another account' });
+      }
+    }
+
+    if (phone) {
+      const existing = await prisma.user.findFirst({
+        where: { phone, id: { not: userId } }
+      });
+      if (existing) {
+        return res.status(400).json({ success: false, message: 'Phone number is already in use by another account' });
+      }
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(name && { name }),
+        ...(email && { email }),
+        ...(phone && { phone }),
+      },
+      select: { id: true, name: true, phone: true, email: true }
+    });
+
+    sendSuccess(res, updated, 'Profile updated successfully');
   } catch (err) {
     next(err);
   }
