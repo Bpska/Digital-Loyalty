@@ -1,5 +1,5 @@
 import { useNavigate, useLocation, Outlet, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 const _jsxFileName = "src\\pages\\(business-admin)\\layout.tsx"; function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }"use client";
 
 import React, { useEffect, useState } from "react";
@@ -28,14 +28,15 @@ import {
   Coffee,
   Gift,
   Star,
-  Wallet
+  Wallet,
+  Camera
 } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { cn } from "@/lib/utils";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { api, getImageUrl } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
@@ -73,6 +74,7 @@ export default function BusinessAdminLayout({
 
 ) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { pathname } = useLocation();
   const { user, loading, logout } = useAuthStore();
   const [authorized, setAuthorized] = useState(false);
@@ -266,6 +268,118 @@ export default function BusinessAdminLayout({
       setDemoPayLoading(false);
     }
   };
+
+  const [showRedeemModal, setShowRedeemModal] = useState(false);
+  const [redeemCode, setRedeemCode] = useState("");
+  const [redeemLoading, setRedeemLoading] = useState(false);
+  const [redeemResult, setRedeemResult] = useState(null);
+  const [redeemError, setRedeemError] = useState("");
+  const [scanningRedeem, setScanningRedeem] = useState(false);
+  const html5QrCodeRedeemRef = React.useRef(null);
+
+  const handleCloseRedeemModal = async () => {
+    if (html5QrCodeRedeemRef.current && html5QrCodeRedeemRef.current.isScanning) {
+      try {
+        await html5QrCodeRedeemRef.current.stop();
+      } catch (err) {
+        console.error("Failed to stop scanner on close:", err);
+      }
+    }
+    setShowRedeemModal(false);
+    setRedeemCode("");
+    setRedeemResult(null);
+    setRedeemError("");
+    setScanningRedeem(false);
+  };
+
+  const handleProcessRedeem = async (code) => {
+    let codeToRedeem = code || redeemCode;
+    if (!codeToRedeem) {
+      setRedeemError("Please enter or scan a valid code");
+      return;
+    }
+
+    if (typeof codeToRedeem === "string" && codeToRedeem.trim().startsWith("{")) {
+      try {
+        const parsed = JSON.parse(codeToRedeem);
+        if (parsed.redemptionCode) {
+          codeToRedeem = parsed.redemptionCode;
+        }
+      } catch (e) {
+        // Fallback
+      }
+    }
+    setRedeemLoading(true);
+    setRedeemError("");
+    setRedeemResult(null);
+    try {
+      const res = await api.post("/checkins/redeem", { redemptionCode: codeToRedeem });
+      setRedeemResult(res.data);
+      setRedeemCode("");
+      queryClient.invalidateQueries(["businessCheckins", businessId]);
+      queryClient.invalidateQueries(["businessAnalytics", businessId]);
+      queryClient.invalidateQueries(["businessRedemptions", businessId]);
+    } catch (err) {
+      setRedeemError(err.response?.data?.message || err.message || "Failed to redeem reward. Please check the code and try again.");
+    } finally {
+      setRedeemLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    let qrScanner = null;
+    let isMounted = true;
+
+    if (showRedeemModal && scanningRedeem) {
+      const initScanner = async () => {
+        try {
+          const { Html5Qrcode } = await import("html5-qrcode");
+          if (!isMounted) return;
+
+          const scannerId = "reader-redeem-global";
+          qrScanner = new Html5Qrcode(scannerId);
+          html5QrCodeRedeemRef.current = qrScanner;
+
+          await qrScanner.start(
+            { facingMode: "environment" },
+            {
+              fps: 10,
+              qrbox: { width: 250, height: 250 },
+            },
+            (decodedText) => {
+              if (isMounted) {
+                qrScanner.stop().then(() => {
+                  setScanningRedeem(false);
+                  handleProcessRedeem(decodedText);
+                }).catch(err => {
+                  console.error("Failed to stop scanner on success:", err);
+                  setScanningRedeem(false);
+                  handleProcessRedeem(decodedText);
+                });
+              }
+            },
+            (_errorMessage) => {
+              // ignore scan errors
+            }
+          );
+        } catch (err) {
+          console.warn("Camera access denied or unavailable:", err?.message || err);
+          if (isMounted) {
+            setScanningRedeem(false);
+            setRedeemError("Camera access denied or unavailable. Please enter the redemption code manually.");
+          }
+        }
+      };
+      initScanner();
+    }
+
+    return () => {
+      isMounted = false;
+      if (qrScanner && qrScanner.isScanning) {
+        qrScanner.stop().catch(err => console.error("Clean up scanner stop error:", err));
+      }
+    };
+  }, [showRedeemModal, scanningRedeem]);
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -731,7 +845,7 @@ export default function BusinessAdminLayout({
         , React.createElement('div', { className: "absolute top-1/4 -right-48 w-[600px] h-[600px] bg-primary/8 rounded-full blur-[120px] pointer-events-none z-0" })
         , React.createElement('div', { className: "absolute bottom-1/4 -left-48 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] pointer-events-none z-0" })
         /* Top Navbar */
-        , React.createElement('header', { className: "h-14 md:h-16 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between px-4 md:px-6 sticky top-0 z-30", __self: this, __source: {fileName: _jsxFileName, lineNumber: 164}}
+        , React.createElement('header', { className: "h-14 md:h-16 border-b border-border bg-card/80 backdrop-blur-md hidden md:flex items-center justify-between px-4 md:px-6 sticky top-0 z-30", __self: this, __source: {fileName: _jsxFileName, lineNumber: 164}}
           , React.createElement('div', { className: "flex items-center space-x-3", __self: this, __source: {fileName: _jsxFileName, lineNumber: 165}}
             , React.createElement('button', {
               onClick: () => setMobileOpen(true),
@@ -777,7 +891,7 @@ export default function BusinessAdminLayout({
 
         /* Content Box */
         , React.createElement('main', { className: "flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto relative z-10", __self: this, __source: {fileName: _jsxFileName, lineNumber: 196}}
-          , React.createElement(Outlet, null)
+          , React.createElement(Outlet, { context: { setShowNotifications, notifications, unreadCount, fetchNotifications } })
         )
         /* Notifications Modal Dialog */
         , showNotifications && (
@@ -923,6 +1037,59 @@ export default function BusinessAdminLayout({
               )
             )
           )
+        /* Global Scan & Redeem Modal */
+        , showRedeemModal && (
+          React.createElement(Dialog, { open: showRedeemModal, onOpenChange: (open) => !open && handleCloseRedeemModal() }
+            , React.createElement(DialogContent, { className: "max-w-[400px] bg-white border border-border p-6 rounded-3xl text-slate-800" }
+              , React.createElement(DialogHeader, { className: "flex flex-col items-center justify-center text-center w-full" }
+                , React.createElement(DialogTitle, { className: "text-lg font-extrabold text-foreground" }, "Scan & Redeem")
+                , React.createElement(DialogDescription, { className: "text-xs mt-1 text-muted-foreground" }, "Scan the customer's reward or coupon QR code.")
+              )
+              , React.createElement('div', { className: "space-y-4 py-3" }
+                , scanningRedeem
+                  ? React.createElement('div', { className: "space-y-3" }
+                    , React.createElement('div', { className: "relative w-full aspect-square max-w-[280px] mx-auto rounded-2xl overflow-hidden border-2 border-[#F97316]/40 bg-black flex items-center justify-center" }
+                      , React.createElement('div', { id: "reader-redeem-global", className: "absolute inset-0 w-full h-full" })
+                      , React.createElement('div', { className: "absolute inset-x-4 top-1/2 h-[2px] bg-[#F97316] animate-pulse z-10" })
+                    )
+                    , React.createElement(Button, { type: "button", variant: "outline", onClick: () => setScanningRedeem(false), className: "w-full text-xs rounded-xl" }
+                      , React.createElement(Camera, { className: "h-3.5 w-3.5 mr-1.5" }), "Use Manual Code Input"
+                    )
+                  )
+                  : React.createElement('div', { className: "space-y-3" }
+                    , React.createElement('div', { className: "space-y-1.5" }
+                      , React.createElement(Label, { htmlFor: "redeem-code-input", className: "text-xs font-bold text-muted-foreground" }, "Redemption Code")
+                      , React.createElement('div', { className: "flex gap-2" }
+                        , React.createElement(Input, { id: "redeem-code-input", placeholder: "e.g. A1B2C3D4", value: redeemCode, onChange: (e) => setRedeemCode(e.target.value.toUpperCase()), className: "text-xs border-border bg-white font-mono tracking-wider font-bold" })
+                        , React.createElement(Button, { type: "button", onClick: () => handleProcessRedeem(), disabled: redeemLoading, className: "bg-gradient-to-r from-[#FF6A00] to-[#800020] text-white text-xs font-bold rounded-xl" }
+                          , redeemLoading ? React.createElement(Loader2, { className: "h-3.5 w-3.5 animate-spin" }) : "Redeem"
+                        )
+                      )
+                    )
+                    , React.createElement(Button, { type: "button", variant: "outline", onClick: () => { setRedeemError(""); setScanningRedeem(true); }, className: "w-full text-xs py-2 rounded-xl border border-[#F97316]/40 hover:bg-[#F97316]/5 flex items-center justify-center gap-1.5 text-[#F97316] font-bold" }
+                      , React.createElement(Camera, { className: "h-4 w-4" })
+                      , "Back to Scanner"
+                    )
+                  )
+                , redeemResult && (
+                  React.createElement('div', { className: "rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-xs text-emerald-800 space-y-1" }
+                    , React.createElement('p', { className: "font-bold" }, "✅ Redemption Successful!")
+                    , React.createElement('p', null, "Voucher: ", React.createElement('strong', null, redeemResult.reward.title))
+                    , React.createElement('p', null, "Customer: ", React.createElement('strong', null, redeemResult.customerName))
+                  )
+                )
+                , redeemError && (
+                  React.createElement('div', { className: "rounded-2xl bg-red-50 border border-red-200 p-4 text-xs text-red-800 font-medium" }
+                    , redeemError
+                  )
+                )
+              )
+              , React.createElement(DialogFooter, { className: "pt-2" }
+                , React.createElement(Button, { type: "button", variant: "outline", onClick: handleCloseRedeemModal, className: "w-full text-xs rounded-xl" }, "Close")
+              )
+            )
+          )
+        )
         /* Mobile Bottom Navigation - ScanLoyal Premium Style */
         , !isPending && React.createElement('div', { className: "fixed bottom-0 left-0 right-0 z-40 md:hidden" }
           , React.createElement('div', { className: "bg-white/95 backdrop-blur-xl border-t border-[#F1F5F9] shadow-[0_-4px_24px_rgba(0,0,0,0.06)]" }
@@ -944,7 +1111,15 @@ export default function BusinessAdminLayout({
               )
               /* CENTER — Scan (raised floating button) */
               , React.createElement('div', { className: "flex flex-col items-center -mt-5" }
-                , React.createElement(Link, { to: "/dashboard/business/branches", className: "w-14 h-14 rounded-full bg-[#F97316] flex items-center justify-center shadow-lg shadow-[#F97316]/40 active:scale-95 transition-transform border-4 border-white" }
+                , React.createElement('button', {
+                    onClick: () => {
+                      setShowRedeemModal(true);
+                      setScanningRedeem(true);
+                      setRedeemError("");
+                      setRedeemResult(null);
+                    },
+                    className: "w-14 h-14 rounded-full bg-[#F97316] flex items-center justify-center shadow-lg shadow-[#F97316]/40 active:scale-95 transition-transform border-4 border-white"
+                  }
                   , React.createElement(QrCode, { className: "h-6 w-6 text-white" })
                 )
                 , React.createElement('span', { className: "text-[10px] font-semibold text-[#94A3B8] mt-1" }, "Scan")

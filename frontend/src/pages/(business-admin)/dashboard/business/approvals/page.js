@@ -4,7 +4,7 @@ import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useOutletContext } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import {
   Loader2, CheckCircle2, XCircle, Award, Clock, User,
@@ -23,6 +23,7 @@ function formatTime(dateStr) {
 }
 
 export default function BusinessApprovalsPage() {
+  const { setShowNotifications, unreadCount, fetchNotifications } = useOutletContext() || {};
   const { user } = useAuthStore();
   const businessId = user?.businessId;
   const queryClient = useQueryClient();
@@ -220,10 +221,10 @@ export default function BusinessApprovalsPage() {
   };
 
   const category = getCategoryInfo(settings?.programName);
-  const pendingCount = analytics?.pendingCount ?? 12;
-  const approvedToday = analytics?.approvedToday ?? 50;
-  const rejectedToday = requests.filter(r => r.status === 'REJECTED').length || 3;
-  const totalProcessed = 1250 + approvedToday;
+  const pendingCount = analytics?.pendingCount ?? 0;
+  const approvedToday = analytics?.approvedToday ?? 0;
+  const rejectedToday = requests.filter(r => r.status === 'REJECTED').length;
+  const totalProcessed = (analytics?.approvedToday ?? 0) + (analytics?.rejectedToday ?? 0) + (analytics?.pendingCount ?? 0);
 
   return (
     React.createElement("div", { className: "min-h-screen bg-[#F8FAFC] -m-4 md:-m-8 md:m-0 md:bg-transparent" }
@@ -238,11 +239,16 @@ export default function BusinessApprovalsPage() {
         )
         , React.createElement("div", { className: "flex items-center gap-3" }
           , React.createElement("button", {
-              onClick: () => {},
+              onClick: () => {
+                if (setShowNotifications) setShowNotifications(true);
+                if (fetchNotifications) fetchNotifications();
+              },
               className: "relative w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-[#64748B]"
             }
             , React.createElement(Bell, { className: "h-4.5 w-4.5" })
-            , React.createElement("span", { className: "absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center leading-none" }, "3")
+            , unreadCount > 0 && (
+                React.createElement('span', { className: "absolute top-0.5 right-0.5 w-4.5 h-4.5 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center leading-none shadow-sm" }, String(unreadCount))
+              )
           )
           , React.createElement("div", { className: "w-9 h-9 rounded-full bg-[#FFEDD5] border border-[#FED7AA] flex items-center justify-center text-[#F97316] text-sm font-bold shadow-sm" }
             , (user?.name?.[0]?.toUpperCase() || "B")
@@ -250,83 +256,8 @@ export default function BusinessApprovalsPage() {
         )
       )
 
-      /* B. Page Title Block & Banner (Mobile) */
-      , React.createElement("div", { className: "md:hidden px-4 pt-2 space-y-4" }
-        , React.createElement("div", { className: "bg-white rounded-3xl p-5 shadow-sm relative overflow-hidden border border-[#F1F5F9] flex justify-between items-start" }
-          , React.createElement("div", { className: "space-y-1.5 z-10 w-2/3" }
-            , React.createElement("h2", { className: "text-2xl font-bold tracking-tight text-[#0F172A]" }, "Loyalty Approvals")
-            , React.createElement("p", { className: "text-xs text-[#64748B] leading-relaxed" }, "Review and approve customer loyalty requests instantly.")
-          )
-          , React.createElement("div", { className: "absolute right-0 top-0 h-full w-1/3 pointer-events-none select-none flex items-center justify-end pr-3" }
-            , React.createElement("svg", { viewBox: "0 0 100 100", className: "h-20 w-20 opacity-90", fill: "none" }
-              , React.createElement("rect", { x: 30, y: 15, width: 45, height: 65, rx: 6, fill: "#FFEDD5" })
-              , React.createElement("rect", { x: 35, y: 25, width: 35, height: 4, rx: 2, fill: "#F97316", fillOpacity: 0.6 })
-              , React.createElement("rect", { x: 35, y: 35, width: 25, height: 4, rx: 2, fill: "#F97316", fillOpacity: 0.6 })
-              , React.createElement("rect", { x: 35, y: 45, width: 30, height: 4, rx: 2, fill: "#F97316", fillOpacity: 0.6 })
-              , React.createElement("circle", { cx: 52, cy: 12, r: 8, fill: "#FED7AA" })
-              , React.createElement("path", { d: "M48 12 l3 3 l5 -5", stroke: "#F97316", strokeWidth: 2, strokeLinecap: "round" })
-            )
-          )
-        )
-
-        /* Standalone Pending Requests Card (Mobile) */
-        , React.createElement("div", { className: "flex justify-end pr-2" }
-          , React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-[#F1F5F9] px-4 py-2.5 flex items-center gap-3" }
-            , React.createElement("div", null
-              , React.createElement("p", { className: "text-[9px] uppercase tracking-wider text-[#64748B] font-bold" }, "Pending Requests")
-              , React.createElement("p", { className: "text-[10px] text-[#64748B]" }, "Needs your review")
-            )
-            , React.createElement("span", { className: "text-2xl font-black text-[#F97316]" }, pendingCount)
-          )
-        )
-      )
-
-      /* C. Mobile Stats Summary */
-      , React.createElement("div", { className: "md:hidden px-4 mt-4" }
-        , React.createElement("div", { className: "bg-white rounded-3xl shadow-sm p-4 border border-[#F1F5F9]" }
-          , React.createElement("div", { className: "grid grid-cols-4 gap-2" }
-            /* Pending */
-            , React.createElement("div", { className: "flex flex-col items-center text-center gap-1.5" }
-              , React.createElement("div", { className: "w-11 h-11 rounded-full flex items-center justify-center bg-[#FFEDD5]" }
-                , React.createElement(Clock, { className: "h-5 w-5 text-[#F97316]" })
-              )
-              , React.createElement("span", { className: "text-base font-bold text-[#0F172A] leading-none" }, pendingCount)
-              , React.createElement("span", { className: "text-[9px] text-[#64748B] font-bold leading-tight" }, "Pending")
-              , React.createElement("span", { className: "text-[8px] font-semibold text-[#F97316] whitespace-nowrap" }, "Needs review")
-            )
-            /* Approved */
-            , React.createElement("div", { className: "flex flex-col items-center text-center gap-1.5" }
-              , React.createElement("div", { className: "w-11 h-11 rounded-full flex items-center justify-center bg-[#DCFCE7]" }
-                , React.createElement(CheckCircle2, { className: "h-5 w-5 text-[#22C55E]" })
-              )
-              , React.createElement("span", { className: "text-base font-bold text-[#0F172A] leading-none" }, approvedToday)
-              , React.createElement("span", { className: "text-[9px] text-[#64748B] font-bold leading-tight" }, "Approved")
-              , React.createElement("span", { className: "text-[8px] font-semibold text-[#22C55E] whitespace-nowrap" }, "Rewarded")
-            )
-            /* Rejected */
-            , React.createElement("div", { className: "flex flex-col items-center text-center gap-1.5" }
-              , React.createElement("div", { className: "w-11 h-11 rounded-full flex items-center justify-center bg-[#FEE2E2]" }
-                , React.createElement(XCircle, { className: "h-5 w-5 text-[#EF4444]" })
-              )
-              , React.createElement("span", { className: "text-base font-bold text-[#0F172A] leading-none" }, rejectedToday)
-              , React.createElement("span", { className: "text-[9px] text-[#64748B] font-bold leading-tight" }, "Rejected")
-              , React.createElement("span", { className: "text-[8px] font-semibold text-[#EF4444] whitespace-nowrap" }, "Declined")
-            )
-            /* Total Processed */
-            , React.createElement("div", { className: "flex flex-col items-center text-center gap-1.5" }
-              , React.createElement("div", { className: "w-11 h-11 rounded-full flex items-center justify-center bg-[#EDE9FE]" }
-                , React.createElement(Users, { className: "h-5 w-5 text-[#7C3AED]" })
-              )
-              , React.createElement("span", { className: "text-base font-bold text-[#0F172A] leading-none" }, totalProcessed.toLocaleString())
-              , React.createElement("span", { className: "text-[9px] text-[#64748B] font-bold leading-tight" }, "Processed")
-              , React.createElement("span", { className: "text-[8px] font-semibold text-[#94A3B8] whitespace-nowrap" }, "All time")
-            )
-          )
-        )
-      )
-
-      /* D. Mobile Filter Tabs Row */
-      , React.createElement("div", { className: "md:hidden px-4 mt-4" }
+      /* D. Mobile Filter Tabs Row (Now at the top of mobile view) */
+      , React.createElement("div", { className: "md:hidden px-4 pt-4" }
         , React.createElement("div", { className: "bg-white rounded-2xl p-1.5 border border-[#F1F5F9] shadow-sm flex gap-1 items-center justify-between" }
           , [
               { key: "ALL", label: "All", badge: requests.length + 15, badgeBg: "bg-slate-100 text-slate-600", activeBg: "bg-[#F97316] text-white" },
@@ -585,22 +516,7 @@ export default function BusinessApprovalsPage() {
           })
       )
 
-      /* F. Mobile Today's Activity bar (sticky bottom summary) */
-      , React.createElement("div", { className: "md:hidden fixed bottom-[60px] left-0 right-0 z-30 bg-white border-t border-[#F1F5F9] px-4 py-2 flex items-center justify-between text-center" }
-        , [
-            { icon: CheckCircle2, value: approvedToday, label: "Approvals", color: "text-[#22C55E]" },
-            { icon: XCircle, value: rejectedToday, label: "Rejections", color: "text-[#EF4444]" },
-            { icon: Award, value: analytics?.approvedToday ?? 47, label: "Rewards", color: "text-[#7C3AED]" },
-            { icon: Users, value: pendingCount + 5, label: "Repeat", color: "text-[#3B82F6]" }
-          ].map((item, idx) => React.createElement("div", { key: idx, className: "flex-1 flex flex-col items-center" }
-              , React.createElement(item.icon, { className: cn("h-4 w-4 mb-0.5", item.color) })
-              , React.createElement("span", { className: "text-xs font-bold text-[#0F172A] leading-none" }, item.value)
-              , React.createElement("span", { className: "text-[8px] text-[#64748B]" }, item.label)
-            ))
-      )
-
-      /* G. Mobile Bottom Navigation (sticky nav bar) */
-      , React.createElement(BusinessBottomNav, { variant: "withScan", pendingCount: pendingCount })
+      
 
       /* ── DESKTOP VIEW LAYOUT (hidden on mobile) ── */
       , React.createElement("div", { className: "hidden md:block space-y-6 max-w-7xl mx-auto px-6 py-6" }

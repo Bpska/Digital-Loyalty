@@ -144,6 +144,7 @@ export default function BusinessLoyaltyConfigPage() {
 
   // Live calculation using global rates from settings response and current stampCost state
   const ppr = settings?.pointsPerRupee || 0.1;
+  const pps = settings?.pointsPerStamp ?? 50;
   const currentStampCostInput = parseFloat(stampCost) || 500;
   const reqStamps = parseInt(settingsForm.requiredStamps, 10) || 7;
 

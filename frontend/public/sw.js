@@ -8,7 +8,6 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
-
 // Handle incoming push events (e.g. from Web Push server)
 self.addEventListener("push", (event) => {
   let data = {};
@@ -19,7 +18,6 @@ self.addEventListener("push", (event) => {
       data = { message: event.data.text() };
     }
   }
-
   const title = data.title || "ScanLoyal Alert";
   const options = {
     body: data.message || "You have a new update!",
@@ -30,7 +28,6 @@ self.addEventListener("push", (event) => {
       url: data.url || "/"
     }
   };
-
   event.waitUntil(
     self.registration.showNotification(title, options)
   );

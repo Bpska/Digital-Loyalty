@@ -82,7 +82,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     // Dynamic SEO Configuration
-    document.title = "ScanLoyal - QR Digital Stamp Cards & Geofenced Customer Loyalty India";
+    document.title = "Logisaar (LoyaltySaar) - Loyalty Program Software India | QR Loyalty Card App for Cafes & Restaurants";
     
     let metaDesc = document.querySelector('meta[name="description"]');
     if (!metaDesc) {
@@ -90,7 +90,7 @@ export default function LandingPage() {
       metaDesc.setAttribute('name', 'description');
       document.head.appendChild(metaDesc);
     }
-    metaDesc.setAttribute('content', 'Create premium digital stamp cards, reward return visits, and verify QR check-ins with GPS location geofencing. Active in Bhubaneswar, Rourkela, Bengaluru, Hyderabad, Delhi.');
+    metaDesc.setAttribute('content', 'LoyaltySaar (also known as Logisaar) is the #1 QR loyalty program software in India. Enhance customer retention with digital stamp card apps for cafes, salons, and learn how to get more Google reviews for restaurants.');
 
     let metaKeys = document.querySelector('meta[name="keywords"]');
     if (!metaKeys) {
@@ -98,7 +98,60 @@ export default function LandingPage() {
       metaKeys.setAttribute('name', 'keywords');
       document.head.appendChild(metaKeys);
     }
-    metaKeys.setAttribute('content', 'digital stamp card, qr check-in, customer loyalty software, location based rewards, local business retention, bhubaneswar cafes, bangalore retail, delhi salon loyalty');
+    metaKeys.setAttribute('content', 'Logisaar, LoyaltySaar, loyalty program software India, QR loyalty card app for cafes, how to get more Google reviews for restaurant, customer retention app small business, customer loyalty India');
+
+    // Add JSON-LD Schema markup
+    const schemaData = {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Product",
+          "name": "Logisaar (LoyaltySaar) Loyalty Platform",
+          "description": "QR-based loyalty program software in India featuring digital stamp cards, customer retention tools, and Google review automation.",
+          "brand": {
+            "@type": "Brand",
+            "name": "Logisaar"
+          },
+          "offers": {
+            "@type": "Offer",
+            "price": "999.00",
+            "priceCurrency": "INR",
+            "priceValidUntil": "2027-12-31",
+            "url": window.location.href,
+            "availability": "https://schema.org/InStock"
+          }
+        },
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What is the GPS Location Guardrail and how does it prevent fraud?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "To prevent customers from checking in outside your shop, our system verifies coordinates against your outlet coordinates at scan time. Stamps are blocked if scanned further than 50 meters away."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How does the coupon redemption work?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Once a stamp card is completed, a reward voucher is automatically unlocked and saved in the customer's wallet. The customer shows this voucher to the cashier, who redeems the code to apply the discount."
+              }
+            }
+          ]
+        }
+      ]
+    };
+
+    let scriptTag = document.querySelector('script[type="application/ld+json"]');
+    if (!scriptTag) {
+      scriptTag = document.createElement('script');
+      scriptTag.setAttribute('type', 'application/ld+json');
+      document.head.appendChild(scriptTag);
+    }
+    scriptTag.textContent = JSON.stringify(schemaData);
   }, []);
 
   useEffect(() => {
@@ -141,223 +194,152 @@ export default function LandingPage() {
     React.createElement('div', { className: "min-h-screen bg-white text-[#2B201A] font-sans selection:bg-[#FF6A00]/10 selection:text-[#2B201A] bg-dots"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 44}}
 
       /* 1. Global Navigation Bar */
-      , React.createElement('header', { className: "sticky top-0 z-50 w-full border-b border-[#EAE3DF]/50 bg-white/75 backdrop-blur-md"       , __self: this, __source: {fileName: _jsxFileName, lineNumber: 47}}
-        , React.createElement('div', { className: "max-w-7xl mx-auto px-6 h-16 flex items-center"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 48}}
-          , React.createElement('div', { className: "flex items-center space-x-3" }
-            , React.createElement('img', { src: "/new.png", alt: "LogiSaar Logo", className: "h-8 w-auto object-contain" })
-            , React.createElement('div', { className: "flex flex-col justify-center" }
-              , React.createElement('span', { className: "text-sm font-extrabold tracking-tight text-[#2B201A] leading-tight" }, "LogiSaar")
-              , React.createElement('span', { className: "text-[9px] font-black text-[#FF6A00] uppercase tracking-wider leading-none" }, "ScanLoyal")
+      , React.createElement('header', { className: "sticky top-0 z-50 w-full border-b border-slate-100 bg-white/80 backdrop-blur-md" }
+        , React.createElement('div', { className: "max-w-7xl mx-auto px-6 h-20 flex items-center justify-between" }
+          /* Left Logo */
+          , React.createElement('div', { className: "flex items-center space-x-2.5" }
+            , React.createElement('div', { className: "w-9 h-9 bg-black rounded-lg flex items-center justify-center font-bold text-white text-sm" }, "LS")
+            , React.createElement('span', { className: "text-lg font-bold text-[#0F172A] tracking-tight" }, "LoyaltySaar")
+          )
+          /* Middle Links (Hidden on mobile) */
+          , React.createElement('nav', { className: "hidden md:flex items-center space-x-8 text-xs font-semibold text-[#64748B]" }
+            , React.createElement('a', { href: "#features", className: "hover:text-[#F97316] transition-colors" }, "Features")
+            , React.createElement('a', { href: "#how-it-works", className: "hover:text-[#F97316] transition-colors" }, "How It Works")
+            , React.createElement('a', { href: "#pricing", className: "hover:text-[#F97316] transition-colors" }, "Pricing")
+            , React.createElement('a', { href: "#", className: "hover:text-[#F97316] transition-colors" }, "Company")
+            , React.createElement('a', { href: "#", className: "hover:text-[#F97316] transition-colors" }, "Resources")
+          )
+          /* Right Actions */
+          , React.createElement('div', { className: "flex items-center space-x-4" }
+            , React.createElement(Link, { to: "/login", className: "text-xs font-bold text-[#64748B] hover:text-[#0F172A] transition-colors" }, "Log in")
+            , React.createElement(Link, { to: "/login?signup=true", className: "bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow-sm transition-all" }, "Start Free Trial")
+            /* Mobile menu button */
+            , React.createElement('button', { className: "md:hidden text-[#0F172A] hover:text-[#F97316]" }
+              , React.createElement('svg', { className: "w-6 h-6", fill: "none", stroke: "currentColor", strokeWidth: "2", viewBox: "0 0 24 24" }
+                , React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M4 6h16M4 12h16M4 18h16" })
+              )
             )
           )
         )
       )
 
-      /* 2. Hero Section — New Centered Split Layout */
-      , React.createElement('section', { id: "hero", className: "relative overflow-hidden bg-[#FAF8F6] border-b border-[#EAE3DF]/40" }
-        /* Floating Business Counter Card (Top Left) */
-        , React.createElement('div', { className: "absolute top-6 left-4 sm:top-12 sm:left-8 z-30 bg-white/90 backdrop-blur-md rounded-2xl border border-[#FF6A00]/15 shadow-xl p-3.5 flex items-center gap-3 animate-fade-in hover:scale-105 transition-transform duration-300" }
-          , React.createElement('div', { className: "h-9 w-9 rounded-xl bg-gradient-to-tr from-[#FF6A00]/10 to-[#800020]/10 flex items-center justify-center border border-[#FF6A00]/20" }
-            , React.createElement(Building2, { className: "h-4.5 w-4.5 text-[#FF6A00]" })
+      /* 2. Hero Section */
+      , React.createElement('section', { id: "hero", className: "relative overflow-hidden bg-white" }
+        /* Hero Content Grid */
+        , React.createElement('div', { className: "relative z-10 max-w-7xl mx-auto px-6 lg:px-10 pt-12 pb-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center" }
+          
+          /* Left Column (span 7) */
+          , React.createElement('div', { className: "lg:col-span-7 space-y-6 text-left" }
+            /* Badge */
+            , React.createElement('div', { className: "inline-flex items-center gap-2 bg-[#FFF3EB] rounded-full px-4.5 py-1.5 text-[11px] font-black text-[#F97316] uppercase tracking-wider" }
+              , "#1 QR Loyalty Platform in India (Last Updated: July 2026)"
+            )
+
+            /* Headline */
+            , React.createElement('h1', { className: "text-4xl sm:text-5xl md:text-[56px] font-black tracking-tight text-[#0F172A] leading-[1.08]" }
+              , "Turn Every Visit"
+              , React.createElement('br', null)
+              , "Into a "
+              , React.createElement('span', { className: "text-[#F97316]" }, "Loyal")
+              , React.createElement('br', null)
+              , React.createElement('span', { className: "text-[#F97316]" }, "Customer")
+            )
+
+            /* Description */
+            , React.createElement('p', { className: "text-sm sm:text-base text-[#64748B] leading-relaxed max-w-xl" }
+              , "LoyaltySaar (also searched as Logisaar) is a QR-based loyalty and Google review automation platform that helps local stores build customer retention. Our loyalty program software India specializes as a QR loyalty card app for cafes, helping you understand how to get more Google reviews for restaurant operations and serve as a reliable customer retention app for small business merchants."
+            )
+
+            /* 2x2 Feature Grid */
+            , React.createElement('div', { className: "grid grid-cols-2 gap-4 max-w-md pt-2" }
+              , [
+                  { label: "No App Required", icon: Smartphone },
+                  { label: "GPS Verified", icon: MapPin },
+                  { icon: Star, label: "Auto Rewards" },
+                  { icon: Activity, label: "Ready in 5 Minutes" }
+                ].map((item, i) => {
+                  const ItemIcon = item.icon;
+                  return React.createElement('div', { key: i, className: "flex items-center gap-2 text-xs font-bold text-[#0F172A]" }
+                    , React.createElement('div', { className: "w-7 h-7 rounded-lg bg-[#FFF3EB] flex items-center justify-center text-[#F97316]" }
+                      , React.createElement(ItemIcon, { className: "h-4 w-4" })
+                    )
+                    , React.createElement('span', null, item.label)
+                  );
+                })
+            )
+
+            /* CTA Buttons */
+            , React.createElement('div', { className: "flex flex-wrap items-center gap-4 pt-2" }
+              , React.createElement(Link, { to: "/login?signup=true", className: "bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-extrabold px-6 py-3.5 rounded-full flex items-center gap-2 transition-all shadow-md shadow-[#F97316]/20 active:scale-95" }
+                , "Start Free Trial →"
+              )
+              , React.createElement('button', { className: "border border-slate-200 hover:border-slate-300 text-xs font-extrabold px-6 py-3.5 rounded-full flex items-center gap-2 transition-all bg-white text-[#0F172A]" }
+                , React.createElement('span', { className: "text-[#F97316] text-[10px]" }, "▶")
+                , "Watch Demo"
+              )
+            )
+
+            /* Rating */
+            , React.createElement('div', { className: "flex items-center gap-3 pt-2" }
+              , React.createElement('span', { className: "text-[#F97316] font-black text-lg" }, "G")
+              , React.createElement('div', { className: "flex text-amber-400 text-sm" }
+                , Array.from({ length: 5 }).map((_, i) => React.createElement('span', { key: i }, "★"))
+              )
+              , React.createElement('span', { className: "text-xs font-bold text-[#64748B]" }, "4.9/5 from 500+ Google Reviews")
+            )
           )
-          , React.createElement('div', { className: "text-left" }
-            , React.createElement('p', { className: "text-base font-black text-[#2B201A] leading-none" }
-              , animatedBusinesses, "+ Businesses"
-            )
-            , React.createElement('p', { className: "text-[9px] font-bold text-[#8C6553] uppercase tracking-wider mt-0.5" }
-              , "Active Storefronts"
-            )
+
+          /* Right Column (span 5) */
+          , React.createElement('div', { className: "lg:col-span-5 relative flex items-center justify-center" }
+            , React.createElement('div', { className: "absolute w-[350px] h-[350px] bg-[#FFF3EB] rounded-full blur-3xl opacity-60 pointer-events-none" })
+            , React.createElement('img', {
+                src: "/hero.png",
+                alt: "LoyaltySaar QR Digital Stamps app screens and standee mockup",
+                className: "relative z-10 w-full max-w-[480px] object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.06)]"
+              })
           )
         )
 
-        /* Background blobs */
-        , React.createElement('div', { className: "absolute -top-32 left-1/3 w-[700px] h-[700px] bg-[#FF6A00]/8 rounded-full blur-3xl pointer-events-none" })
-        , React.createElement('div', { className: "absolute bottom-0 left-0 w-80 h-80 bg-[#800020]/10 rounded-full blur-3xl pointer-events-none" })
-        , React.createElement('div', { className: "absolute top-1/2 right-0 w-72 h-72 bg-emerald-500/8 rounded-full blur-3xl pointer-events-none" })
-
-        /* Dot grid overlay */
-        , React.createElement('div', { className: "absolute inset-0 bg-dots opacity-60 pointer-events-none" })
-
-        /* ── TOP: Centered headline block ── */
-        , React.createElement('div', { className: "relative z-10 max-w-5xl mx-auto px-6 pt-20 pb-10 text-center" }
-
-
-
-          /* Main headline */
-          , React.createElement('h1', { className: "text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-[#2B201A] leading-[1.05] mb-5" }
-            , "Turn Every Visit Into a "
-            , React.createElement('br', null)
-            , React.createElement('span', { style: { background: "linear-gradient(135deg, #FF6A00 0%, #800020 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" } }
-              , "Loyal Customer"
+        /* Footer trusted category row & statistics */
+        , React.createElement('div', { className: "max-w-7xl mx-auto px-6 lg:px-10 py-10 border-t border-slate-100 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center mt-6" }
+          /* Left: Trusted Categories */
+          , React.createElement('div', { className: "lg:col-span-7 space-y-4 text-left" }
+            , React.createElement('p', { className: "text-xs font-bold text-[#64748B]" }, "Trusted by 500+ businesses across India")
+            , React.createElement('div', { className: "flex flex-wrap items-center gap-3.5" }
+              , [
+                  { label: "Restaurant" },
+                  { label: "Café" },
+                  { label: "Salon" },
+                  { label: "Gym" },
+                  { label: "Boutique" },
+                  { label: "Grocery" },
+                  { label: "Retail Store" },
+                  { label: "And More" }
+                ].map((item, i) =>
+                  React.createElement('span', { key: i, className: "text-[11px] font-bold text-[#0F172A] bg-slate-50 border border-slate-100 px-3.5 py-1.5 rounded-full" }
+                    , item.label
+                  )
+                )
             )
           )
-
-          /* Sub-description */
-          , React.createElement('p', { className: "text-base sm:text-lg text-[#5A4E46] leading-relaxed max-w-2xl mx-auto mb-8" }
-            , "Replace paper punch cards with modern QR check-ins. Design custom stamp cards, issue digital vouchers, and track retention — all without an app download."
-          )
-
-          /* CTA Buttons — centered row */
-          , React.createElement('div', { className: "flex flex-col sm:flex-row items-center justify-center gap-4 mb-3" }
-            , React.createElement(Link, { to: "/login?signup=true" }
-              , React.createElement(Button, { size: "lg", className: "bg-gradient-to-r from-[#FF6A00] to-[#800020] hover:from-[#E05E00] hover:to-[#800020] text-white shadow-lg shadow-[#FF6A00]/25 px-10 h-13 rounded-full text-sm font-bold transition-all animate-btn-pulse-glow flex items-center gap-2 border-0" }
-                , "Register your business"
-                , React.createElement(ArrowRight, { className: "h-4 w-4" })
+          /* Right: Stats Counter */
+          , React.createElement('div', { className: "lg:col-span-5 grid grid-cols-4 gap-4 text-center lg:border-l lg:border-slate-100 lg:pl-8" }
+            , [
+                { num: "500+", label: "Happy Businesses" },
+                { num: "10,000+", label: "QR Scans Every Month" },
+                { num: "92%", label: "Return Rate" },
+                { num: "₹4.8L+", label: "Rewards Issued" }
+              ].map((stat, i) =>
+                React.createElement('div', { key: i, className: "space-y-1" }
+                  , React.createElement('p', { className: "text-base font-black text-[#F97316]" }, stat.num)
+                  , React.createElement('p', { className: "text-[8px] font-bold text-[#64748B] uppercase tracking-wider leading-tight" }, stat.label)
+                )
               )
-            )
-            , React.createElement('a', { href: "#interactive-preview" }
-              , React.createElement(Button, { variant: "outline", size: "lg", className: "border-[#FF6A00]/30 text-[#5A4E46] hover:bg-white hover:text-[#2B201A] hover:border-[#FF6A00]/50 px-8 h-13 rounded-full text-sm font-bold transition-all duration-200 bg-white/60 backdrop-blur-sm" }
-                , "Try Live Demo"
-              )
-            )
-          )
-
-          /* Highlight Banner: Register your business and get a free QR code */
-          , React.createElement('div', { className: "mb-10 text-center" }
-            , React.createElement('span', { className: "inline-block bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-[#FF6A00] text-[11px] font-extrabold uppercase tracking-wider px-4 py-1.5 rounded-full shadow-sm" }
-              , "✨ Register your business and get a free QR code!"
-            )
-          )
-
-          /* Floating stat pills row */
-          , React.createElement('div', { className: "flex flex-wrap items-center justify-center gap-3 mb-14" }
-            , React.createElement('div', { className: "flex items-center gap-2 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-full px-4 py-2 shadow-sm" }
-              , React.createElement(Sparkles, { className: "h-3.5 w-3.5 text-[#FF6A00] animate-pulse" })
-              , React.createElement('span', { className: "text-[11px] font-black text-[#2B201A]" }, `${totalBusinesses}+ Businesses Onboarded`)
-            )
-            , React.createElement('div', { className: "flex items-center gap-2 bg-white/60 backdrop-blur-md border border-[#FF6A00]/15 rounded-full px-4 py-2 shadow-sm" }
-              , React.createElement(MapPin, { className: "h-3.5 w-3.5 text-[#FF6A00]" })
-              , React.createElement('span', { className: "text-[11px] font-black text-[#2B201A]" }, "50m GPS Guard")
-            )
-            , React.createElement('div', { className: "flex items-center gap-2 bg-white/60 backdrop-blur-md border border-[#FF6A00]/15 rounded-full px-4 py-2 shadow-sm" }
-              , React.createElement(Smartphone, { className: "h-3.5 w-3.5 text-[#FF6A00]" })
-              , React.createElement('span', { className: "text-[11px] font-black text-[#2B201A]" }, "100% Digital Client")
-            )
-            , React.createElement('div', { className: "flex items-center gap-2 bg-white/60 backdrop-blur-md border border-[#FF6A00]/15 rounded-full px-4 py-2 shadow-sm" }
-              , React.createElement(ShieldCheck, { className: "h-3.5 w-3.5 text-[#FF6A00]" })
-              , React.createElement('span', { className: "text-[11px] font-black text-[#2B201A]" }, "Zero App Install")
-            )
-            , React.createElement('div', { className: "flex items-center gap-2 bg-white/60 backdrop-blur-md border border-[#FF6A00]/15 rounded-full px-4 py-2 shadow-sm" }
-              , React.createElement(Activity, { className: "h-3.5 w-3.5 text-[#FF6A00]" })
-              , React.createElement('span', { className: "text-[11px] font-black text-[#2B201A]" }, "Live Business Analytics")
-            )
           )
         )
-
-        /* ── BOTTOM: Two floating cards side by side ── */
-        , React.createElement('div', { className: "relative z-10 max-w-6xl mx-auto px-6 pb-0" }
-          , React.createElement('div', { className: "grid grid-cols-1 lg:grid-cols-2 gap-6 items-end" }
-
-            /* LEFT CARD — stamp card mockup (tilted slightly) */
-            , React.createElement('div', { className: "transform lg:-rotate-2 lg:translate-y-4 transition-transform duration-300 hover:rotate-0 hover:translate-y-0" }
-              , React.createElement('div', { className: "relative bg-white rounded-[28px] border border-[#EAE3DF] shadow-2xl shadow-[#8C6553]/12 p-7" }
-
-                /* Top bar: store info */
-                , React.createElement('div', { className: "flex justify-between items-center pb-4 border-b border-[#FAF7F5] mb-5" }
-                  , React.createElement('div', { className: "flex items-center gap-3" }
-                    , React.createElement('div', { className: "h-9 w-9 rounded-xl bg-gradient-to-tr from-[#FF6A00] to-[#800020] flex items-center justify-center text-white text-[11px] font-black shadow-sm" }, "SL")
-                    , React.createElement('div', null
-                      , React.createElement('p', { className: "text-xs font-black text-[#2B201A]" }, "ScanLoyal Premium Store")
-                      , React.createElement('p', { className: "text-[10px] text-[#8C6553]" }, "MG Road Outlet")
-                    )
-                  )
-                  , React.createElement('span', { className: "text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-100 px-2.5 py-1 rounded-full font-extrabold uppercase tracking-wide whitespace-nowrap flex-shrink-0" }, "✓ Verified")
-                )
-
-                /* Stamps grid label */
-                , React.createElement('div', { className: "flex justify-between items-center mb-3" }
-                  , React.createElement('div', null
-                    , React.createElement('p', { className: "text-[9px] text-[#8C6553] uppercase tracking-widest font-bold" }, "Loyalty Stamp Card")
-                    , React.createElement('p', { className: "text-sm font-extrabold text-[#2B201A]" }, "Earn 1 stamp per visit")
-                  )
-                  , React.createElement('span', { className: "text-xs font-black text-[#FF6A00] bg-[#FF6A00]/10 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-[#FF6A00]/25" }
-                    , stampsCount, " / ", maxStamps, " Stamps"
-                  )
-                )
-
-                /* Interactive stamp grid */
-                , React.createElement('div', { className: "grid grid-cols-3 gap-3 mb-5" }
-                  , Array.from({ length: maxStamps }).map((_, i) => {
-                    const active = i < stampsCount;
-                    return React.createElement('div', {
-                      key: i,
-                      onClick: () => toggleStamp(i),
-                      className: `h-16 rounded-2xl border-2 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ${active ? "bg-gradient-to-tr from-[#FF6A00] to-[#800020] border-[#FF6A00] text-white shadow-lg shadow-[#FF6A00]/25 scale-[1.03]" : "bg-white/40 backdrop-blur-sm border-dashed border-[#FF6A00]/25 hover:border-[#FF6A00]/50 hover:bg-white text-[#FF6A00]/40"}`
-                    }
-                      , active
-                        ? React.createElement(React.Fragment, null
-                            , React.createElement(Stamp, { className: "h-5 w-5 fill-white text-white" })
-                            , React.createElement('span', { className: "text-[9px] font-black mt-0.5 opacity-80" }, `#${i+1}`)
-                          )
-                        : React.createElement('span', { className: "text-xs font-bold" }, `${i+1}`)
-                    );
-                  })
-                )
-
-                /* Reward info strip */
-                , React.createElement('div', { className: "bg-gradient-to-r from-[#FAF7F5] to-[#F5EDE8] border border-[#E5D5CD] rounded-2xl p-3.5 flex items-center gap-3" }
-                  , React.createElement('div', { className: "h-9 w-9 rounded-xl bg-[#FF6A00]/10 backdrop-blur-sm border border-[#FF6A00]/20 flex items-center justify-center flex-shrink-0" }
-                    , React.createElement(Gift, { className: "h-4 w-4 text-[#FF6A00]" })
-                  )
-                  , React.createElement('div', null
-                    , React.createElement('p', { className: "text-[10px] font-black text-[#FF6A00] uppercase tracking-widest" }, "Reward on Completion")
-                    , React.createElement('p', { className: "text-xs font-bold text-[#2B201A]" }, "₹250 Gift Voucher — auto-issued")
-                  )
-                )
-              )
-            )
-
-            /* RIGHT CARD — QR scan preview + analytics pill */
-            , React.createElement('div', { className: "transform lg:rotate-2 transition-transform duration-300 hover:rotate-0" }
-              , React.createElement('div', { className: "relative bg-white rounded-[28px] border border-[#EAE3DF] shadow-2xl shadow-[#8C6553]/12 p-7" }
-
-                /* Floating achievement badge */
-                , React.createElement('div', { className: "absolute -top-4 -right-4 bg-gradient-to-r from-[#FF6A00] to-[#800020] border border-white/20 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg uppercase tracking-wide animate-bounce" }
-                  , "🎉 Reward Unlocked!"
-                )
-
-                /* QR Code visual */
-                , React.createElement('div', { className: "flex flex-col items-center gap-4 mb-6" }
-                  , React.createElement('div', { className: "relative h-32 w-32 rounded-2xl bg-white border border-[#EAE3DF] flex items-center justify-center shadow-xl p-2" }
-                    , React.createElement(QrCode, { className: "h-22 w-22 text-[#2B201A]" })
-                    , React.createElement('div', { className: "absolute w-9 h-9 bg-white rounded-lg flex items-center justify-center shadow-md border border-[#FF6A00]/25" }
-                      , React.createElement('span', { className: "text-[10px] font-black tracking-tight bg-gradient-to-tr from-[#FF6A00] to-[#800020] bg-clip-text text-transparent" }, "LS")
-                    )
-                    , React.createElement('div', { className: "absolute bottom-0 right-0 h-8 w-8 bg-[#FF6A00] rounded-br-2xl rounded-tl-2xl flex items-center justify-center" }
-                      , React.createElement(ShieldCheck, { className: "h-4 w-4 text-white" })
-                    )
-                    /* Laser scan animation */
-                    , React.createElement('div', { className: "absolute inset-x-2 h-px bg-[#FF6A00]/80 shadow-[0_0_6px_#FF6A00] animate-scan-laser" })
-                  )
-                  , React.createElement('div', { className: "text-center" }
-                    , React.createElement('p', { className: "text-xs font-black text-[#2B201A] uppercase tracking-widest" }, "Scan to Check-In")
-                    , React.createElement('p', { className: "text-[10px] text-[#8C6553] mt-0.5" }, "GPS verified · 50m radius")
-                  )
-                )
-
-                /* Analytics mini-strip */
-                , React.createElement('div', { className: "grid grid-cols-3 gap-3 border-t border-[#EAE3DF] pt-5" }
-                  , React.createElement('div', { className: "text-center" }
-                    , React.createElement('p', { className: "text-xl font-black text-[#2B201A] font-mono" }, totalScans)
-                    , React.createElement('p', { className: "text-[9px] text-[#8C6553] uppercase tracking-widest font-bold mt-0.5" }, "Scans")
-                  )
-                  , React.createElement('div', { className: "text-center border-x border-[#EAE3DF]" }
-                    , React.createElement('p', { className: "text-xl font-black text-[#FF6A00] font-mono" }, "80%")
-                    , React.createElement('p', { className: "text-[9px] text-[#8C6553] uppercase tracking-widest font-bold mt-0.5" }, "Return Rate")
-                  )
-                  , React.createElement('div', { className: "text-center" }
-                    , React.createElement('p', { className: "text-xl font-black text-[#2B201A] font-mono" }, "₹12k")
-                    , React.createElement('p', { className: "text-[9px] text-[#8C6553] uppercase tracking-widest font-bold mt-0.5" }, "Revenue")
-                  )
-                )
-              )
-            )
-          )
-        )
-
-        /* ── Bottom fade into next section ── */
-        , React.createElement('div', { className: "absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-[#FAF8F6] to-transparent pointer-events-none" })
       )
+
+
 
       /* 3. Features Section */
       , React.createElement('section', { id: "features", className: "py-24 md:py-32 border-t border-[#EAE3DF]/30 bg-[#FAF8F6] bg-dots" }

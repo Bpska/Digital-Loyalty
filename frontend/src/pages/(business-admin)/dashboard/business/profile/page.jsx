@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { api, getImageUrl } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +56,7 @@ function BrandIcon({ iconName, customUrl, defaultIcon: DefaultIcon, className = 
 }
 
 export default function BusinessProfilePage() {
+  const { setShowNotifications, unreadCount, fetchNotifications } = useOutletContext() || {};
   const { user, logout } = useAuthStore();
   const businessId = user?.businessId;
   const queryClient = useQueryClient();
@@ -114,6 +115,13 @@ export default function BusinessProfilePage() {
     queryKey: ["businessBrand", businessId],
     queryFn: () => api.get(`/businesses/${businessId}/brand`).then((res) => res.data),
     enabled: !!businessId,
+  });
+
+  // Fetch business analytics for customers stats
+  const { data: analytics, isLoading: isAnalyticsLoading } = useQuery({
+    queryKey: ["businessAnalytics", businessId],
+    queryFn: () => api.get(`/analytics/business/${businessId}`).then((res) => res.data),
+    enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
   });
 
   useEffect(() => {
@@ -189,17 +197,27 @@ export default function BusinessProfilePage() {
     if (!file) return;
 
     const formData = new FormData();
-    formData.append("icon", file);
-
     setSavingBrand(true);
     setMessage(null);
     try {
-      const res = await api.post(`/businesses/${businessId}/brand/upload`, formData, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
-      const uploadedUrl = res.data.iconUrl;
-      setCustomUrls((prev) => ({ ...prev, [field]: uploadedUrl }));
-      setBrandForm((prev) => ({ ...prev, [field]: "" }));
+      if (field === "logoUrl") {
+        formData.append("logo", file);
+        const res = await api.post(`/businesses/${businessId}/logo`, formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
+        const uploadedUrl = res.data.logoUrl;
+        setCustomUrls((prev) => ({ ...prev, [field]: uploadedUrl }));
+        await refetchProfile();
+        queryClient.invalidateQueries({ queryKey: ["businessProfile", businessId] });
+      } else {
+        formData.append("icon", file);
+        const res = await api.post(`/businesses/${businessId}/brand/upload`, formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
+        const uploadedUrl = res.data.iconUrl;
+        setCustomUrls((prev) => ({ ...prev, [field]: uploadedUrl }));
+        setBrandForm((prev) => ({ ...prev, [field]: "" }));
+      }
     } catch (err) {
       setMessage({ type: "error", text: err.message || "File upload failed." });
     } finally {
@@ -234,7 +252,7 @@ export default function BusinessProfilePage() {
     saveBrandMutation.mutate(payload);
   };
 
-  if (isProfileLoading || isBrandLoading) {
+  if (isProfileLoading || isBrandLoading || isAnalyticsLoading) {
     return (
       <div className="space-y-6 animate-pulse">
         <div className="h-10 w-48 rounded bg-slate-100" />
@@ -285,14 +303,14 @@ export default function BusinessProfilePage() {
       <div className="md:hidden space-y-6">
         
         {/* A. Curved Gradient Header */}
-        <div className="relative bg-gradient-to-br from-[#FF7A30] to-[#E63E00] pt-6 pb-20 px-5 rounded-b-[40px] shadow-md overflow-hidden">
+        <div className="relative bg-gradient-to-br from-[#FFF8F4] to-[#FFEBE0] border-b border-[#FFD8C2] pt-6 pb-20 px-5 rounded-b-[40px] shadow-sm overflow-hidden">
           
           {/* Subtle faint dot grid decorative pattern */}
-          <div className="absolute right-0 top-0 w-1/2 h-full opacity-10 pointer-events-none select-none">
+          <div className="absolute right-0 top-0 w-1/2 h-full opacity-5 pointer-events-none select-none">
             <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <pattern id="dotGrid" width="12" height="12" patternUnits="userSpaceOnUse">
-                  <circle cx="2" cy="2" r="1.5" fill="#FFFFFF" />
+                  <circle cx="2" cy="2" r="1.5" fill="#F97316" />
                 </pattern>
               </defs>
               <rect width="100%" height="100%" fill="url(#dotGrid)" />
@@ -303,22 +321,30 @@ export default function BusinessProfilePage() {
             <div className="flex items-center gap-3">
               <button 
                 onClick={() => navigate("/dashboard/business")} 
-                className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white backdrop-blur-md active:scale-95 transition-transform"
+                className="w-9 h-9 rounded-full bg-slate-500/10 flex items-center justify-center text-[#0F172A] active:scale-95 transition-transform"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
               <div>
-                <h1 className="text-lg font-black text-white leading-none">Business Portal</h1>
-                <p className="text-[10px] text-white/80 mt-0.5 font-medium">Manage your account & settings</p>
+                <h1 className="text-lg font-black text-[#0F172A] leading-none">Business Portal</h1>
+                <p className="text-[10px] text-[#64748B] mt-0.5 font-medium">Manage your account & settings</p>
               </div>
             </div>
             
             <div className="flex items-center gap-2.5">
-              <button className="relative w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white backdrop-blur-md">
+              <button 
+                onClick={() => {
+                  if (setShowNotifications) setShowNotifications(true);
+                  if (fetchNotifications) fetchNotifications();
+                }}
+                className="relative w-9 h-9 rounded-full bg-slate-500/10 flex items-center justify-center text-[#0F172A]"
+              >
                 <Bell className="h-4.5 w-4.5" />
-                <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-pink-500 text-white text-[8px] font-black rounded-full flex items-center justify-center leading-none">3</span>
+                {unreadCount > 0 && (
+                  <span className="absolute top-0.5 right-0.5 w-4.5 h-4.5 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center leading-none shadow-sm">{unreadCount}</span>
+                )}
               </button>
-              <div className="w-9 h-9 rounded-full bg-white text-[#F97316] border border-white/20 flex items-center justify-center text-sm font-black shadow-sm">
+              <div className="w-9 h-9 rounded-full bg-[#F97316]/10 text-[#F97316] border border-[#F97316]/20 flex items-center justify-center text-sm font-black shadow-sm">
                 {initials}
               </div>
             </div>
@@ -604,7 +630,7 @@ export default function BusinessProfilePage() {
                     </div>
                     <span className="text-[8px] text-[#64748B] font-bold uppercase tracking-wider block">Next Billing</span>
                     <span className="text-[9px] font-extrabold text-[#0F172A] leading-tight">
-                      {business?.subscription?.currentPeriodEnd ? formatDate(business.subscription.currentPeriodEnd) : "29 Jun 2027"}
+                      {business?.subscription?.currentPeriodEnd ? formatDate(business.subscription.currentPeriodEnd) : "N/A"}
                     </span>
                   </div>
 
@@ -643,10 +669,10 @@ export default function BusinessProfilePage() {
                       <span className="text-[#64748B] flex items-center gap-1">
                         <Users className="h-3.5 w-3.5 text-[#7C3AED]" /> Customers Limit
                       </span>
-                      <span className="text-[#0F172A]">{business?.plan?.maxCustomers ? "1,247" : "1 / 8000"} / {business?.plan?.maxCustomers || 8000}</span>
+                      <span className="text-[#0F172A]">{(analytics?.totalCustomers ?? 0).toLocaleString()} / {business?.plan?.maxCustomers || 8000}</span>
                     </div>
                     {(() => {
-                      const pct = Math.round((1247 / (business?.plan?.maxCustomers || 8000)) * 100) || 1;
+                      const pct = Math.round(((analytics?.totalCustomers ?? 0) / (business?.plan?.maxCustomers || 8000)) * 100) || 0;
                       return (
                         <>
                           <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">

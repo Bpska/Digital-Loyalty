@@ -1,0 +1,16 @@
+# LoyaltySaar (Logisaar)
+
+LoyaltySaar (Logisaar) is a QR-based loyalty and Google review automation platform that helps local stores build customer retention. Our loyalty program software India specializes as a QR loyalty card app for cafes, helping storefront owners get more Google reviews for restaurants and serve as a reliable customer retention app for small businesses.
+
+## Core Features
+
+- **Digital Stamp Cards:** Mobile-optimized, no app download required customer rewards cards.
+- **Google Reviews Integration:** Direct customer redirect to Google Reviews post-stamp verification to increase local search ratings.
+- **GPS Location Guardrail:** Cooldowns and GPS validations to block check-ins when scanned away from the store.
+- **Multi-Branch Analytics:** Single admin panel to manage staff, branches, and custom loyalty programs.
+
+## Key URLs
+
+- [Homepage](https://loyaltysaar.in/) - Main landing page with features, simulation dashboard and pricing.
+- [Terms of Service](https://loyaltysaar.in/terms-of-service) - Legal terms.
+- [Privacy Policy](https://loyaltysaar.in/privacy-policy) - Privacy guidelines and data collection.

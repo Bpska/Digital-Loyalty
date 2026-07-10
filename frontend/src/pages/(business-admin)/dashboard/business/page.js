@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useOutletContext } from "react-router-dom";
 const _jsxFileName = "src\\pages\\(business-admin)\\dashboard\\business\\page.tsx"; function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; } "use client";
 
 import React from "react";
@@ -70,6 +70,7 @@ const BrandIcon = ({ iconName, customUrl, defaultIcon: DefaultIcon, className = 
   return React.createElement(DefaultIcon, { className: `${className} shrink-0` });
 };
 export default function BusinessDashboard() {
+  const { setShowNotifications, unreadCount, fetchNotifications } = useOutletContext() || {};
   const { user } = useAuthStore();
   const businessId = _optionalChain([user, 'optionalAccess', _ => _.businessId]);
   const [statusLoading, setStatusLoading] = React.useState({});
@@ -162,120 +163,7 @@ export default function BusinessDashboard() {
   };
 
   const queryClient = useQueryClient();
-  const [showRedeemModal, setShowRedeemModal] = React.useState(false);
-  const [redeemCode, setRedeemCode] = React.useState("");
-  const [redeemLoading, setRedeemLoading] = React.useState(false);
-  const [redeemResult, setRedeemResult] = React.useState(null);
-  const [redeemError, setRedeemError] = React.useState("");
-  const [scanningRedeem, setScanningRedeem] = React.useState(false);
-  const html5QrCodeRedeemRef = React.useRef(null);
 
-  const handleCloseRedeemModal = async () => {
-    if (html5QrCodeRedeemRef.current && html5QrCodeRedeemRef.current.isScanning) {
-      try {
-        await html5QrCodeRedeemRef.current.stop();
-      } catch (err) {
-        console.error("Failed to stop scanner on close:", err);
-      }
-    }
-    setShowRedeemModal(false);
-    setRedeemCode("");
-    setRedeemResult(null);
-    setRedeemError("");
-    setScanningRedeem(false);
-  };
-
-  const handleProcessRedeem = async (code) => {
-    let codeToRedeem = code || redeemCode;
-    if (!codeToRedeem) {
-      setRedeemError("Please enter or scan a valid code");
-      return;
-    }
-
-    if (typeof codeToRedeem === "string" && codeToRedeem.trim().startsWith("{")) {
-      try {
-        const parsed = JSON.parse(codeToRedeem);
-        if (parsed.redemptionCode) {
-          codeToRedeem = parsed.redemptionCode;
-        }
-      } catch (e) {
-        // Fallback
-      }
-    }
-    setRedeemLoading(true);
-    setRedeemError("");
-    setRedeemResult(null);
-    try {
-      const res = await api.post("/checkins/redeem", { redemptionCode: codeToRedeem });
-      setRedeemResult(res.data);
-      setRedeemCode("");
-      queryClient.invalidateQueries(["businessCheckins", businessId]);
-      queryClient.invalidateQueries(["businessAnalytics", businessId]);
-      queryClient.invalidateQueries(["businessRedemptions", businessId]);
-      refetchCheckins();
-      refetchRedemptions();
-    } catch (err) {
-      setRedeemError(err.response?.data?.message || err.message || "Failed to redeem reward. Please check the code and try again.");
-    } finally {
-      setRedeemLoading(false);
-    }
-  };
-
-  React.useEffect(() => {
-    let qrScanner = null;
-    let isMounted = true;
-
-    if (showRedeemModal && scanningRedeem) {
-      const initScanner = async () => {
-        try {
-          const { Html5Qrcode } = await import("html5-qrcode");
-          if (!isMounted) return;
-
-          const scannerId = "reader-redeem";
-          qrScanner = new Html5Qrcode(scannerId);
-          html5QrCodeRedeemRef.current = qrScanner;
-
-          await qrScanner.start(
-            { facingMode: "environment" },
-            {
-              fps: 10,
-              qrbox: { width: 250, height: 250 },
-            },
-            (decodedText) => {
-              if (isMounted) {
-                qrScanner.stop().then(() => {
-                  setScanningRedeem(false);
-                  handleProcessRedeem(decodedText);
-                }).catch(err => {
-                  console.error("Failed to stop scanner on success:", err);
-                  setScanningRedeem(false);
-                  handleProcessRedeem(decodedText);
-                });
-              }
-            },
-            (_errorMessage) => {
-              // ignore scan errors
-            }
-          );
-        } catch (err) {
-          console.warn("Camera access denied or unavailable:", err?.message || err);
-          if (isMounted) {
-            setScanningRedeem(false);
-            setRedeemError("Camera access denied or unavailable. Please enter the redemption code manually.");
-          }
-        }
-      };
-
-      const timer = setTimeout(initScanner, 100);
-      return () => {
-        clearTimeout(timer);
-        isMounted = false;
-        if (qrScanner && qrScanner.isScanning) {
-          qrScanner.stop().catch((err) => console.error("Error stopping scanner on cleanup:", err));
-        }
-      };
-    }
-  }, [showRedeemModal, scanningRedeem]);
 
   const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -638,6 +526,7 @@ export default function BusinessDashboard() {
   const checkins = checkinsData || [];
 
   const [undoingId, setUndoingId] = React.useState(null);
+  const [chartTimeRange, setChartTimeRange] = React.useState("This Week");
   const { data: redemptionsData, isLoading: redemptionsLoading, refetch: refetchRedemptions } = useQuery({
     queryKey: ["businessRedemptions", businessId],
     queryFn: () => api.get(`/businesses/${businessId}/redemptions`).then((res) => res.data),
@@ -685,13 +574,31 @@ export default function BusinessDashboard() {
     return Math.round((current / max) * 100);
   };
 
-  // Build weekly chart data from analytics or use sample progression
-  const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const baseCheckins = analytics?.totalCheckIns ?? 0;
-  const chartData = weekDays.map((day, i) => ({
-    day,
-    value: Math.max(0, Math.round(baseCheckins * (0.08 + (i * 0.04) + (Math.sin(i) * 0.06))))
-  }));
+  // Build chart data based on selected time range
+  const getChartData = () => {
+    const baseCheckins = analytics?.totalCheckIns ?? 0;
+    if (chartTimeRange === "This Month") {
+      const monthWeeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+      return monthWeeks.map((week, i) => ({
+        day: week,
+        value: Math.max(0, Math.round(baseCheckins * (0.15 + (i * 0.12) + (Math.cos(i) * 0.08))))
+      }));
+    } else if (chartTimeRange === "This Year") {
+      const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
+      return quarters.map((quarter, i) => ({
+        day: quarter,
+        value: Math.max(0, Math.round(baseCheckins * (0.2 + (i * 0.15) + (Math.sin(i) * 0.1))))
+      }));
+    } else {
+      // This Week (default)
+      const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      return weekDays.map((day, i) => ({
+        day,
+        value: Math.max(0, Math.round(baseCheckins * (0.08 + (i * 0.04) + (Math.sin(i) * 0.06))))
+      }));
+    }
+  };
+  const chartData = getChartData();
 
   const socialLinks = [
     { name: 'Google Review', connected: !!(revGoogleUrl), icon: 'G', color: '#4285F4', bg: '#E8F0FE' },
@@ -722,11 +629,18 @@ export default function BusinessDashboard() {
         )
         , React.createElement('div', { className: "flex items-center gap-3" }
           , React.createElement('button', {
-            onClick: () => { setShowNotifications && setShowNotifications(true); },
+            onClick: () => {
+              if (setShowNotifications) setShowNotifications(true);
+              if (fetchNotifications) fetchNotifications();
+            },
             className: "relative w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-[#64748B]"
           }
             , React.createElement(Bell, { className: "h-4.5 w-4.5" })
-            , React.createElement('span', { className: "absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center leading-none" }, "3")
+            , unreadCount > 0 && (
+                React.createElement('span', { className: "absolute top-0.5 right-0.5 w-4.5 h-4.5 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center leading-none shadow-sm" }
+                  , String(unreadCount)
+                )
+              )
           )
           , React.createElement('div', { className: "w-9 h-9 rounded-full bg-[#6D5DD3] flex items-center justify-center text-white text-sm font-bold shadow-sm" }
             , _optionalChain([user, 'optionalAccess', _ => _.name, 'optionalAccess', _a => _a[0], 'optionalAccess', _b => _b.toUpperCase, 'optionalCall', _c => _c()])
@@ -790,13 +704,6 @@ export default function BusinessDashboard() {
                 }
                   , React.createElement(ScanLine, { className: "h-3.5 w-3.5" })
                   , "Scan & Redeem"
-                )
-                , React.createElement('button', {
-                  onClick: () => window.location.href = "/dashboard/business/coupons",
-                  className: "flex items-center gap-1.5 bg-transparent text-white text-xs font-bold px-4 py-2 rounded-full border border-white/70 active:scale-95 transition-transform"
-                }
-                  , React.createElement(Gift, { className: "h-3.5 w-3.5" })
-                  , "Add Coupon"
                 )
               )
             )
@@ -885,53 +792,28 @@ export default function BusinessDashboard() {
         , React.createElement('div', { className: "bg-white rounded-3xl shadow-sm p-4" }
           , React.createElement('div', { className: "flex items-center justify-between mb-3" }
             , React.createElement('span', { className: "text-sm font-bold text-[#0F172A]" }, "Quick Actions")
-            , React.createElement('a', { href: "/dashboard/business/coupons", className: "text-xs font-semibold", style: { color: "#6D5DD3" } }, "View All")
           )
-          , React.createElement('div', { className: "grid grid-cols-5 gap-1" }
+          , React.createElement('div', { className: "grid grid-cols-3 gap-1" }
             /* Create Coupon */
             , React.createElement('a', { href: "/dashboard/business/coupons", className: "flex flex-col items-center gap-1.5 active:scale-95 transition-transform" }
-              , React.createElement('div', { className: "w-12 h-12 rounded-2xl flex items-center justify-center", style: { background: "#FEF3E2" } }
-                , React.createElement(Ticket, { className: "h-5 w-5", style: { color: "#F97316" } })
-              )
-              , React.createElement('span', { className: "text-[9px] text-[#64748B] font-medium text-center leading-tight" }, "Create", React.createElement('br', null), "Coupon")
+               , React.createElement('div', { className: "w-12 h-12 rounded-2xl flex items-center justify-center", style: { background: "#FEF3E2" } }
+                 , React.createElement(Ticket, { className: "h-5 w-5", style: { color: "#F97316" } })
+               )
+               , React.createElement('span', { className: "text-[9px] text-[#64748B] font-medium text-center leading-tight" }, "Create", React.createElement('br', null), "Coupon")
             )
             /* Add Reward */
             , React.createElement('a', { href: "/dashboard/business/loyalty-config", className: "flex flex-col items-center gap-1.5 active:scale-95 transition-transform" }
-              , React.createElement('div', { className: "w-12 h-12 rounded-2xl flex items-center justify-center", style: { background: "#FDE8F0" } }
-                , React.createElement(Gift, { className: "h-5 w-5", style: { color: "#EC4899" } })
-              )
-              , React.createElement('span', { className: "text-[9px] text-[#64748B] font-medium text-center leading-tight" }, "Add", React.createElement('br', null), "Reward")
+               , React.createElement('div', { className: "w-12 h-12 rounded-2xl flex items-center justify-center", style: { background: "#FDE8F0" } }
+                 , React.createElement(Gift, { className: "h-5 w-5", style: { color: "#EC4899" } })
+               )
+               , React.createElement('span', { className: "text-[9px] text-[#64748B] font-medium text-center leading-tight" }, "Add", React.createElement('br', null), "Reward")
             )
-            /* QR Code */
-            , primaryBranch
-              ? React.createElement('button', {
-                onClick: () => { setShowRedeemModal(true); setScanningRedeem(false); },
-                className: "flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
-              }
-                , React.createElement('div', { className: "w-12 h-12 rounded-2xl flex items-center justify-center", style: { background: "#DBEAFE" } }
-                  , React.createElement(QrCode, { className: "h-5 w-5", style: { color: "#3B82F6" } })
-                )
-                , React.createElement('span', { className: "text-[9px] text-[#64748B] font-medium text-center leading-tight" }, "QR", React.createElement('br', null), "Code")
-              )
-              : React.createElement('div', { className: "flex flex-col items-center gap-1.5" }
-                , React.createElement('div', { className: "w-12 h-12 rounded-2xl flex items-center justify-center", style: { background: "#DBEAFE" } }
-                  , React.createElement(QrCode, { className: "h-5 w-5", style: { color: "#3B82F6" } })
-                )
-                , React.createElement('span', { className: "text-[9px] text-[#64748B] font-medium text-center leading-tight" }, "QR", React.createElement('br', null), "Code")
-              )
             /* Review Settings */
             , React.createElement('a', { href: "/dashboard/business/profile", className: "flex flex-col items-center gap-1.5 active:scale-95 transition-transform" }
-              , React.createElement('div', { className: "w-12 h-12 rounded-2xl flex items-center justify-center", style: { background: "#FEF3E2" } }
-                , React.createElement(Star, { className: "h-5 w-5", style: { color: "#F97316" } })
-              )
-              , React.createElement('span', { className: "text-[9px] text-[#64748B] font-medium text-center leading-tight" }, "Review", React.createElement('br', null), "Settings")
-            )
-            /* Invite Customer */
-            , React.createElement('a', { href: "/dashboard/business/analytics", className: "flex flex-col items-center gap-1.5 active:scale-95 transition-transform" }
-              , React.createElement('div', { className: "w-12 h-12 rounded-2xl flex items-center justify-center", style: { background: "#DCFCE7" } }
-                , React.createElement(UserPlus, { className: "h-5 w-5", style: { color: "#22C55E" } })
-              )
-              , React.createElement('span', { className: "text-[9px] text-[#64748B] font-medium text-center leading-tight" }, "Invite", React.createElement('br', null), "Customer")
+               , React.createElement('div', { className: "w-12 h-12 rounded-2xl flex items-center justify-center", style: { background: "#FEF3E2" } }
+                 , React.createElement(Star, { className: "h-5 w-5", style: { color: "#F97316" } })
+               )
+               , React.createElement('span', { className: "text-[9px] text-[#64748B] font-medium text-center leading-tight" }, "Review", React.createElement('br', null), "Settings")
             )
           )
         )
@@ -943,9 +825,17 @@ export default function BusinessDashboard() {
               , React.createElement(TrendingUp, { className: "h-4 w-4", style: { color: "#6D5DD3" } })
               , React.createElement('span', { className: "text-sm font-bold text-[#0F172A]" }, "Check-in Overview")
             )
-            , React.createElement('div', { className: "flex items-center gap-1 px-3 py-1 rounded-full text-xs text-[#64748B] font-medium", style: { background: "#F1F5F9" } }
-              , "This Week"
-              , React.createElement(ChevronDown, { className: "h-3 w-3 ml-0.5" })
+            , React.createElement('div', { className: "flex items-center gap-1 px-3 py-1 rounded-full text-xs text-[#64748B] font-bold border border-slate-100 bg-[#F1F5F9] relative" }
+              , React.createElement('select', {
+                  value: chartTimeRange,
+                  onChange: (e) => setChartTimeRange(e.target.value),
+                  className: "bg-transparent outline-none cursor-pointer pr-1 font-bold text-[#64748B] appearance-none"
+                }
+                , React.createElement('option', { value: "This Week" }, "This Week")
+                , React.createElement('option', { value: "This Month" }, "This Month")
+                , React.createElement('option', { value: "This Year" }, "This Year")
+              )
+              , React.createElement(ChevronDown, { className: "h-3 w-3 ml-0.5 pointer-events-none" })
             )
           )
           , React.createElement('div', { style: { height: "140px" } }
@@ -1000,16 +890,17 @@ export default function BusinessDashboard() {
           )
           , React.createElement('div', { className: "grid grid-cols-3 gap-2" }
             /* Google */
-            , React.createElement('div', { className: "flex flex-col items-center gap-1.5 p-2 rounded-2xl", style: { background: "#F8FAFC" } }
-              , React.createElement('div', { className: "w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-base shadow-sm", style: { background: "#4285F4" } }, "G")
-              , React.createElement('span', { className: "text-[9px] text-[#64748B] font-medium" }, "Google Review")
+            , React.createElement('div', { className: "flex flex-col items-center gap-1.5 p-2 rounded-2xl border transition-all duration-300 relative overflow-hidden", style: { background: "#FFF8F4", borderColor: "rgba(249, 115, 22, 0.3)", boxShadow: "0 4px 12px rgba(249, 115, 22, 0.08)" } }
+              , React.createElement('div', { className: "absolute top-0 right-0 bg-[#F97316] text-white text-[6px] font-black px-1 rounded-bl" }, "POPULAR")
+              , React.createElement('img', { src: "/google-reviews-logo.png", alt: "Google", className: "w-10 h-10 object-contain rounded-full shadow-sm bg-white" })
+              , React.createElement('span', { className: "text-[9px] text-[#64748B] font-bold" }, "Google Review")
               , React.createElement('span', { className: "text-[9px] font-bold flex items-center gap-0.5", style: { color: revGoogleUrl ? "#22C55E" : "#94A3B8" } }
                 , revGoogleUrl ? "✓ Connected" : "Not set"
               )
             )
             /* Instagram */
             , React.createElement('div', { className: "flex flex-col items-center gap-1.5 p-2 rounded-2xl", style: { background: "#F8FAFC" } }
-              , React.createElement('div', { className: "w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-base shadow-sm", style: { background: "linear-gradient(135deg, #F09433, #E6683C, #DC2743, #CC2366, #BC1888)" } }, "📷")
+              , React.createElement('img', { src: "/Instagram_icon.png", alt: "Instagram", className: "w-10 h-10 object-contain rounded-full shadow-sm" })
               , React.createElement('span', { className: "text-[9px] text-[#64748B] font-medium" }, "Instagram")
               , React.createElement('span', { className: "text-[9px] font-bold flex items-center gap-0.5", style: { color: revInstagramUrl ? "#22C55E" : "#94A3B8" } }
                 , revInstagramUrl ? "✓ Connected" : "Not set"
@@ -1017,7 +908,7 @@ export default function BusinessDashboard() {
             )
             /* Facebook */
             , React.createElement('div', { className: "flex flex-col items-center gap-1.5 p-2 rounded-2xl", style: { background: "#F8FAFC" } }
-              , React.createElement('div', { className: "w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-base shadow-sm", style: { background: "#1877F2" } }, "f")
+              , React.createElement('img', { src: "/Facebook_f_logo_(2021).svg.webp", alt: "Facebook", className: "w-10 h-10 object-contain rounded-full shadow-sm" })
               , React.createElement('span', { className: "text-[9px] text-[#64748B] font-medium" }, "Facebook")
               , React.createElement('span', { className: "text-[9px] font-bold flex items-center gap-0.5", style: { color: revFacebookUrl ? "#22C55E" : "#94A3B8" } }
                 , revFacebookUrl ? "✓ Connected" : "Not set"
@@ -1358,61 +1249,7 @@ export default function BusinessDashboard() {
         )
       )
 
-      /* Scan & Redeem Modal */
-      , showRedeemModal && (
-        React.createElement(Dialog, { open: showRedeemModal, onOpenChange: (open) => !open && handleCloseRedeemModal() }
-          , React.createElement(DialogContent, { className: "max-w-[400px] bg-white border border-border p-6 rounded-3xl text-slate-800" }
-            , React.createElement(DialogHeader, { className: "flex flex-col items-center justify-center text-center w-full" }
-              , React.createElement(DialogTitle, { className: "text-lg font-extrabold text-foreground" }, "Scan & Redeem Reward")
-              , React.createElement(DialogDescription, { className: "text-xs mt-1 text-muted-foreground" }, "Scan the customer's reward QR code or enter the code manually.")
-            )
-            , React.createElement('div', { className: "space-y-4 py-3" }
-              , scanningRedeem
-                ? React.createElement('div', { className: "space-y-3" }
-                  , React.createElement('div', { className: "relative w-full aspect-square max-w-[280px] mx-auto rounded-2xl overflow-hidden border-2 border-[#FF6A00]/40 bg-black flex items-center justify-center" }
-                    , React.createElement('div', { id: "reader-redeem", className: "absolute inset-0 w-full h-full" })
-                    , React.createElement('div', { className: "absolute inset-x-4 top-1/2 h-[2px] bg-[#FF6A00] animate-pulse z-10" })
-                  )
-                  , React.createElement(Button, { type: "button", variant: "outline", onClick: () => setScanningRedeem(false), className: "w-full text-xs rounded-xl" }
-                    , React.createElement(Camera, { className: "h-3.5 w-3.5 mr-1.5" }), "Use Manual Code Input"
-                  )
-                )
-                : React.createElement('div', { className: "space-y-3" }
-                  , React.createElement(Button, { type: "button", variant: "outline", onClick: () => { setRedeemError(""); setScanningRedeem(true); }, className: "w-full text-xs py-5 rounded-2xl border-2 border-dashed border-[#FF6A00]/40 hover:bg-[#FF6A00]/5 flex items-center justify-center gap-2" }
-                    , React.createElement(Scan, { className: "h-5 w-5 text-[#FF6A00]" })
-                    , React.createElement('span', { className: "font-bold text-[#FF6A00]" }, "Start Camera Scanner")
-                  )
-                )
-              , !scanningRedeem && React.createElement('div', { className: "space-y-3" }
-                , React.createElement('div', { className: "space-y-1.5" }
-                  , React.createElement(Label, { htmlFor: "redeem-code-input", className: "text-xs font-bold text-muted-foreground" }, "Redemption Code")
-                  , React.createElement('div', { className: "flex gap-2" }
-                    , React.createElement(Input, { id: "redeem-code-input", placeholder: "e.g. A1B2C3D4", value: redeemCode, onChange: (e) => setRedeemCode(e.target.value.toUpperCase()), className: "text-xs border-border bg-white font-mono tracking-wider font-bold" })
-                    , React.createElement(Button, { type: "button", onClick: () => handleProcessRedeem(), disabled: redeemLoading, className: "bg-gradient-to-r from-[#FF6A00] to-[#800020] text-white text-xs font-bold rounded-xl" }
-                      , redeemLoading ? React.createElement(Loader2, { className: "h-3.5 w-3.5 animate-spin" }) : "Redeem"
-                    )
-                  )
-                )
-              )
-              , redeemResult && (
-                React.createElement('div', { className: "rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-xs text-emerald-800 space-y-1" }
-                  , React.createElement('p', { className: "font-bold" }, "✅ Redemption Successful!")
-                  , React.createElement('p', null, "Reward: ", React.createElement('strong', null, redeemResult.reward.title))
-                  , React.createElement('p', null, "Customer: ", React.createElement('strong', null, redeemResult.customerName))
-                )
-              )
-              , redeemError && (
-                React.createElement('div', { className: "rounded-2xl bg-red-50 border border-red-200 p-4 text-xs text-red-800 font-medium" }
-                  , redeemError
-                )
-              )
-            )
-            , React.createElement(DialogFooter, { className: "pt-2" }
-              , React.createElement(Button, { type: "button", variant: "outline", onClick: handleCloseRedeemModal, className: "w-full text-xs rounded-xl" }, "Close")
-            )
-          )
-        )
-      )
+
 
       /* Onboarding Tour Dialog */
       , showOnboarding && React.createElement(
