@@ -19,6 +19,9 @@ function getTransporter() {
         user: env.SMTP_USER,
         pass: env.SMTP_PASS,
       },
+      tls: {
+        rejectUnauthorized: false, // Bypass SSL certificate verification issues common on VPS
+      },
     });
   }
   return transporter;

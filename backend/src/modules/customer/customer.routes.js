@@ -245,6 +245,7 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
                   id: true,
                   name: true,
                   logoUrl: true,
+                  coverUrl: true,
                   googleReviewUrl: true,
                 }
               }
@@ -295,7 +296,7 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
           coupon: {
             include: {
               business: {
-                select: { id: true, name: true, logoUrl: true, googleReviewUrl: true }
+                select: { id: true, name: true, logoUrl: true, coverUrl: true, googleReviewUrl: true }
               }
             }
           }
@@ -321,6 +322,7 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
                   id: true,
                   name: true,
                   logoUrl: true,
+                  coverUrl: true,
                 }
               }
             }
@@ -338,7 +340,7 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
           coupon: {
             include: {
               business: {
-                select: { id: true, name: true, logoUrl: true }
+                select: { id: true, name: true, logoUrl: true, coverUrl: true }
               }
             }
           }
@@ -378,6 +380,7 @@ router.get('/nearby-branches', authenticate, authorize(Role.CUSTOMER), async (re
             id: true,
             name: true,
             logoUrl: true,
+            coverUrl: true,
             category: true,
             plan: true,
           }

@@ -918,6 +918,110 @@ export default function BusinessProfilePage() {
         {activeSettingsTab === "profile" ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
+              {/* Business Profile Details */}
+              <Card className="glass" glass>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg font-bold flex items-center gap-2">
+                        <Building className="h-5 w-5 text-primary" />
+                        Business Details
+                      </CardTitle>
+                      <CardDescription>Manage business information, categories and links</CardDescription>
+                    </div>
+                    <Button onClick={() => setIsEditing(!isEditing)} variant="outline" size="xs" className="border-primary/20 text-primary hover:bg-primary/5 font-bold h-8 rounded-lg">
+                      {isEditing ? "Cancel" : "Edit Profile"}
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {isEditing ? (
+                    <form onSubmit={handleUpdateProfile} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="dk-biz-name">Business Name</Label>
+                          <Input id="dk-biz-name" value={profileName} onChange={(e) => setProfileName(e.target.value)} className="bg-white border-border" required />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="dk-biz-phone">Contact Phone</Label>
+                          <Input id="dk-biz-phone" value={profilePhone} onChange={(e) => setProfilePhone(e.target.value)} className="bg-white border-border" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="dk-biz-address">Address</Label>
+                          <Input id="dk-biz-address" value={profileAddress} onChange={(e) => setProfileAddress(e.target.value)} className="bg-white border-border" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="dk-biz-category">Category</Label>
+                          <select id="dk-biz-category" value={profileCategory} onChange={(e) => setProfileCategory(e.target.value)} className="w-full h-10 border border-slate-200 rounded-xl bg-white text-xs px-2.5 outline-none text-slate-800">
+                            <option value="Cafe">Café</option>
+                            <option value="Restaurant">Restaurant</option>
+                            <option value="Salon">Salon</option>
+                            <option value="Retail">Retail</option>
+                            <option value="Bakery">Bakery</option>
+                            <option value="Hotels">Hotels</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </div>
+                      </div>
+                      
+                      {profileCategory === "Hotels" && (
+                        <div className="space-y-2">
+                          <Label htmlFor="dk-biz-booking">Booking URL</Label>
+                          <Input id="dk-biz-booking" value={profileBookingUrl} onChange={(e) => setProfileBookingUrl(e.target.value)} className="bg-white border-border" placeholder="e.g. booking.com/..." />
+                        </div>
+                      )}
+
+                      <div className="flex justify-end gap-3 pt-2">
+                        <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
+                        <Button type="submit" className="bg-primary text-white font-bold" disabled={profileSaving}>
+                          {profileSaving ? "Saving..." : "Save Changes"}
+                        </Button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-100 bg-slate-50/50">
+                        <Building className="h-5 w-5 text-muted-foreground shrink-0" />
+                        <div>
+                          <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider block">Business Name</span>
+                          <span className="text-sm font-semibold text-slate-800">{business?.name || "—"}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-100 bg-slate-50/50">
+                        <Phone className="h-5 w-5 text-muted-foreground shrink-0" />
+                        <div>
+                          <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider block">Contact Phone</span>
+                          <span className="text-sm font-semibold text-slate-800">{business?.phone || "—"}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-100 bg-slate-50/50">
+                        <MapPin className="h-5 w-5 text-muted-foreground shrink-0" />
+                        <div>
+                          <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider block">Address</span>
+                          <span className="text-sm font-semibold text-slate-800">{business?.address || "—"}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-100 bg-slate-50/50">
+                        <Coffee className="h-5 w-5 text-muted-foreground shrink-0" />
+                        <div>
+                          <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider block">Category</span>
+                          <span className="text-sm font-semibold text-slate-800">{business?.category || "—"}</span>
+                        </div>
+                      </div>
+                      {business?.category === "Hotels" && (
+                        <div className="col-span-2 flex items-center gap-3 p-3.5 rounded-xl border border-slate-100 bg-slate-50/50">
+                          <Globe className="h-5 w-5 text-muted-foreground shrink-0" />
+                          <div>
+                            <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider block">Booking URL</span>
+                            <a href={business.bookingUrl?.startsWith("http") ? business.bookingUrl : `https://${business.bookingUrl}`} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-primary hover:underline">{business?.bookingUrl || "—"}</a>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               {/* Owner Credentials */}
               <Card className="glass" glass>
                 <CardHeader>

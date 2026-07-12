@@ -479,10 +479,14 @@ export default function CustomerDashboard() {
                     return React.createElement('div', {
                       key: card.id,
                       onClick: () => setSelectedBusiness(card),
-                      className: "w-[calc(100vw-2.5rem)] shrink-0 snap-center bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-between space-y-4"
+                      className: "w-[calc(100vw-2.5rem)] shrink-0 snap-center bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-between space-y-4 overflow-hidden relative cursor-pointer"
                     }
+                      /* Banner cover image if present */
+                      , business.coverUrl && React.createElement('div', { className: "h-20 -mx-5 -mt-5 relative overflow-hidden border-b border-slate-100 shrink-0" }
+                          , React.createElement('img', { src: getImageUrl(business.coverUrl), alt: "Cover", className: "w-full h-full object-cover" })
+                        )
                       /* Top row */
-                      , React.createElement('div', { className: "flex items-start justify-between gap-3" }
+                      , React.createElement('div', { className: cn("flex items-start justify-between gap-3", business.coverUrl && "mt-1") }
                         , React.createElement('div', { className: "flex items-center gap-3" }
                           , React.createElement('div', { className: "w-11 h-11 bg-[#F97316] rounded-2xl flex items-center justify-center shrink-0 shadow-sm" }
                             , React.createElement(BrandIcon, {

@@ -362,7 +362,21 @@ export default function BusinessesManagementPage() {
       queryClient.invalidateQueries({ queryKey: ["superBusinessesList"] });
     },
     onError: (err) => {
-      alert(err.message || "Failed to delete business.");
+      console.error("Delete business mutation failed:", err);
+      alert(err.response?.data?.message || err.message || "Failed to delete business.");
+    }
+  });
+
+  // Restore business mutation
+  const restoreBusinessMutation = useMutation({
+    mutationFn: (id) => api.post(`/admin/businesses/${id}/restore`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["superBusinessesList"] });
+      alert("Business restored successfully!");
+    },
+    onError: (err) => {
+      console.error("Restore business mutation failed:", err);
+      alert(err.response?.data?.message || err.message || "Failed to restore business.");
     }
   });
 
@@ -577,7 +591,8 @@ export default function BusinessesManagementPage() {
                 React.createElement('option', { value: "ALL" }, "All Statuses"),
                 React.createElement('option', { value: "ACTIVE" }, "ACTIVE"),
                 React.createElement('option', { value: "PENDING" }, "PENDING"),
-                React.createElement('option', { value: "SUSPENDED" }, "SUSPENDED")
+                React.createElement('option', { value: "SUSPENDED" }, "SUSPENDED"),
+                React.createElement('option', { value: "DELETED" }, "Recycle Bin (DELETED)")
               )
             )
           )
@@ -729,16 +744,46 @@ export default function BusinessesManagementPage() {
                           , React.createElement(ToggleLeft, { className: "mr-1.5 h-4.5 w-4.5 text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 261 } }), " Reactivate Merchant"
                         )
                       )
-                      , React.createElement(Button, {
-                        variant: "ghost",
-                        size: "sm",
-                        className: "text-xs text-red-500 hover:text-red-750 hover:bg-red-50/50 mt-1 flex items-center justify-center",
-                        onClick: () => {
-                          setBusinessToDelete(business);
-                        },
-                        disabled: deleteBusinessMutation.isPending && _optionalChain([deleteBusinessMutation, 'access', _x => _x.variables]) === business.id
-                      }
-                        , "Delete Business"
+                      , business.status === "DELETED" ? (
+                        React.createElement(React.Fragment, null
+                          , React.createElement(Button, {
+                              variant: "default",
+                              size: "sm",
+                              className: "text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center justify-center mt-1 w-full",
+                              onClick: () => {
+                                console.log("Restore button clicked for business:", business.id);
+                                restoreBusinessMutation.mutate(business.id);
+                              },
+                              disabled: restoreBusinessMutation.isPending
+                            }
+                              , "Restore Business"
+                            )
+                          , React.createElement(Button, {
+                              variant: "ghost",
+                              size: "sm",
+                              className: "text-xs text-red-600 hover:text-red-750 hover:bg-red-50/50 mt-1 flex items-center justify-center font-bold w-full",
+                              onClick: () => {
+                                console.log("Delete permanently button clicked for business:", business.name);
+                                setBusinessToDelete(business);
+                              },
+                              disabled: deleteBusinessMutation.isPending
+                            }
+                              , "Delete Permanently"
+                            )
+                        )
+                      ) : (
+                        React.createElement(Button, {
+                          variant: "ghost",
+                          size: "sm",
+                          className: "text-xs text-red-500 hover:text-red-750 hover:bg-red-50/50 mt-1 flex items-center justify-center",
+                          onClick: () => {
+                            console.log("Delete business button clicked for business:", business.name);
+                            setBusinessToDelete(business);
+                          },
+                          disabled: deleteBusinessMutation.isPending && deleteBusinessMutation?.variables === business.id
+                        }
+                          , "Delete Business"
+                        )
                       )
                     )
                   )
@@ -1458,21 +1503,20 @@ export default function BusinessesManagementPage() {
       )
       
       /* Delete Business Confirmation Dialog */
-      , !!businessToDelete && (
-        React.createElement(Dialog, {
+      , React.createElement(Dialog, {
           open: !!businessToDelete,
           onOpenChange: (open) => !open && setBusinessToDelete(null),
         }
-          , React.createElement(DialogContent, { className: "max-w-[400px] bg-white border border-border" }
+          , !!businessToDelete && React.createElement(DialogContent, { className: "max-w-[400px] bg-white border border-border" }
             , React.createElement(DialogHeader, null
               , React.createElement(DialogTitle, { className: "text-red-600 flex items-center gap-2" }
                 , React.createElement(Trash2, { className: "h-5 w-5" })
                 , "Confirm Deletion"
               )
               , React.createElement(DialogDescription, { className: "text-sm text-slate-600 mt-2" }
-                , "Are you sure you want to delete the business "
-                , React.createElement("strong", { className: "text-foreground" }, businessToDelete.name)
-                , "? This will soft-delete the business and its owner will no longer be able to log in."
+                , businessToDelete.status === "DELETED"
+                  ? `Are you sure you want to PERMANENTLY delete the business "${businessToDelete.name}"? This will permanently erase all check-ins, staff accounts, rewards, and wallets from the database. This action is irreversible!`
+                  : `Are you sure you want to delete the business "${businessToDelete.name}"? This will soft-delete the business and move it to the Recycle Bin.`
               )
             )
             , React.createElement(DialogFooter, { className: "pt-4" }
@@ -1494,12 +1538,11 @@ export default function BusinessesManagementPage() {
                 }
                 , deleteBusinessMutation.isPending
                   ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin" })
-                  : "Yes, Delete"
+                  : businessToDelete.status === "DELETED" ? "Yes, Delete Permanently" : "Yes, Soft Delete"
               )
             )
           )
         )
-      )
 
       /* AI Review Settings Dialog */
       , !!editingReviewBusiness && (

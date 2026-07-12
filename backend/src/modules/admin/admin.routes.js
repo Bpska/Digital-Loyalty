@@ -111,15 +111,16 @@ router.get('/businesses', async (req, res, next) => {
     const search = typeof req.query.search === 'string' ? req.query.search : undefined;
     const status = typeof req.query.status === 'string' ? req.query.status : undefined;
 
+    const showDeleted = status === 'DELETED';
     const where = {
-      deletedAt: null,
+      ...(showDeleted ? { deletedAt: { not: null } } : { deletedAt: null }),
       ...(search && {
         OR: [
           { name: { contains: search, mode: 'insensitive' } },
           { phone: { contains: search } },
         ],
       }),
-      ...(status && { status: status }),
+      ...(status && !showDeleted && { status: status }),
     };
 
     const [businesses, total] = await Promise.all([
@@ -235,9 +236,21 @@ router.delete(
       const businessId = req.params.id;
 
       // Verify business exists first
-      const exists = await prisma.business.findUnique({ where: { id: businessId }, select: { id: true } });
+      const exists = await prisma.business.findUnique({ where: { id: businessId }, select: { id: true, deletedAt: true } });
       if (!exists) {
         return res.status(404).json({ success: false, message: 'Business not found' });
+      }
+
+      // Soft delete: move to Recycle Bin if active
+      if (exists.deletedAt === null) {
+        await prisma.business.update({
+          where: { id: businessId },
+          data: {
+            deletedAt: new Date(),
+            status: 'DELETED'
+          }
+        });
+        return sendSuccess(res, null, 'Business moved to Recycle Bin (soft-deleted)');
       }
 
       // Hard-delete: remove all related data in dependency order, then the business itself
@@ -320,6 +333,31 @@ router.delete(
       });
 
       sendSuccess(res, null, 'Business permanently deleted from the database');
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// POST /admin/businesses/:id/restore — restore a soft-deleted business
+router.post(
+  '/businesses/:id/restore',
+  auditLog('BUSINESS_RESTORED', 'Business'),
+  async (req, res, next) => {
+    try {
+      const businessId = req.params.id;
+      const exists = await prisma.business.findUnique({ where: { id: businessId }, select: { id: true } });
+      if (!exists) {
+        return res.status(404).json({ success: false, message: 'Business not found' });
+      }
+      const restored = await prisma.business.update({
+        where: { id: businessId },
+        data: {
+          deletedAt: null,
+          status: 'ACTIVE'
+        }
+      });
+      sendSuccess(res, restored, 'Business restored successfully');
     } catch (err) {
       next(err);
     }
