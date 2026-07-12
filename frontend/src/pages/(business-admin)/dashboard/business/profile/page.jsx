@@ -292,7 +292,7 @@ export default function BusinessProfilePage() {
     saveBrandMutation.mutate(payload);
   };
 
-  if (isProfileLoading || isBrandLoading || isAnalyticsLoading) {
+  if (isProfileLoading || isBrandLoading || isAnalyticsLoading || !business) {
     return (
       <div className="space-y-6 animate-pulse">
         <div className="h-10 w-48 rounded bg-slate-100" />
@@ -414,7 +414,8 @@ export default function BusinessProfilePage() {
                   </div>
                   <button 
                     onClick={() => fileInputRefs.current["logoUrl"]?.click()}
-                    className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#F97316] text-white flex items-center justify-center border-2 border-white shadow-md active:scale-90 transition-transform"
+                    className="absolute -bottom-1 -right-1 bg-[#F97316] text-white shadow-md active:scale-90 transition-transform border-2 border-white"
+                    style={{ borderRadius: "50%", width: "28px", height: "28px", minWidth: "28px", minHeight: "28px", padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
                   >
                     <Camera className="h-3.5 w-3.5" />
                   </button>
@@ -472,12 +473,13 @@ export default function BusinessProfilePage() {
           </div>
         )}
 
-        {/* C. Quick Actions Row (3 tiles) */}
+        {/* C. Quick Actions Row (4 tiles) */}
         <div className="px-4">
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-4 gap-1.5">
             {[
-              { label: "My Profile", sub: "View & edit", action: () => setIsEditing(true), icon: User, color: "text-[#7C3AED] bg-[#EDE9FE]", borderColor: "border-[#7C3AED]/20 hover:border-[#7C3AED]" },
+              { label: "My Profile", sub: "View & edit", action: () => { setActiveSettingsTab("profile"); setIsEditing(true); }, icon: User, color: "text-[#7C3AED] bg-[#EDE9FE]", borderColor: "border-[#7C3AED]/20 hover:border-[#7C3AED]" },
               { label: "Brand & Look", sub: "Customize", action: () => setActiveSettingsTab("branding"), icon: Palette, color: "text-[#22C55E] bg-[#DCFCE7]", borderColor: "border-[#22C55E]/20 hover:border-[#22C55E]" },
+              { label: "Notifications", sub: "Send broadcast", action: () => navigate("/dashboard/business/notifications"), icon: Bell, color: "text-[#EF4444] bg-[#FEE2E2]", borderColor: "border-[#EF4444]/20 hover:border-[#EF4444]" },
               { label: "Security & Privacy", sub: "Privacy policy", action: () => setShowPrivacyModal(true), icon: ShieldCheck, color: "text-[#F59E0B] bg-[#FEF3C7]", borderColor: "border-[#F59E0B]/20 hover:border-[#F59E0B]" }
             ].map((tile, i) => (
               <button 
@@ -845,7 +847,7 @@ export default function BusinessProfilePage() {
         {/* Profile Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-border">
           <div className="flex items-center gap-4">
-            <div className="relative group w-20 h-20 shrink-0 rounded-2xl border-2 border-border shadow-md overflow-hidden bg-slate-50 flex items-center justify-center">
+            <div className="relative group w-20 h-20 shrink-0 rounded-full border-2 border-border shadow-md overflow-hidden bg-slate-50 flex items-center justify-center">
               {business?.logoUrl ? (
                 <img
                   src={getImageUrl(business.logoUrl)}

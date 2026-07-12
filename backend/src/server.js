@@ -55,7 +55,7 @@ function setupGracefulShutdown(server) {
 async function seedDefaultSettings() {
   const defaults = [
     { key: 'platform_fee', value: '999' },
-    { key: 'gst_percent', value: '5' },
+    { key: 'gst_percent', value: '18' },
     { key: 'promo_limit', value: '20' },
     { key: 'promo_price', value: '1000' },
     { key: 'points_per_rupee', value: '0.1' },
@@ -70,6 +70,12 @@ async function seedDefaultSettings() {
       if (!existing) {
         await prisma.systemSetting.create({
           data: item,
+        }).catch(() => {});
+      } else if (item.key === 'gst_percent' && existing.value === '5') {
+        // Upgrade existing default 5% to 18%
+        await prisma.systemSetting.update({
+          where: { key: item.key },
+          data: { value: '18' },
         }).catch(() => {});
       }
     }

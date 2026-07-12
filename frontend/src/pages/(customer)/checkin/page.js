@@ -16,7 +16,10 @@ export default function CheckinPage() {
   const [searchParams] = useSearchParams();
 
   const [scanResult, setScanResult] = useState(null);
-  const [status, setStatus] = useState("idle");
+  const [status, setStatus] = useState(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    return searchParams.get("token") ? "idle" : "scanning";
+  });
   const [errorMsg, setErrorMsg] = useState(null);
   const [checkInDetails, setCheckInDetails] = useState(null);
   const [loyaltyRequestSent, setLoyaltyRequestSent] = useState(false);

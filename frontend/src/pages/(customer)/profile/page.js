@@ -32,6 +32,7 @@ export default function ProfilePage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDanger, setShowDanger] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [activeModal, setActiveModal] = useState(null); // "support" | "privacy" | "terms" | "about" | null
 
   const [deleteConfirmPhone, setDeleteConfirmPhone] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -147,7 +148,10 @@ export default function ProfilePage() {
             , React.createElement('div', { className: "w-20 h-20 rounded-full bg-[#FFEDD5] border-2 border-[#FDBA74] flex items-center justify-center text-[#F97316] text-2xl font-black shadow-sm" }
               , initials
             )
-            , React.createElement('button', { className: "absolute bottom-0 right-0 w-6 h-6 rounded-full bg-[#0F172A] text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-md" }
+            , React.createElement('button', {
+                className: "absolute bottom-0 right-0 text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-md",
+                style: { borderRadius: "50%", backgroundColor: "#0F172A", width: "24px", height: "24px", minWidth: "24px", minHeight: "24px", padding: 0, border: "2px solid white" }
+              }
               , React.createElement(Camera, { className: "h-3.5 w-3.5" })
             )
           )
@@ -223,7 +227,6 @@ export default function ProfilePage() {
                 onClick: () => { setIsEditing(true); setEditingField("phone"); },
                 className: "bg-[#FFF1E6] hover:bg-[#FFEDD5] text-[#F97316] font-extrabold text-[10px] px-3 py-1.5 rounded-full flex items-center gap-1 transition-colors"
               }
-              , React.createElement(Camera, { className: "h-3 w-3" }) /* reuse icon or keep text */
               , "Edit"
             )
           )
@@ -295,13 +298,13 @@ export default function ProfilePage() {
       /* F. Info/link grid (2x2 cards) */
       , React.createElement('div', { className: "grid grid-cols-2 gap-3" }
         , [
-            { icon: Headphones, title: "Help & Support", desc: "Get help and support", color: "bg-[#DCFCE7] text-emerald-600" },
-            { icon: ShieldAlert, title: "Privacy & Security", desc: "Manage your privacy", color: "bg-[#EDE9FE] text-purple-600" },
-            { icon: FileText, title: "Terms & Conditions", desc: "Read our terms", color: "bg-[#FEF3C7] text-amber-500" },
-            { icon: Info, title: "About ScanLoyal", desc: "App information", color: "bg-[#CCFBF1] text-teal-600" }
+            { icon: Headphones, title: "Help & Support", desc: "Get help and support", color: "bg-[#DCFCE7] text-emerald-600", key: "support" },
+            { icon: ShieldAlert, title: "Privacy & Security", desc: "Manage your privacy", color: "bg-[#EDE9FE] text-purple-600", key: "privacy" },
+            { icon: FileText, title: "Terms & Conditions", desc: "Read our terms", color: "bg-[#FEF3C7] text-amber-500", key: "terms" },
+            { icon: Info, title: "About ScanLoyal", desc: "App information", color: "bg-[#CCFBF1] text-teal-600", key: "about" }
           ].map((card, i) => {
             const CardIcon = card.icon;
-            return React.createElement('div', { key: i, className: "bg-white border border-slate-100 p-4 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.01)] hover:scale-[1.01] transition-transform flex flex-col justify-between h-28 relative cursor-pointer" }
+            return React.createElement('div', { key: i, onClick: () => setActiveModal(card.key), className: "bg-white border border-slate-100 p-4 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.01)] hover:scale-[1.01] transition-transform flex flex-col justify-between h-28 relative cursor-pointer" }
               , React.createElement('div', { className: "flex justify-between items-start" }
                 , React.createElement('div', { className: cn("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", card.color) }
                   , React.createElement(CardIcon, { className: "h-4.5 w-4.5" })
@@ -462,6 +465,126 @@ export default function ProfilePage() {
                   , deleteLoading ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin" }) : "Delete Forever"
                 )
               )
+            )
+          )
+        )
+
+      /* Help & Support Dialog */
+      , activeModal === "support" && React.createElement(
+          Dialog, { open: activeModal === "support", onOpenChange: (open) => !open && setActiveModal(null) },
+          React.createElement(DialogContent, { className: "max-w-[340px] bg-white border border-border p-5 rounded-3xl" },
+            React.createElement(DialogHeader, {},
+              React.createElement(DialogTitle, { className: "text-sm font-black text-[#0F172A] flex items-center gap-2" },
+                React.createElement(Headphones, { className: "h-5 w-5 text-emerald-600" }),
+                "Help & Support"
+              ),
+              React.createElement(DialogDescription, { className: "text-[10px]" }, "Need assistance? Get in touch with our team.")
+            ),
+            React.createElement("div", { className: "space-y-4 py-3 text-xs text-[#5A4E46]" },
+              React.createElement("p", { className: "leading-relaxed" }, "We are here to support your experience. You can reach out to us directly through any of the following channels:"),
+              React.createElement("div", { className: "space-y-2.5" },
+                React.createElement("a", { href: "mailto:support@logisaar.in", className: "flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-colors" },
+                  React.createElement(Mail, { className: "h-4.5 w-4.5 text-emerald-600" }),
+                  React.createElement("div", null,
+                    React.createElement("span", { className: "block font-bold text-slate-800" }, "Email Support"),
+                    React.createElement("span", { className: "text-[10px] text-muted-foreground" }, "support@logisaar.in")
+                  )
+                ),
+                React.createElement("a", { href: "https://wa.me/918018640398", target: "_blank", rel: "noopener noreferrer", className: "flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-colors" },
+                  React.createElement(Phone, { className: "h-4.5 w-4.5 text-emerald-600" }),
+                  React.createElement("div", null,
+                    React.createElement("span", { className: "block font-bold text-slate-800" }, "WhatsApp Chat"),
+                    React.createElement("span", { className: "text-[10px] text-muted-foreground" }, "Instant chat support")
+                  )
+                )
+              )
+            ),
+            React.createElement(DialogFooter, {},
+              React.createElement(Button, { onClick: () => setActiveModal(null), className: "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs" }, "Close")
+            )
+          )
+        )
+
+      /* Privacy & Security Dialog */
+      , activeModal === "privacy" && React.createElement(
+          Dialog, { open: activeModal === "privacy", onOpenChange: (open) => !open && setActiveModal(null) },
+          React.createElement(DialogContent, { className: "max-w-[400px] bg-white border border-border p-5 rounded-3xl" },
+            React.createElement(DialogHeader, {},
+              React.createElement(DialogTitle, { className: "text-sm font-black text-[#0F172A] flex items-center gap-2" },
+                React.createElement(ShieldCheck, { className: "h-5 w-5 text-purple-600" }),
+                "Privacy & Security"
+              ),
+              React.createElement(DialogDescription, { className: "text-[10px]" }, "Google OAuth Verified Policy")
+            ),
+            React.createElement("div", { className: "max-h-[300px] overflow-y-auto space-y-4 py-3 text-[11px] text-[#5A4E46] leading-relaxed border-y border-slate-100 my-2 pr-1" },
+              React.createElement("div", { className: "space-y-1.5" },
+                React.createElement("span", { className: "font-black text-[#0F172A] block text-xs" }, "1. Data Collected"),
+                React.createElement("p", null, "The ScanLoyal solution collects Name, Mobile Number, Email Address, Visit/Redemption history, and device parameters to operate campaign check-ins and rewards.")
+              ),
+              React.createElement("div", { className: "space-y-1.5" },
+                React.createElement("span", { className: "font-black text-[#0F172A] block text-xs" }, "2. Purpose"),
+                React.createElement("p", null, "Information is strictly utilized for loyalty program management, reward validation, analytics, and store scan fraud prevention.")
+              ),
+              React.createElement("div", { className: "space-y-1.5" },
+                React.createElement("span", { className: "font-black text-[#0F172A] block text-xs" }, "3. Google Integration & Disclosures"),
+                React.createElement("p", null, "ScanLoyal implements Google Sign-in to enable secure OAuth logins. We retrieve your name, email, and avatar picture. We do not sell or trade this info.")
+              )
+            ),
+            React.createElement(DialogFooter, {},
+              React.createElement(Button, { onClick: () => setActiveModal(null), className: "w-full bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs" }, "Close")
+            )
+          )
+        )
+
+      /* Terms & Conditions Dialog */
+      , activeModal === "terms" && React.createElement(
+          Dialog, { open: activeModal === "terms", onOpenChange: (open) => !open && setActiveModal(null) },
+          React.createElement(DialogContent, { className: "max-w-[400px] bg-white border border-border p-5 rounded-3xl" },
+            React.createElement(DialogHeader, {},
+              React.createElement(DialogTitle, { className: "text-sm font-black text-[#0F172A] flex items-center gap-2" },
+                React.createElement(FileText, { className: "h-5 w-5 text-amber-500" }),
+                "Terms & Conditions"
+              ),
+              React.createElement(DialogDescription, { className: "text-[10px]" }, "Smart Loyalty Terms Addendum")
+            ),
+            React.createElement("div", { className: "max-h-[300px] overflow-y-auto space-y-4 py-3 text-[11px] text-[#5A4E46] leading-relaxed border-y border-slate-100 my-2 pr-1" },
+              React.createElement("div", { className: "space-y-1.5" },
+                React.createElement("span", { className: "font-black text-[#0F172A] block text-xs" }, "1. Merchant Terms"),
+                React.createElement("p", null, "Merchants are solely responsible for setting reward parameters, point rules, configurations, and fulfilling all redemptions.")
+              ),
+              React.createElement("div", { className: "space-y-1.5" },
+                React.createElement("span", { className: "font-black text-[#0F172A] block text-xs" }, "2. Non-Refundable Addendum"),
+                React.createElement("p", null, "Given the digital SaaS nature of our configurations, setup costs, subscription tiers, and domain activation charges remain fully non-refundable.")
+              ),
+              React.createElement("div", { className: "space-y-1.5" },
+                React.createElement("span", { className: "font-black text-[#0F172A] block text-xs" }, "3. Liability Disclaimer"),
+                React.createElement("p", null, "Logisaar Technologies Private Limited does not guarantee, underwrite, or assume liability for promotional offers provided by merchants.")
+              )
+            ),
+            React.createElement(DialogFooter, {},
+              React.createElement(Button, { onClick: () => setActiveModal(null), className: "w-full bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs" }, "Close")
+            )
+          )
+        )
+
+      /* About ScanLoyal Dialog */
+      , activeModal === "about" && React.createElement(
+          Dialog, { open: activeModal === "about", onOpenChange: (open) => !open && setActiveModal(null) },
+          React.createElement(DialogContent, { className: "max-w-[340px] bg-white border border-border p-5 rounded-3xl text-center" },
+            React.createElement(DialogHeader, { className: "flex flex-col items-center" },
+              React.createElement("img", { src: "/new.png", alt: "Logo", className: "h-14 w-auto object-contain mb-3" }),
+              React.createElement(DialogTitle, { className: "text-lg font-black text-[#0F172A]" }, "ScanLoyal"),
+              React.createElement(DialogDescription, { className: "text-[10px] text-[#FF6A00] font-black uppercase tracking-widest" }, "Version 1.5.0")
+            ),
+            React.createElement("div", { className: "py-4 space-y-3 text-xs text-[#5A4E46]" },
+              React.createElement("p", { className: "leading-relaxed" }, "A premium Digital Loyalty Voucher SaaS platform that powers check-ins, stamps, and automated reward redemptions."),
+              React.createElement("div", { className: "pt-3 border-t border-slate-100 text-[10px] text-slate-400 font-semibold" },
+                React.createElement("p", null, "Powered by Logisaar Technologies"),
+                React.createElement("p", null, "© 2026 Logisaar. All rights reserved.")
+              )
+            ),
+            React.createElement(DialogFooter, {},
+              React.createElement(Button, { onClick: () => setActiveModal(null), className: "w-full bg-[#0F172A] hover:bg-slate-800 text-white font-bold rounded-xl text-xs" }, "Dismiss")
             )
           )
         )

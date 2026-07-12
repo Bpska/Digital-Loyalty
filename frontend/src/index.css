@@ -54,6 +54,154 @@
     --gray-bg: #F8FAFC;
     --gray-border: #E8EDF3;
   }
+
+  .dark {
+    --background: 224 71% 4%; /* #020617 (Deep Slate Navy) */
+    --foreground: 210 40% 98%;
+
+    --card: 224 71% 6%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 224 71% 4%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 25 100% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 27.9% 16.9%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 223 47% 11%;
+    --muted-foreground: 215.4 16.3% 56.9%;
+
+    --accent: 216 34% 15%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 216 34% 17%;
+    --input: 216 34% 17%;
+    --ring: 25 100% 50%;
+  }
+}
+
+.dark .bg-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1.5px, transparent 1.5px) !important;
+}
+
+/* ── Dark Mode: Hardcoded color overrides ─────────────────────── */
+/* These rules adapt hardcoded Tailwind-arbitrary colors to dark mode */
+
+/* Dark backgrounds for page surfaces */
+.dark .bg-\[\#F8FAFC\],
+.dark .bg-\[\#f8fafc\],
+.dark .bg-\[\#F1F5F9\] {
+  background-color: hsl(224 71% 5%) !important;
+}
+
+/* Cards and panels */
+.dark .bg-white {
+  background-color: hsl(224 71% 7%) !important;
+}
+.dark .bg-\[\#FFFFFF\] {
+  background-color: hsl(224 71% 7%) !important;
+}
+
+/* Navy/dark text → near-white in dark mode */
+.dark .text-\[\#0F172A\] {
+  color: hsl(210 40% 95%) !important;
+}
+.dark .text-\[\#07122A\] {
+  color: hsl(210 40% 95%) !important;
+}
+
+/* Secondary muted text → softened in dark mode */
+.dark .text-\[\#64748B\] {
+  color: hsl(215 16% 65%) !important;
+}
+.dark .text-\[\#475569\] {
+  color: hsl(215 16% 60%) !important;
+}
+.dark .text-\[\#94A3B8\] {
+  color: hsl(215 16% 55%) !important;
+}
+
+/* Borders */
+.dark .border-slate-100 {
+  border-color: hsl(216 34% 15%) !important;
+}
+.dark .border-\[\#E2E8F0\] {
+  border-color: hsl(216 34% 18%) !important;
+}
+.dark .divide-slate-100 > * + * {
+  border-color: hsl(216 34% 15%) !important;
+}
+
+/* Soft orange tinted backgrounds */
+.dark .bg-\[\#FFEDD5\],
+.dark .bg-\[\#FFF1E6\],
+.dark .bg-\[\#FEF3C7\] {
+  background-color: hsl(25 60% 12%) !important;
+}
+.dark .bg-\[\#FFEDD5\]\/60,
+.dark .bg-\[\#FFF7ED\] {
+  background-color: hsl(25 50% 10%) !important;
+}
+
+/* Light slate surfaces used for card inner panels */
+.dark .bg-slate-50 {
+  background-color: hsl(223 47% 9%) !important;
+}
+.dark .bg-slate-100 {
+  background-color: hsl(223 47% 12%) !important;
+}
+.dark .bg-\[\#F1F5F9\] {
+  background-color: hsl(223 47% 9%) !important;
+}
+.dark .bg-\[\#EFF6FF\] {
+  background-color: hsl(224 60% 9%) !important;
+}
+
+/* Text on light-tinted backgrounds */
+.dark .text-\[\#1E293B\] {
+  color: hsl(210 40% 90%) !important;
+}
+.dark .text-\[\#334155\] {
+  color: hsl(210 30% 80%) !important;
+}
+
+/* Shadow softening in dark mode */
+.dark .shadow-sm,
+.dark .shadow-md {
+  box-shadow: 0 1px 6px 0 rgba(0,0,0,0.4) !important;
+}
+
+/* Bottom nav bar background */
+.dark .bg-\[\#F0FDF4\]\/90 {
+  background-color: hsla(220, 60%, 8%, 0.95) !important;
+}
+.dark .border-\[\#DCFCE7\] {
+  border-color: hsl(216 34% 18%) !important;
+}
+
+/* Notification / badge backgrounds that use light tints */
+.dark .bg-\[\#FEF2F2\],
+.dark .bg-\[\#F0FDF4\] {
+  background-color: hsl(220 50% 10%) !important;
+}
+
+/* Input fields */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: hsl(224 71% 8%) !important;
+  color: hsl(210 40% 95%) !important;
+  border-color: hsl(216 34% 20%) !important;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: hsl(215 16% 45%) !important;
 }
 
 /* ── Global base styles ──────────────────────────────────────── */
@@ -452,4 +600,208 @@
   animation: dialog-hide 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* ── Capybara Loader Styles ── */
+.capybaraloader {
+  width: 14em;
+  height: 10em;
+  position: relative;
+  z-index: 1;
+  --color: rgb(204, 125, 45);
+  --color2: rgb(83, 56, 28);
+  transform: scale(0.75);
+}
+.capybara {
+  width: 100%;
+  height: 7.5em;
+  position: relative;
+  z-index: 1;
+}
+.capybaraloader .loader {
+  width: 100%;
+  height: 2.5em;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+}
+.capy {
+  width: 85%;
+  height: 100%;
+  background: linear-gradient(var(--color), 90%, var(--color2));
+  border-radius: 45%;
+  position: relative;
+  z-index: 1;
+  animation: movebody 1s linear infinite;
+}
+.capyhead {
+  width: 7.5em;
+  height: 7em;
+  bottom: 0em;
+  right: 0em;
+  position: absolute;
+  background-color: var(--color);
+  z-index: 3;
+  border-radius: 3.5em;
+  box-shadow: -1em 0em var(--color2);
+  animation: movebody 1s linear infinite;
+}
+.capyear {
+  width: 2em;
+  height: 2em;
+  background: linear-gradient(-45deg, var(--color), 90%, var(--color2));
+  top: 0em;
+  left: 0em;
+  border-radius: 100%;
+  position: absolute;
+  overflow: hidden;
+  z-index: 3;
+}
+.capyear:nth-child(2) {
+  left: 5em;
+  background: linear-gradient(25deg, var(--color), 90%, var(--color2));
+}
+.capyear2 {
+  width: 100%;
+  height: 1em;
+  background-color: var(--color2);
+  bottom: 0em;
+  left: 0.5em;
+  border-radius: 100%;
+  position: absolute;
+  transform: rotate(-45deg);
+}
+.capymouth {
+  width: 3.5em;
+  height: 2em;
+  background-color: var(--color2);
+  position: absolute;
+  bottom: 0em;
+  left: 2.5em;
+  border-radius: 50%;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0.5em;
+}
+.capylips {
+  width: 0.25em;
+  height: 0.75em;
+  border-radius: 100%;
+  transform: rotate(-45deg);
+  background-color: var(--color);
+}
+.capylips:nth-child(2) {
+  transform: rotate(45deg);
+}
+.capyeye {
+  width: 2em;
+  height: 0.5em;
+  background-color: var(--color2);
+  position: absolute;
+  bottom: 3.5em;
+  left: 1.5em;
+  border-radius: 5em;
+  transform: rotate(45deg);
+}
+.capyeye:nth-child(4) {
+  transform: rotate(-45deg);
+  left: 5.5em;
+  width: 1.75em;
+}
+.capyleg {
+  width: 6em;
+  height: 5em;
+  bottom: 0em;
+  left: 0em;
+  position: absolute;
+  background: linear-gradient(var(--color), 95%, var(--color2));
+  z-index: 2;
+  border-radius: 2em;
+  animation: movebody 1s linear infinite;
+}
+.capyleg2 {
+  width: 1.75em;
+  height: 3em;
+  bottom: 0em;
+  left: 3.25em;
+  position: absolute;
+  background: linear-gradient(var(--color), 80%, var(--color2));
+  z-index: 2;
+  border-radius: 0.75em;
+  box-shadow: inset 0em -0.5em var(--color2);
+  animation: moveleg 1s linear infinite;
+}
+.capyleg2:nth-child(3) {
+  width: 1.25em;
+  left: 0.5em;
+  height: 2em;
+  animation: moveleg2 1s linear infinite 0.075s;
+}
 
+@keyframes moveleg {
+  0% {
+    transform: rotate(-45deg) translateX(-5%);
+  }
+  50% {
+    transform: rotate(45deg) translateX(5%);
+  }
+  100% {
+    transform: rotate(-45deg) translateX(-5%);
+  }
+}
+
+@keyframes moveleg2 {
+  0% {
+    transform: rotate(45deg);
+  }
+  50% {
+    transform: rotate(-45deg);
+  }
+  100% {
+    transform: rotate(45deg);
+  }
+}
+
+@keyframes movebody {
+  0% {
+    transform: translateX(0%);
+  }
+  50% {
+    transform: translateX(2%);
+  }
+  100% {
+    transform: translateX(0%);
+  }
+}
+
+.loaderline {
+  width: 50em;
+  height: 0.5em;
+  border-top: 0.5em dashed var(--color2);
+  animation: moveline 10s linear infinite;
+}
+
+@keyframes moveline {
+  0% {
+    transform: translateX(0%);
+    opacity: 0%;
+  }
+  5% {
+    opacity: 100%;
+  }
+  95% {
+    opacity: 100%;
+  }
+  100% {
+    opacity: 0%;
+    transform: translateX(-70%);
+  }
+}
+
+/* ── Step Timeline Animations ── */
+@keyframes step-pop {
+  0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-step {
+  animation: step-pop 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}

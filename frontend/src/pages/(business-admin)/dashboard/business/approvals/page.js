@@ -23,7 +23,7 @@ function formatTime(dateStr) {
 }
 
 export default function BusinessApprovalsPage() {
-  const { setShowNotifications, unreadCount, fetchNotifications } = useOutletContext() || {};
+  const { setShowNotifications, unreadCount, fetchNotifications, fetchPendingApprovals } = useOutletContext() || {};
   const { user } = useAuthStore();
   const businessId = user?.businessId;
   const queryClient = useQueryClient();
@@ -73,6 +73,7 @@ export default function BusinessApprovalsPage() {
       queryClient.invalidateQueries({ queryKey: ["loyaltyRequests", businessId] });
       queryClient.invalidateQueries({ queryKey: ["loyaltyApprovalAnalytics", businessId] });
       queryClient.invalidateQueries({ queryKey: ["customerDashboard"] });
+      if (fetchPendingApprovals) fetchPendingApprovals();
     },
     onError: (err) => alert(err.message || "Failed to approve request"),
   });
@@ -82,6 +83,7 @@ export default function BusinessApprovalsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["loyaltyRequests", businessId] });
       queryClient.invalidateQueries({ queryKey: ["loyaltyApprovalAnalytics", businessId] });
+      if (fetchPendingApprovals) fetchPendingApprovals();
     },
     onError: (err) => alert(err.message || "Failed to reject request"),
   });
@@ -92,6 +94,7 @@ export default function BusinessApprovalsPage() {
       queryClient.invalidateQueries({ queryKey: ["loyaltyRequests", businessId] });
       queryClient.invalidateQueries({ queryKey: ["loyaltyApprovalAnalytics", businessId] });
       queryClient.invalidateQueries({ queryKey: ["customerDashboard"] });
+      if (fetchPendingApprovals) fetchPendingApprovals();
     },
     onError: (err) => alert(err.message || "Failed to undo approval"),
   });
@@ -106,7 +109,7 @@ export default function BusinessApprovalsPage() {
     }
   }
 
-  async function handleUpdateApproval(requestId) {
+  async function handleUpdateApproval(requestId, currentStatus) {
     const customAmt = customAmounts[requestId];
     const selectedAmt = selectedAmounts[requestId];
     const isCustom = showCustomInput[requestId];
@@ -125,7 +128,9 @@ export default function BusinessApprovalsPage() {
 
     setApprovingId(requestId);
     try {
-      await undoApproveMutation.mutateAsync(requestId);
+      if (currentStatus === "APPROVED") {
+        await undoApproveMutation.mutateAsync(requestId);
+      }
       await approveWalletMutation.mutateAsync({ requestId, purchaseValue });
       setEditingRequestId(null);
     } catch (err) {
@@ -308,7 +313,13 @@ export default function BusinessApprovalsPage() {
             const isRejecting = rejectingId === request.id;
             const isExpanded = expandedRequestId === request.id;
 
-            return React.createElement("div", { key: request.id, className: "bg-white rounded-3xl p-5 shadow-sm border border-[#F1F5F9] space-y-4 relative" }
+            const statusStyles = {
+              PENDING: "border-2 border-amber-300 bg-gradient-to-br from-white to-[#FFFBF7] shadow-[0_8px_24px_rgba(249,115,22,0.12)]",
+              APPROVED: "border-2 border-emerald-300 bg-gradient-to-br from-white to-[#F0FDF4]/20 shadow-[0_8px_24px_rgba(34,197,94,0.08)]",
+              REJECTED: "border-2 border-red-300 bg-gradient-to-br from-white to-[#FEF2F2]/20 shadow-[0_8px_24px_rgba(239,68,68,0.08)]"
+            }[request.status] || "border border-[#F1F5F9] bg-white shadow-sm";
+
+            return React.createElement("div", { key: request.id, className: cn("rounded-3xl p-5 border space-y-4 relative transition-all", statusStyles) }
               /* Top Row */
               , React.createElement("div", { className: "flex justify-between items-start" }
                 , React.createElement("div", { className: "flex gap-3" }
@@ -432,13 +443,13 @@ export default function BusinessApprovalsPage() {
                       return React.createElement("div", {
                         key: i,
                         className: cn(
-                          "w-9 h-9 rounded-full flex items-center justify-center border transition-all"
-                          , filled ? "bg-[#F97316] border-[#F97316] text-white shadow-sm" : "border-dashed border-orange-200 bg-transparent text-orange-200"
+                          "w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all"
+                          , filled ? "bg-[#F97316] border-[#F97316] text-white shadow-md scale-105" : "border-dashed border-slate-300 bg-white text-slate-400"
                         )
                       }
                         , filled
-                          ? React.createElement("span", { className: "text-xs font-bold leading-none" }, category.emoji)
-                          : React.createElement("span", { className: "text-[10px] font-bold leading-none opacity-40" }, "o")
+                          ? React.createElement("span", { className: "text-xs font-bold leading-none animate-bounce" }, category.emoji)
+                          : React.createElement("span", { className: "text-xs font-bold leading-none text-slate-300" }, i + 1)
                       );
                     })
                 )
@@ -449,7 +460,7 @@ export default function BusinessApprovalsPage() {
                 , (request.status === "PENDING" || editingRequestId === request.id)
                   ? React.createElement(React.Fragment, null
                       , React.createElement("button", {
-                          onClick: () => editingRequestId === request.id ? handleUpdateApproval(request.id) : handleApproveWallet(request.id),
+                          onClick: () => editingRequestId === request.id ? handleUpdateApproval(request.id, request.status) : handleApproveWallet(request.id),
                           disabled: !(showCustomInput[request.id] ? parseFloat(customAmounts[request.id]) : selectedAmounts[request.id]) || isApproving || isRejecting,
                           className: "flex-1 bg-[#22C55E] text-white font-bold rounded-xl text-xs py-2.5 h-10 flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
                         }
@@ -479,11 +490,11 @@ export default function BusinessApprovalsPage() {
                         , React.createElement(Eye, { className: "h-3.5 w-3.5" })
                         , isExpanded ? "Hide Details" : "View Details"
                       )
-                      , request.status === "APPROVED" && editingRequestId !== request.id && React.createElement("button", {
+                      , (request.status === "APPROVED" || request.status === "REJECTED") && editingRequestId !== request.id && React.createElement("button", {
                           onClick: () => {
                             setEditingRequestId(request.id);
                             selectCustom(request.id);
-                            setCustomAmounts(prev => ({ ...prev, [request.id]: request.spendAmount }));
+                            setCustomAmounts(prev => ({ ...prev, [request.id]: request.spendAmount || "" }));
                           },
                           disabled: deletingRequestId === request.id,
                           className: "px-4 bg-slate-100 hover:bg-slate-200 text-[#0F172A] font-bold rounded-xl text-xs py-2.5 h-10 active:scale-95 transition-transform"
@@ -593,8 +604,8 @@ export default function BusinessApprovalsPage() {
                 return React.createElement(Card, {
                   key: request.id,
                   className: cn(
-                    "border transition-all bg-white"
-                    , request.status === "PENDING" ? "border-amber-200" : request.status === "APPROVED" ? "border-emerald-200" : "border-red-200"
+                    "border-2 transition-all bg-white shadow-md"
+                    , request.status === "PENDING" ? "border-amber-300 bg-amber-50/5 shadow-[0_8px_24px_rgba(245,158,11,0.08)]" : request.status === "APPROVED" ? "border-emerald-300 bg-emerald-50/5 shadow-[0_8px_24px_rgba(34,197,94,0.06)]" : "border-red-300 bg-red-50/5 shadow-[0_8px_24px_rgba(239,68,68,0.06)]"
                   )
                 }
                   , React.createElement(CardContent, { className: "p-5 space-y-4" }
@@ -621,28 +632,41 @@ export default function BusinessApprovalsPage() {
                       )
                     )
 
-                    , React.createElement("div", { className: "flex flex-wrap items-center gap-3 bg-muted/40 rounded-lg px-3 py-2.5 text-xs" }
-                      , React.createElement("div", { className: "flex flex-col" }
-                        , React.createElement("p", { className: "text-muted-foreground" }, "Stamps")
-                        , React.createElement("p", { className: "font-bold text-foreground" }, `${request.customerWalletStamps ?? 0} / ${settings?.requiredStamps || 7}`)
-                      )
-                      , React.createElement("div", { className: "h-4 w-px bg-border" })
-                      , React.createElement("div", { className: "flex flex-col" }
-                        , React.createElement("p", { className: "text-muted-foreground" }, "Points")
-                        , React.createElement("p", { className: "font-bold text-foreground" }, request.customerWalletPoints ?? 0)
-                      )
-                      , React.createElement("div", { className: "h-4 w-px bg-border" })
-                      , React.createElement("div", { className: "flex flex-col" }
-                        , React.createElement("p", { className: "text-muted-foreground" }, "Total Visits")
-                        , React.createElement("p", { className: "font-bold text-foreground" }, request.customerTotalVisits ?? 0)
-                      )
-                      , request.status === "APPROVED" && request.spendAmount !== null && React.createElement(React.Fragment, null
-                          , React.createElement("div", { className: "h-4 w-px bg-border" })
-                          , React.createElement("div", { className: "flex flex-col" }
-                            , React.createElement("p", { className: "text-muted-foreground" }, "Purchase")
-                            , React.createElement("p", { className: "font-bold text-emerald-700" }, `₹${request.spendAmount}`)
-                          )
+                    , React.createElement("div", { className: "flex items-center justify-between gap-3 bg-muted/40 rounded-lg px-3 py-2.5 text-xs" }
+                      , React.createElement("div", { className: "flex flex-wrap items-center gap-3" }
+                        , React.createElement("div", { className: "flex flex-col" }
+                          , React.createElement("p", { className: "text-muted-foreground" }, "Stamps")
+                          , React.createElement("p", { className: "font-bold text-foreground" }, `${request.customerWalletStamps ?? 0} / ${settings?.requiredStamps || 7}`)
                         )
+                        , React.createElement("div", { className: "h-4 w-px bg-border" })
+                        , React.createElement("div", { className: "flex flex-col" }
+                          , React.createElement("p", { className: "text-muted-foreground" }, "Points")
+                          , React.createElement("p", { className: "font-bold text-foreground" }, request.customerWalletPoints ?? 0)
+                        )
+                        , React.createElement("div", { className: "h-4 w-px bg-border" })
+                        , React.createElement("div", { className: "flex flex-col" }
+                          , React.createElement("p", { className: "text-muted-foreground" }, "Total Visits")
+                          , React.createElement("p", { className: "font-bold text-foreground" }, request.customerTotalVisits ?? 0)
+                        )
+                        , request.status === "APPROVED" && request.spendAmount !== null && React.createElement(React.Fragment, null
+                            , React.createElement("div", { className: "h-4 w-px bg-border" })
+                            , React.createElement("div", { className: "flex flex-col" }
+                              , React.createElement("p", { className: "text-muted-foreground" }, "Purchase")
+                              , React.createElement("p", { className: "font-bold text-emerald-700" }, `₹${request.spendAmount}`)
+                            )
+                          )
+                      )
+                      , (request.status === "APPROVED" || request.status === "REJECTED") && editingRequestId !== request.id && React.createElement(Button, {
+                          variant: "outline",
+                          size: "sm",
+                          className: "h-8 bg-white border-border shrink-0",
+                          onClick: () => {
+                            setEditingRequestId(request.id);
+                            selectCustom(request.id);
+                            setCustomAmounts(prev => ({ ...prev, [request.id]: request.spendAmount || "" }));
+                          },
+                          disabled: deletingRequestId === request.id
+                        }, "Edit")
                     )
 
                     , (request.status === "PENDING" || editingRequestId === request.id) && React.createElement("div", { className: "space-y-3 pt-2 border-t border-border/50 mt-2" }
@@ -678,7 +702,7 @@ export default function BusinessApprovalsPage() {
                         , React.createElement("div", { className: "flex items-center gap-3 pt-1" }
                           , React.createElement(Button, {
                               className: "flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-9 text-xs rounded-xl",
-                              onClick: () => editingRequestId === request.id ? handleUpdateApproval(request.id) : handleApproveWallet(request.id),
+                              onClick: () => editingRequestId === request.id ? handleUpdateApproval(request.id, request.status) : handleApproveWallet(request.id),
                               disabled: !(showCustomInput[request.id] ? parseFloat(customAmounts[request.id]) : selectedAmounts[request.id]) || isApproving || isRejecting
                             }
                             , isApproving ? "Processing..." : "Approve"

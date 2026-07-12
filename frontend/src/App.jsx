@@ -11,6 +11,8 @@ import SuperAdminLayout from './pages/(super-admin)/layout.js';
 // Pages
 import PublicLanding from './pages/page.js';
 import Login from './pages/(auth)/login/page.js';
+import VerifyEmail from './pages/(auth)/verify-email/page.js';
+import ForgotPassword from './pages/(auth)/forgot-password/page.js';
 import PrivacyPolicy from './pages/privacy-policy.js';
 import TermsOfService from './pages/terms-of-service.js';
 
@@ -35,12 +37,14 @@ import BusinessLoyaltyConfig from './pages/(business-admin)/dashboard/business/l
 import BusinessRedemptions from './pages/(business-admin)/dashboard/business/redemptions/page.js';
 import BrandCustomizationPage from './pages/(business-admin)/dashboard/business/branding/page.js';
 import BusinessProfile from './pages/(business-admin)/dashboard/business/profile/page.jsx';
+import BusinessCustomerNotifications from './pages/(business-admin)/dashboard/business/notifications/page.js';
 
 // Super Admin Pages
 import SuperDashboard from './pages/(super-admin)/dashboard/super/page.js';
 import SuperBusinesses from './pages/(super-admin)/dashboard/super/businesses/page.js';
 import SuperFraud from './pages/(super-admin)/dashboard/super/fraud/page.js';
 import SuperSupport from './pages/(super-admin)/dashboard/super/support/page.js';
+import SuperAds from './pages/(super-admin)/dashboard/super/ads/page.js';
 
 // Scroll to top on every route change (fixes back-navigation landing at footer)
 function ScrollToTop() {
@@ -89,6 +93,8 @@ export default function App() {
           {/* Public Routes */}
           <Route path="/" element={<LandingGuard />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
 
@@ -116,6 +122,7 @@ export default function App() {
             <Route path="/dashboard/business/redemptions" element={<BusinessRedemptions />} />
             <Route path="/dashboard/business/branding" element={<BrandCustomizationPage />} />
             <Route path="/dashboard/business/profile" element={<BusinessProfile />} />
+            <Route path="/dashboard/business/notifications" element={<BusinessCustomerNotifications />} />
           </Route>
 
           {/* Super Admin Routes */}
@@ -124,6 +131,7 @@ export default function App() {
             <Route path="/dashboard/super/businesses" element={<SuperBusinesses />} />
             <Route path="/dashboard/super/fraud" element={<SuperFraud />} />
             <Route path="/dashboard/super/support" element={<SuperSupport />} />
+            <Route path="/dashboard/super/ads" element={<SuperAds />} />
           </Route>
         </Route>
       </Routes>

@@ -361,6 +361,35 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
   } catch (err) { next(err); }
 });
 
+// GET /customer/nearby-branches — retrieve active merchant branches
+router.get('/nearby-branches', authenticate, authorize(Role.CUSTOMER), async (req, res, next) => {
+  try {
+    const branches = await prisma.branch.findMany({
+      where: {
+        isActive: true,
+        business: {
+          deletedAt: null,
+          status: 'ACTIVE',
+        }
+      },
+      include: {
+        business: {
+          select: {
+            id: true,
+            name: true,
+            logoUrl: true,
+            category: true,
+            plan: true,
+          }
+        }
+      }
+    });
+    sendSuccess(res, branches);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /customer/profile — retrieve customer details
 router.get('/profile', authenticate, authorize(Role.CUSTOMER), async (req, res, next) => {
   try {
@@ -392,6 +421,58 @@ router.delete('/account', authenticate, authorize(Role.CUSTOMER), async (req, re
       data: { deletedAt: new Date(), isActive: false },
     });
     sendSuccess(res, null, 'Account deleted');
+  } catch (err) { next(err); }
+});
+
+// Get customer's per-store points history
+router.get('/points-history', authenticate, authorize(Role.CUSTOMER), async (req, res, next) => {
+  try {
+    const customerPoints = await prisma.customerPoints.findMany({
+      where: { customerId: req.user.sub },
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        business: {
+          select: {
+            id: true,
+            name: true,
+            category: true,
+            logoUrl: true,
+          }
+        }
+      }
+    });
+
+    // Also fetch check-in history to compute per-store visit counts
+    const checkins = await prisma.checkIn.findMany({
+      where: { customerId: req.user.sub, status: 'APPROVED' },
+      select: { businessId: true, points: true, extraPoints: true, createdAt: true, business: { select: { id: true, name: true, category: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Group checkins by businessId for per-visit breakdown
+    const checkinsByBusiness = {};
+    checkins.forEach(c => {
+      if (!checkinsByBusiness[c.businessId]) checkinsByBusiness[c.businessId] = [];
+      checkinsByBusiness[c.businessId].push(c);
+    });
+
+    const storePoints = customerPoints.map(cp => ({
+      businessId: cp.businessId,
+      businessName: cp.business?.name || 'Unknown',
+      category: cp.business?.category || 'Store',
+      logoUrl: cp.business?.logoUrl || null,
+      totalPoints: cp.totalPoints || 0,
+      visitCount: (checkinsByBusiness[cp.businessId] || []).length,
+      recentVisits: (checkinsByBusiness[cp.businessId] || []).slice(0, 5).map(v => ({
+        points: v.points,
+        extraPoints: v.extraPoints,
+        date: v.createdAt,
+      })),
+    }));
+
+    const grandTotal = storePoints.reduce((sum, s) => sum + s.totalPoints, 0);
+
+    sendSuccess(res, { storePoints, grandTotal });
   } catch (err) { next(err); }
 });
 

@@ -9,12 +9,29 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
-  Gift, Coffee, Star, Stamp, MapPin, Award, CheckCircle2,
+  Gift, Coffee, Star, Stamp, MapPin, Award, CheckCircle2, Loader2,
   ChevronRight, QrCode, Tag, Percent, Banknote, Clock, Zap, CalendarDays, RefreshCcw,
-  Scissors, Hotel, Store, Sparkles, Bell, LayoutDashboard, Wallet, ChevronLeft, Building2, Utensils, User, History, Scan
+  Scissors, Hotel, Store, Sparkles, Bell, LayoutDashboard, Wallet, ChevronLeft, Building2, Utensils, User, History, Scan, Search
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+
+// Lazy-load SubscriberMap to prevent SSR/compilation window reference errors
+const SubscriberMap = React.lazy(() => import("@/components/SubscriberMap"));
+
+// Helper to calculate distance in km
+const getDistance = (lat1, lon1, lat2, lon2) => {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return 99999;
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
 
 const BrandIcon = ({ iconName, customUrl, defaultIcon: DefaultIcon, className = "h-5 w-5" }) => {
   if (customUrl && (customUrl.startsWith("/") || customUrl.startsWith("http"))) {
@@ -150,9 +167,48 @@ export default function CustomerDashboard() {
   const [lastData, setLastData] = useState(null);
   const [redemptionSuccessPlace, setRedemptionSuccessPlace] = useState(null);
 
-  // Carousel & Nearby Filters
   const [cardIndex, setCardIndex] = useState(0);
   const [activeFilter, setActiveFilter] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Map Modal States
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [userCoords, setUserCoords] = useState(null);
+  const [mapLoading, setMapLoading] = useState(false);
+  const [mapRenderDelay, setMapRenderDelay] = useState(false);
+
+  const { data: nearbyBranchesData } = useQuery({
+    queryKey: ["nearbyBranches"],
+    queryFn: () => api.get("/customer/nearby-branches").then((res) => res.data),
+  });
+  const branches = nearbyBranchesData?.data || [];
+
+  const handleOpenMap = () => {
+    setShowMapModal(true);
+    setMapLoading(true);
+    setMapRenderDelay(false);
+    
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          setMapLoading(false);
+          setTimeout(() => setMapRenderDelay(true), 350);
+        },
+        (err) => {
+          console.warn("Could not retrieve current location, using default", err);
+          setUserCoords({ lat: 20.271, lng: 85.833 }); // Default to Bhubaneswar
+          setMapLoading(false);
+          setTimeout(() => setMapRenderDelay(true), 350);
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } else {
+      setUserCoords({ lat: 20.271, lng: 85.833 });
+      setMapLoading(false);
+      setTimeout(() => setMapRenderDelay(true), 350);
+    }
+  };
 
   const handleScroll = (e) => {
     const scrollLeft = e.target.scrollLeft;
@@ -222,12 +278,34 @@ export default function CustomerDashboard() {
     claimedCoupons = []
   } = data || {};
 
-  const totalPoints = rewardsData?.totalPointsEarned ?? loyaltyCards.reduce((sum, card) => sum + (card.totalPoints || 0), 0);
+  const totalPoints = (rewardsData?.totalPointsEarned ?? rewardsData?.data?.totalPointsEarned ?? loyaltyCards.reduce((sum, card) => sum + (card.totalPoints || 0), 0)) || 0;
+
+  // Filter loyalty cards by search query
+  const filteredLoyaltyCards = loyaltyCards.filter(card => 
+    card.business?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   // Filter nearby places
-  const filteredPlaces = activeFilter === "All"
+  const filteredPlaces = (activeFilter === "All"
     ? NEARBY_PLACES
-    : NEARBY_PLACES.filter(p => p.category === activeFilter);
+    : NEARBY_PLACES.filter(p => p.category === activeFilter)
+  ).filter(place => 
+    place.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Filter nearby active branches that have planId (purchased plan) and within 2 km
+  const nearbyBranches = branches.filter((b) => {
+    if (!b.business?.planId) return false;
+    if (!userCoords) return true;
+    const dist = getDistance(userCoords.lat, userCoords.lng, parseFloat(b.latitude), parseFloat(b.longitude));
+    return dist <= 2.0; // 2km radius
+  });
+
+  const displayBranches = nearbyBranches.length > 0 
+    ? nearbyBranches 
+    : branches.filter(b => b.business?.planId);
+
+  const isTestingFallback = nearbyBranches.length === 0 && displayBranches.length > 0;
 
   return (
     React.createElement('div', { className: "space-y-6 pb-12" }
@@ -245,6 +323,20 @@ export default function CustomerDashboard() {
             , React.createElement('span', { className: "block text-[8px] text-[#64748B] font-bold mt-0.5" }, "Total Points")
           )
           , React.createElement(ChevronRight, { className: "h-3.5 w-3.5 text-[#64748B]" })
+        )
+      )
+
+      /* Search Option */
+      , React.createElement('div', { className: "px-1" }
+        , React.createElement('div', { className: "relative flex items-center bg-white border border-slate-200 rounded-2xl shadow-sm px-3.5 py-1.5 focus-within:border-primary transition-colors" }
+          , React.createElement(Search, { className: "h-4 w-4 text-[#94A3B8] mr-2.5 shrink-0" })
+          , React.createElement('input', {
+              type: "text",
+              placeholder: "Search shop name...",
+              value: searchQuery,
+              onChange: (e) => setSearchQuery(e.target.value),
+              className: "w-full bg-transparent text-xs py-1 focus:outline-none text-[#0F172A] placeholder-slate-400 font-semibold"
+            })
         )
       )
 
@@ -366,6 +458,10 @@ export default function CustomerDashboard() {
                   )
               )
             )
+          ) : filteredLoyaltyCards.length === 0 ? (
+            React.createElement(Card, { className: "border-dashed border-slate-200 bg-slate-50/50 py-8 text-center rounded-3xl" }
+              , React.createElement(CardContent, { className: "text-xs text-muted-foreground" }, "No matching shops found.")
+            )
           ) : (
             React.createElement(React.Fragment, null
               /* Horizontal swipeable container */
@@ -373,7 +469,7 @@ export default function CustomerDashboard() {
                   onScroll: handleScroll,
                   className: "flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-none -mx-4 px-4 pb-2"
                 }
-                , loyaltyCards.map((card, idx) => {
+                , filteredLoyaltyCards.map((card, idx) => {
                     const business = card.business;
                     const stamps = card.wallet?.currentStamps || 0;
                     const required = card.settings?.requiredStamps || 7;
@@ -462,7 +558,7 @@ export default function CustomerDashboard() {
 
               /* Carousel indicators */
               , React.createElement('div', { className: "flex items-center justify-center gap-1.5 pt-1" }
-                , loyaltyCards.map((_, idx) =>
+                , filteredLoyaltyCards.map((_, idx) =>
                     React.createElement('div', {
                       key: idx,
                       className: cn("h-2 rounded-full transition-all"
@@ -479,10 +575,13 @@ export default function CustomerDashboard() {
       , React.createElement('div', { className: "space-y-4" }
         , React.createElement('div', { className: "flex items-center justify-between" }
           , React.createElement('h3', { className: "font-black text-base text-[#0F172A] tracking-tight" }, "Nearby Places")
-          , React.createElement(Link, { to: "/checkin", className: "text-xs font-bold text-[#F97316] flex items-center gap-1" }
-            , React.createElement(MapPin, { className: "h-3.5 w-3.5" })
-            , "View Map"
-          )
+          , React.createElement('button', {
+              onClick: handleOpenMap,
+              className: "text-xs font-bold text-[#F97316] bg-transparent border-0 outline-none flex items-center gap-1 hover:underline cursor-pointer"
+            }
+              , React.createElement(MapPin, { className: "h-3.5 w-3.5" })
+              , "View Map"
+            )
         )
 
         /* Filter chip row */
@@ -505,7 +604,7 @@ export default function CustomerDashboard() {
 
         /* Places list */
         , React.createElement('div', { className: "space-y-5" }
-          , filteredPlaces.map((place) => React.createElement('div', { key: place.id, className: "relative bg-white rounded-3xl border border-slate-100 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.03)] flex gap-4 pb-8" }
+          , filteredPlaces.map((place) => React.createElement('div', { key: place.id, className: "relative bg-white rounded-3xl border border-slate-100 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.03)] flex gap-4" }
               , React.createElement('img', { src: place.image, alt: place.name, className: "w-20 h-20 rounded-2xl object-cover shrink-0 bg-slate-50" })
               , React.createElement('div', { className: "flex-1 min-w-0 space-y-1.5" }
                 , React.createElement('div', { className: "flex justify-between items-start gap-2" }
@@ -518,11 +617,6 @@ export default function CustomerDashboard() {
                 , React.createElement('p', { className: cn("text-[10px] font-bold", place.isOpen ? "text-[#16A34A]" : "text-red-500") }
                   , place.isOpen ? "Open Now" : "Closed"
                 )
-              )
-              /* Absolute center bottom overlapping scanner button */
-              , React.createElement(Link, { to: "/checkin", className: "absolute bottom-[-16px] left-1/2 translate-x-[-50%] bg-[#16A34A] hover:bg-[#15803D] text-white text-[10px] font-black tracking-wider rounded-full px-5 py-2 flex items-center gap-1.5 shadow-md active:scale-95 transition-all" }
-                , React.createElement(Scan, { className: "h-3.5 w-3.5" })
-                , "SCAN QR"
               )
             ))
         )
@@ -627,6 +721,42 @@ export default function CustomerDashboard() {
             }, "Close")
           )
         )
+
+      /* 2km Nearby Subscriber Map Modal */
+      , showMapModal && React.createElement(
+          Dialog, { open: showMapModal, onOpenChange: (open) => !open && setShowMapModal(false) },
+          React.createElement(DialogContent, { className: "max-w-[420px] bg-white border border-border p-6 rounded-3xl text-slate-800" },
+            React.createElement(DialogHeader, { className: "flex flex-col space-y-1.5 w-full pb-2 border-b border-slate-100" },
+              React.createElement(DialogTitle, { className: "text-base font-black text-foreground flex items-center gap-2" },
+                React.createElement(MapPin, { className: "h-5 w-5 text-primary" }),
+                "Subscriber Stores Map"
+              ),
+              React.createElement(DialogDescription, { className: "text-[10px] text-muted-foreground flex flex-col gap-1" },
+                "Showing partner stores who purchased our plan within 2 km of your location",
+                isTestingFallback && React.createElement("span", { className: "text-amber-700 font-bold bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 mt-1 block text-[9px] w-fit" },
+                  "⚠️ No partner stores within 2 km. Showing all active registered stores for testing."
+                )
+              )
+            ),
+            React.createElement("div", { className: "w-full py-4 relative z-0 flex flex-col items-center justify-center min-h-[350px]" },
+              mapLoading ? React.createElement("div", { className: "flex flex-col items-center justify-center space-y-2 text-xs text-muted-foreground" },
+                React.createElement(Loader2, { className: "h-6 w-6 animate-spin text-primary" }),
+                React.createElement("span", null, "Retrieving your GPS location...")
+              ) : userCoords && mapRenderDelay ? React.createElement(React.Suspense, {
+                  fallback: React.createElement("div", { className: "h-[350px] w-full rounded-2xl bg-slate-50 border border-dashed border-border flex flex-col items-center justify-center text-xs text-muted-foreground gap-2" }
+                    , React.createElement(Loader2, { className: "h-5 w-5 animate-spin text-primary" })
+                    , React.createElement("span", null, "Loading map assets...")
+                  )
+                }
+                  , React.createElement(SubscriberMap, { userCoords, nearbyBranches: displayBranches })
+                ) : React.createElement("div", { className: "text-xs text-muted-foreground" }, "Map initialization delayed...")
+            ),
+            React.createElement(Button, {
+              className: "w-full bg-primary text-primary-foreground hover:bg-primary/90 rounded-full",
+              onClick: () => setShowMapModal(false)
+            }, "Close Map")
+          )
+        )
     )
   );
 }
@@ -728,6 +858,17 @@ function BusinessDetailsModal({ card, unlockedRewards, setSelectedReward, onClos
 
         // Social links
         React.createElement(SocialLinks, { business }),
+
+        // Write AI Review button
+        React.createElement("div", { className: "pt-1" },
+            React.createElement(Link, {
+              to: `/review?businessId=${business.id}`,
+              className: "w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#FF6A00] to-[#FF8E3C] text-white py-2.5 px-4 text-xs font-extrabold shadow-sm active:scale-95 transition-transform"
+            },
+              React.createElement(Sparkles, { className: "h-4 w-4 text-white animate-pulse" }),
+              "Generate Review suggestions"
+            )
+          ),
 
         // Book Stay
         business.category === "Hotels" && business.bookingUrl && React.createElement(
@@ -980,11 +1121,12 @@ function SocialLinks({ business }) {
       business.googleReviewUrl && React.createElement("a", {
         href: business.googleReviewUrl.startsWith("http") ? business.googleReviewUrl : `https://${business.googleReviewUrl}`,
         target: "_blank", rel: "noopener noreferrer", title: "Google Review",
-        className: "w-7 h-7 rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-blue-500 p-0.5 flex items-center justify-center hover:scale-110 transition-transform shadow-sm ring-1 ring-yellow-400/40"
-      }, React.createElement("div", { className: "w-full h-full rounded-full bg-white flex items-center justify-center" },
-        React.createElement("svg", { className: "w-3.5 h-3.5", viewBox: "0 0 24 24", fill: "#EA4335" },
-          React.createElement("polygon", { points: "12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" })
-        )
+        className: "w-7 h-7 rounded-full bg-white flex items-center justify-center hover:scale-110 transition-transform shadow-sm ring-1 ring-slate-200"
+      }, React.createElement("svg", { className: "w-4 h-4", viewBox: "0 0 24 24" },
+        React.createElement("path", { d: "M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z", fill: "#4285F4" }),
+        React.createElement("path", { d: "M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z", fill: "#34A853" }),
+        React.createElement("path", { d: "M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z", fill: "#FBBC05" }),
+        React.createElement("path", { d: "M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z", fill: "#EA4335" })
       ))
     )
   );

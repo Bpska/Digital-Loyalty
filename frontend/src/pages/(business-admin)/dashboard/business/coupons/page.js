@@ -610,7 +610,12 @@ export default function CouponsPage() {
             , coupons.map((coupon) => {
                 const isPercent = coupon.discountType === "PERCENTAGE";
                 const isExpired = new Date(coupon.validTo) < new Date();
-                return React.createElement('div', { key: coupon.id, className: cn("bg-white rounded-3xl p-4 border border-[#F1F5F9] shadow-sm flex items-center justify-between gap-3", (!coupon.isActive || isExpired) && "opacity-60") }
+                return React.createElement('div', { key: coupon.id, className: cn(
+                    "rounded-3xl p-4 shadow-lg flex items-center justify-between gap-3 border-l-[6px] transition-all",
+                    coupon.isActive && !isExpired
+                      ? "bg-gradient-to-r from-[#FFF7ED] to-white border-l-[#F97316] border-t border-r border-b border-[#FED7AA] shadow-[0_4px_24px_0_rgba(249,115,22,0.22)] ring-1 ring-[#F97316]/20"
+                      : "bg-white border-l-slate-300 border border-slate-200 opacity-60"
+                  ) }
                   , React.createElement('div', { className: "flex items-center gap-3 min-w-0 flex-1" }
                     /* Highlight tile */
                     , React.createElement('div', { className: "w-12 h-12 rounded-2xl bg-[#FFEDD5] flex flex-col items-center justify-center shrink-0" }
@@ -681,7 +686,12 @@ export default function CouponsPage() {
             , coupons.map((coupon) => {
                 const isPercent = coupon.discountType === "PERCENTAGE";
                 const isExpired = new Date(coupon.validTo) < new Date();
-                return React.createElement(Card, { key: coupon.id, className: `glass ${(!coupon.isActive || isExpired) && "opacity-60"}`, glass: true }
+                return React.createElement(Card, { key: coupon.id, className: cn(
+                    "border-l-[6px] transition-all overflow-hidden",
+                    coupon.isActive && !isExpired
+                      ? "bg-gradient-to-r from-[#FFF7ED] to-white border-l-[#F97316] border-t border-r border-b border-[#FED7AA] shadow-[0_6px_30px_0_rgba(249,115,22,0.20)] ring-1 ring-[#F97316]/20"
+                      : "border-l-slate-300 border border-slate-200 opacity-60 bg-white"
+                  ), glass: false }
                   , React.createElement(CardHeader, { className: "p-4 pb-2" }
                     , React.createElement('div', { className: "flex justify-between items-start" }
                       , React.createElement('div', { className: "flex-1 min-w-0 pr-2" }

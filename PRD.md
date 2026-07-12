@@ -69,7 +69,7 @@ graph TD
 *   **Sign-Up Flow**: Merchants register by entering user details (Name, Email, Phone, Password) and business details (Business Name, Address). Upon registration, the business account status is marked as `PENDING` until activated by subscription purchase.
 *   **Payment Gateway Integration**: Direct integration with **Razorpay**. 
 *   **Launch Year Special Plan**: Default subscription pricing model displays crossed-out pricing **~~₹3,500~~** followed by **₹999** for the yearly subscription, supporting up to **8,000 customers** and unlimited check-ins.
-*   **Dynamic Tax & Charge Handling**: Behind-the-scenes, payment calculations automatically apply tax percentages and gateway charges (e.g. Gateway Charges 2.3%, GST 5%) retrieved dynamically from system settings, while presenting a clean, user-friendly breakdown on the frontend.
+*   **Dynamic Tax & Charge Handling**: Behind-the-scenes, payment calculations automatically apply tax percentages and gateway charges (e.g. Gateway Charges 2.3%, GST 18%) retrieved dynamically from system settings, while presenting a clean, user-friendly breakdown on the frontend.
 *   **Grace Periods**: Automated grace period (7 days) after a payment failure before suspending the business account.
 *   **Auto-Suspension Cascade**: If a business is suspended, all associated staff logins are locked, QR code scanning endpoints return forbidden states, and customer check-ins are blocked.
 

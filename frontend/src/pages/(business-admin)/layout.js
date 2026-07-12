@@ -19,7 +19,6 @@ import {
   Menu, 
   X, 
   Bell, 
-  Loader2,
   ClipboardCheck,
   Settings2,
   Upload,
@@ -29,7 +28,20 @@ import {
   Gift,
   Star,
   Wallet,
-  Camera
+  Camera,
+  UserCheck,
+  HelpCircle,
+  CreditCard,
+  Building2,
+  Lock,
+  ArrowRight,
+  TrendingUp,
+  AlertCircle,
+  Globe,
+  Plus,
+  Trash2,
+  Info,
+  Loader2
 } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
@@ -41,6 +53,7 @@ import { Button } from "@/components/ui/button";
 import { api, getImageUrl } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { subscribeUserToPush } from "@/lib/pushSubscription";
+import Loader from "@/components/Loader";
 
 const BrandIcon = ({ iconName, customUrl, defaultIcon: DefaultIcon, className = "h-5.5 w-5.5" }) => {
   if (customUrl && (customUrl.startsWith("/") || customUrl.startsWith("http"))) {
@@ -158,6 +171,7 @@ export default function BusinessAdminLayout({
     try {
       const res = await api.post("/subscriptions/validate-coupon", { code });
       setAppliedCoupon(res.data);
+      await fetchPricing(code);
     } catch (err) {
       setCouponError(err.response?.data?.message || "Invalid coupon code.");
     } finally {
@@ -166,18 +180,14 @@ export default function BusinessAdminLayout({
   };
 
   const getDiscountedTotal = () => {
-    if (!pricing || !appliedCoupon) return pricing?.totalAmount ?? 0;
-    if (appliedCoupon.discountType === "PERCENTAGE") {
-      const discount = (pricing.totalAmount * appliedCoupon.discountValue) / 100;
-      return Math.max(0, parseFloat((pricing.totalAmount - discount).toFixed(2)));
-    }
-    return Math.max(0, parseFloat((pricing.totalAmount - appliedCoupon.discountValue).toFixed(2)));
+    return pricing?.totalAmount ?? 0;
   };
 
-  const fetchPricing = async () => {
+  const fetchPricing = async (couponCode = "") => {
     setPricingLoading(true);
     try {
-      const res = await api.get("/subscriptions/pricing");
+      const url = couponCode ? `/subscriptions/pricing?coupon=${couponCode}` : "/subscriptions/pricing";
+      const res = await api.get(url);
       setPricing(res.data);
     } catch (err) {
       console.error("Failed to fetch pricing:", err);
@@ -222,6 +232,7 @@ export default function BusinessAdminLayout({
               razorpayOrderId: response.razorpay_order_id,
               razorpayPaymentId: response.razorpay_payment_id,
               razorpaySignature: response.razorpay_signature,
+              couponCode: appliedCoupon?.code,
             });
             alert("Subscription upgraded!");
             await refetchProfile();
@@ -254,6 +265,7 @@ export default function BusinessAdminLayout({
         businessId,
         razorpayOrderId: demoOrder.orderId,
         razorpayPaymentId: `mock-pay-${Date.now()}`,
+        couponCode: appliedCoupon?.code,
       });
       setDemoPaySuccess(true);
       await refetchProfile();
@@ -476,18 +488,19 @@ export default function BusinessAdminLayout({
     }
   }, [authorized, isPending]);
 
-  React.useEffect(() => {
+  const fetchPendingApprovals = React.useCallback(async () => {
     if (!businessId || businessId === "null" || businessId === "undefined" || isPending) return;
-    const fetchPending = async () => {
-      try {
-        const res = await api.get(`/loyalty-approval/analytics/${businessId}`);
-        setPendingApprovals(res.data?.pendingCount ?? 0);
-      } catch (_) {}
-    };
-    fetchPending();
-    const iv = setInterval(fetchPending, 30000);
-    return () => clearInterval(iv);
+    try {
+      const res = await api.get(`/loyalty-approval/analytics/${businessId}`);
+      setPendingApprovals(res.data?.pendingCount ?? 0);
+    } catch (_) {}
   }, [businessId, isPending]);
+
+  React.useEffect(() => {
+    fetchPendingApprovals();
+    const iv = setInterval(fetchPendingApprovals, 30000);
+    return () => clearInterval(iv);
+  }, [fetchPendingApprovals]);
 
   const handleMarkAllRead = async () => {
     try {
@@ -511,7 +524,7 @@ export default function BusinessAdminLayout({
   if (loading || !authorized || (businessId && businessId !== "null" && businessId !== "undefined" && isProfileLoading)) {
     return (
       React.createElement('div', { className: "flex min-h-screen items-center justify-center bg-background"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 47}}
-        , React.createElement(Loader2, { className: "h-8 w-8 animate-spin text-primary"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 48}} )
+        , React.createElement(Loader)
       )
     );
   }
@@ -533,7 +546,7 @@ export default function BusinessAdminLayout({
               )
             )
             , React.createElement('div', { className: "flex items-center gap-2 mb-2" }
-              , React.createElement('img', { src: "/new.png", alt: "ScanLoyal", className: "h-7 w-auto object-contain brightness-0 invert" })
+              , React.createElement('img', { src: "/new.png", alt: "ScanLoyal", className: "h-7 w-auto object-contain" })
               , React.createElement('span', { className: "text-xs font-black uppercase tracking-widest opacity-80" }, "ScanLoyal")
             )
             , React.createElement('h2', { className: "text-2xl font-black tracking-tight mt-3" }, "Activate Your Business")
@@ -599,7 +612,7 @@ export default function BusinessAdminLayout({
                     , appliedCoupon ? (
                         React.createElement('button', {
                             type: "button",
-                            onClick: () => { setAppliedCoupon(null); setCouponInput(""); setCouponError(""); },
+                            onClick: () => { setAppliedCoupon(null); setCouponInput(""); setCouponError(""); fetchPricing(); },
                             className: "h-9 px-3 rounded-xl border border-red-200 text-red-500 hover:bg-red-50 text-xs font-bold transition-colors"
                           }, "Remove")
                       ) : (
@@ -744,6 +757,7 @@ export default function BusinessAdminLayout({
         { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard/business", iconKey: "dashboardIcon" },
         { label: "Loyalty Approvals", icon: ClipboardCheck, href: "/dashboard/business/approvals", badge: pendingApprovals, iconKey: "redemptionIcon" },
         { label: "Coupons", icon: Percent, href: "/dashboard/business/coupons", iconKey: "couponIcon" },
+        { label: "Customer Notifications", icon: Bell, href: "/dashboard/business/notifications", iconKey: "dashboardIcon" },
         { label: "Analytics", icon: BarChart3, href: "/dashboard/business/analytics", iconKey: "dashboardIcon" },
         { label: "Branches", icon: MapPin, href: "/dashboard/business/branches", iconKey: "dashboardIcon" },
         { label: "Loyalty Settings", icon: Settings2, href: "/dashboard/business/loyalty-config", iconKey: "loyaltyIcon" },
@@ -914,7 +928,7 @@ export default function BusinessAdminLayout({
 
         /* Content Box */
         , React.createElement('main', { className: "flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto relative z-10", __self: this, __source: {fileName: _jsxFileName, lineNumber: 196}}
-          , React.createElement(Outlet, { context: { setShowNotifications, notifications, unreadCount, fetchNotifications, setShowRedeemModal, setScanningRedeem } })
+          , React.createElement(Outlet, { context: { setShowNotifications, notifications, unreadCount, fetchNotifications, setShowRedeemModal, setScanningRedeem, fetchPendingApprovals } })
         )
         /* Notifications Modal Dialog */
         , showNotifications && (

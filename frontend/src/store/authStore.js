@@ -130,7 +130,11 @@ export const useAuthStore = create((set) => {
         }
         throw new Error(response.message || "Login failed");
       } catch (err) {
-        set({ error: getErrorMessage(err, "Invalid email or password"), loading: false });
+        const errMsg = getErrorMessage(err, "Invalid email or password");
+        set({ error: errMsg, loading: false });
+        if (err && err.code === 'EMAIL_NOT_VERIFIED') {
+          return { emailNotVerified: true, email, userId: err.userId };
+        }
         return false;
       }
     },
@@ -140,6 +144,14 @@ export const useAuthStore = create((set) => {
       try {
         const response = await api.post("/auth/register", { name, email, phone, password });
         if (response.success && response.data) {
+          if (response.data.requiresVerification) {
+            set({ loading: false });
+            return {
+              requiresVerification: true,
+              userId: response.data.userId,
+              email: response.data.email,
+            };
+          }
           const { user, accessToken } = response.data;
           
           if (typeof window !== "undefined") {
@@ -162,6 +174,14 @@ export const useAuthStore = create((set) => {
       try {
         const response = await api.post("/auth/register-business", { name, email, phone, password, businessName, address, category, bookingUrl });
         if (response.success && response.data) {
+          if (response.data.requiresVerification) {
+            set({ loading: false });
+            return {
+              requiresVerification: true,
+              userId: response.data.userId,
+              email: response.data.email,
+            };
+          }
           const { user, accessToken } = response.data;
           
           if (typeof window !== "undefined") {
@@ -176,6 +196,74 @@ export const useAuthStore = create((set) => {
         return response.success;
       } catch (err) {
         set({ error: getErrorMessage(err, "Failed to register business"), loading: false });
+        return false;
+      }
+    },
+
+    sendEmailOtp: async (userId) => {
+      set({ loading: true, error: null });
+      try {
+        const response = await api.post("/auth/send-email-otp", { userId });
+        set({ loading: false });
+        return response.success;
+      } catch (err) {
+        set({ error: getErrorMessage(err, "Failed to send email OTP"), loading: false });
+        return false;
+      }
+    },
+
+    resendEmailOtp: async (userId) => {
+      set({ loading: true, error: null });
+      try {
+        const response = await api.post("/auth/resend-email-otp", { userId });
+        set({ loading: false });
+        return response.success;
+      } catch (err) {
+        set({ error: getErrorMessage(err, "Failed to resend email OTP"), loading: false });
+        return false;
+      }
+    },
+
+    verifyEmailOtp: async (userId, otp) => {
+      set({ loading: true, error: null });
+      try {
+        const response = await api.post("/auth/verify-email-otp", { userId, otp });
+        if (response.success && response.data) {
+          const { user, accessToken } = response.data;
+          if (typeof window !== "undefined") {
+            localStorage.setItem("user", JSON.stringify(user));
+            localStorage.setItem("accessToken", accessToken);
+          }
+          set({ user, accessToken, loading: false });
+          return true;
+        }
+        throw new Error(response.message || "Verification failed");
+      } catch (err) {
+        set({ error: getErrorMessage(err, "Verification failed"), loading: false });
+        return false;
+      }
+    },
+
+    sendForgotPasswordOtp: async (email) => {
+      set({ loading: true, error: null });
+      try {
+        const response = await api.post("/auth/forgot-password", { email });
+        set({ loading: false });
+        return response.success;
+      } catch (err) {
+        set({ error: getErrorMessage(err, "Failed to request password reset"), loading: false });
+        return false;
+      }
+    },
+
+    resetPassword: async (email, otp, newPassword) => {
+      set({ loading: true, error: null });
+      try {
+        const response = await api.post("/auth/reset-password", { email, otp, newPassword });
+        set({ loading: false });
+        return response.success;
+      } catch (err) {
+        set({ error: getErrorMessage(err, "Failed to reset password"), loading: false });
         return false;
       }
     },

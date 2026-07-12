@@ -63,8 +63,24 @@ export default function CustomerLoyaltyHistoryPage() {
   });
 
   const transactions = data?.data || [];
-  const totalPoints = transactions.reduce((sum, tx) => sum + tx.points, 0);
-  const totalExtraPoints = transactions.reduce((sum, tx) => sum + (tx.extraPoints || 0), 0);
+  
+  // Filter transactions based on time range
+  const filteredTransactions = transactions.filter(tx => {
+    if (timeRange === "All Time") return true;
+    const txDate = new Date(tx.createdAt);
+    const now = new Date();
+    if (timeRange === "This Month") {
+      return txDate.getMonth() === now.getMonth() && txDate.getFullYear() === now.getFullYear();
+    }
+    if (timeRange === "This Week") {
+      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      return txDate >= oneWeekAgo;
+    }
+    return true;
+  });
+
+  const totalPoints = filteredTransactions.reduce((sum, tx) => sum + tx.points, 0);
+  const totalExtraPoints = filteredTransactions.reduce((sum, tx) => sum + (tx.extraPoints || 0), 0);
 
   // Group transactions by date label
   const groupTransactionsByDate = (items) => {
@@ -90,7 +106,7 @@ export default function CustomerLoyaltyHistoryPage() {
     return Object.entries(groups);
   };
 
-  const groupedTransactions = groupTransactionsByDate(transactions);
+  const groupedTransactions = groupTransactionsByDate(filteredTransactions);
 
   return (
     React.createElement('div', { className: "space-y-6" }
@@ -101,17 +117,28 @@ export default function CustomerLoyaltyHistoryPage() {
           , React.createElement('h2', { className: "text-[26px] font-black text-[#0F172A] leading-tight" }, "Loyalty History")
           , React.createElement('p', { className: "text-xs text-[#64748B] mt-0.5" }, "Track all your points and rewards in one place.")
         )
-        , React.createElement('button', { className: "bg-[#FFEDD5] text-[#F97316] rounded-full px-3 py-1.5 flex items-center gap-1 hover:bg-[#FFEDD5]/80 active:scale-95 transition-all shrink-0 text-[10px] font-bold shadow-sm" }
-          , React.createElement(BookOpen, { className: "h-3.5 w-3.5" })
-          , timeRange
-          , React.createElement(ChevronDown, { className: "h-3 w-3" })
+        , React.createElement('div', { className: "relative shrink-0" }
+          , React.createElement('select', {
+              value: timeRange,
+              onChange: (e) => setTimeRange(e.target.value),
+              className: "absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+            }
+            , React.createElement('option', { value: "This Month" }, "This Month")
+            , React.createElement('option', { value: "This Week" }, "This Week")
+            , React.createElement('option', { value: "All Time" }, "All Time")
+          )
+          , React.createElement('button', { className: "bg-[#FFEDD5] text-[#F97316] rounded-full px-3 py-1.5 flex items-center gap-1 hover:bg-[#FFEDD5]/80 active:scale-95 transition-all text-[10px] font-bold shadow-sm relative z-0" }
+            , React.createElement(BookOpen, { className: "h-3.5 w-3.5" })
+            , timeRange
+            , React.createElement(ChevronDown, { className: "h-3 w-3" })
+          )
         )
       )
 
       /* C. Points summary (2 cards side by side) */
       , React.createElement('div', { className: "grid grid-cols-2 gap-3" }
         /* Total Points Card */
-        , React.createElement('div', { className: "bg-[#F97316] text-white rounded-3xl p-4.5 relative overflow-hidden flex flex-col justify-between h-28 shadow-sm border border-[#F97316]" }
+        , React.createElement('div', { className: "bg-[#F97316] text-white rounded-3xl p-4 relative overflow-hidden flex flex-col justify-between h-28 shadow-sm border border-[#F97316]" }
           , React.createElement('div', { className: "flex justify-between items-start" }
             , React.createElement('span', { className: "text-[9px] font-extrabold tracking-wider opacity-90 uppercase" }, "Total Points")
             , React.createElement('div', { className: "w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white shrink-0" }
@@ -124,7 +151,7 @@ export default function CustomerLoyaltyHistoryPage() {
           )
         )
         /* Extra Points Card */
-        , React.createElement('div', { className: "bg-white text-[#F97316] rounded-3xl p-4.5 relative overflow-hidden flex flex-col justify-between h-28 shadow-sm border border-[#F97316]/30" }
+        , React.createElement('div', { className: "bg-white text-[#F97316] rounded-3xl p-4 relative overflow-hidden flex flex-col justify-between h-28 shadow-sm border border-[#F97316]/30" }
           , React.createElement('div', { className: "flex justify-between items-start" }
             , React.createElement('span', { className: "text-[9px] font-extrabold tracking-wider text-[#64748B] uppercase" }, "Extra Points")
             , React.createElement('div', { className: "w-7 h-7 rounded-full bg-[#FFEDD5] flex items-center justify-center text-[#F97316] shrink-0" }
@@ -221,14 +248,17 @@ export default function CustomerLoyaltyHistoryPage() {
               { num: "3", title: "Earn Points", desc: "Points added to your account", icon: Gift }
             ].map((step, i) => React.createElement(React.Fragment, { key: step.num }
               , React.createElement('div', { className: "flex-1 flex flex-col items-center text-center space-y-1.5 min-w-0" }
-                , React.createElement('div', { className: "relative w-10 h-10 rounded-full bg-[#FFEDD5] flex items-center justify-center text-[#F97316] shrink-0 shadow-sm" }
-                  , React.createElement(step.icon, { className: "h-4 w-4" })
-                  , React.createElement('span', { className: "absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-[#F97316] text-white text-[8px] font-black rounded-full flex items-center justify-center border border-white" }, step.num)
+                , React.createElement('div', { className: "relative w-10 h-10 rounded-full bg-[#FFEDD5] flex items-center justify-center text-[#F97316] shrink-0 shadow-sm border border-[#FFE4E6]/25" }
+                  , React.createElement(step.icon, { className: "h-4.5 w-4.5" })
+                  , React.createElement('span', {
+                      className: "absolute -top-1.5 -right-1.5 bg-[#F97316] text-white text-[9px] font-black flex items-center justify-center border border-white shadow-sm",
+                      style: { borderRadius: "50%", width: "16px", height: "16px", minWidth: "16px", minHeight: "16px", padding: 0 }
+                    }, step.num)
                 )
                 , React.createElement('p', { className: "text-[10px] font-black text-[#0F172A] truncate w-full" }, step.title)
                 , React.createElement('p', { className: "text-[8px] text-[#64748B] leading-normal line-clamp-2 w-full" }, step.desc)
               )
-              , i < 2 && React.createElement('span', { className: "text-[#94A3B8] text-xs font-bold" }, "→")
+              , i < 2 && React.createElement('span', { className: "text-[#94A3B8] text-xs font-bold -translate-y-4" }, "→")
             ))
         )
       )

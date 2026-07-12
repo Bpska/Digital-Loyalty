@@ -4,6 +4,7 @@ const _jsxFileName = "src\\pages\\providers.tsx";"use client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
+import Loader from "@/components/Loader";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,30 +24,27 @@ export default function ClientProviders({
 
   useEffect(() => {
     setMounted(true);
-    const state = useAuthStore.getState();
-    if (!state.initialized && !state.loading) {
-      checkSession();
-    }
+    checkSession();
+  }, [checkSession]);
 
-    // Global Theme Application
+  useEffect(() => {
+    if (!mounted) return;
+    
     const applyTheme = () => {
-      const theme = localStorage.getItem("theme") || "system";
-      const root = window.document.documentElement;
-      root.classList.remove("light", "dark");
-      if (theme === "system") {
-        const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-        root.classList.add(systemTheme);
+      const isDark = localStorage.getItem("theme") === "dark" || 
+        (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      if (isDark) {
+        document.documentElement.classList.add("dark");
       } else {
-        root.classList.add(theme);
+        document.documentElement.classList.remove("dark");
       }
     };
 
     applyTheme();
 
-    // Listen for storage changes to sync tabs and logout states
     const handleAuthChanged = () => {
-      const rawUser = localStorage.getItem("user");
-      const user = rawUser ? JSON.parse(rawUser) : null;
+      const userStr = localStorage.getItem("user");
+      const user = userStr ? JSON.parse(userStr) : null;
       const accessToken = localStorage.getItem("accessToken");
       
       // Update the Zustand store directly to avoid hitting the backend in an infinite loop
@@ -72,7 +70,7 @@ export default function ClientProviders({
   if (!mounted || !initialized) {
     return (
       React.createElement('div', { className: "flex min-h-screen items-center justify-center bg-background"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 48}}
-        , React.createElement('div', { className: "h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 49}} )
+        , React.createElement(Loader)
       )
     );
   }

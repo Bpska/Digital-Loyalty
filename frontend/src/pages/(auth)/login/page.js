@@ -32,6 +32,16 @@ export default function LoginPage() {
   const [successMsg, setSuccessMsg] = useState(null);
   const [showForgotDialog, setShowForgotDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("customer");
+  
+  const [pendingUserId, setPendingUserId] = useState(null);
+  const [pendingEmail, setPendingEmail] = useState(null);
+
+  const handleResendVerification = async () => {
+    if (!pendingUserId) return;
+    clearError();
+    await useAuthStore.getState().sendEmailOtp(pendingUserId);
+    navigate("/verify-email", { state: { userId: pendingUserId, email: pendingEmail } });
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -166,20 +176,31 @@ export default function LoginPage() {
   const handleCustomerSubmit = async (e) => {
     e.preventDefault();
     clearError();
+    setPendingUserId(null);
+    setPendingEmail(null);
     if (isSignUp) {
       if (!name || !email || !phone || !password) return;
       if (password.length < 8) return;
       const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
-      await registerCustomer(name, email, formattedPhone, password);
+      const res = await registerCustomer(name, email, formattedPhone, password);
+      if (res && res.requiresVerification) {
+        navigate("/verify-email", { state: { userId: res.userId, email: res.email } });
+      }
     } else {
       if (!email || !password) return;
-      await loginWithPassword(email, password);
+      const res = await loginWithPassword(email, password);
+      if (res && res.emailNotVerified) {
+        setPendingUserId(res.userId);
+        setPendingEmail(res.email);
+      }
     }
   };
 
   const handlePasswordLogin = async (e) => {
     e.preventDefault();
     clearError();
+    setPendingUserId(null);
+    setPendingEmail(null);
     if (isSignUp) {
       if (!name || !email || !phone || !password || !businessName) return;
       if (password.length < 8) {
@@ -189,13 +210,19 @@ export default function LoginPage() {
       // Prepend +91 so backend phone schema always gets E.164 format
       const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
       const finalCategory = category === "Other" ? (customCategory || "Other") : category;
-      const success = await registerBusiness(name, email, formattedPhone, password, businessName, businessAddress, finalCategory, category === "Hotels" ? bookingUrl : null);
-      if (success && !useAuthStore.getState().user) {
-        setSuccessMsg("Your registration request was submitted! Once the Super Admin reviews and approves your account, you will be able to sign in.");
+      const res = await registerBusiness(name, email, formattedPhone, password, businessName, businessAddress, finalCategory, category === "Hotels" ? bookingUrl : null);
+      if (res && res.requiresVerification) {
+        navigate("/verify-email", { state: { userId: res.userId, email: res.email } });
+      } else if (res && !useAuthStore.getState().user) {
+        setSuccessMsg("Your registration was successful! Please check your email for the verification code.");
       }
     } else {
       if (!email || !password) return;
-      await loginWithPassword(email, password);
+      const res = await loginWithPassword(email, password);
+      if (res && res.emailNotVerified) {
+        setPendingUserId(res.userId);
+        setPendingEmail(res.email);
+      }
     }
   };
 
@@ -217,9 +244,9 @@ export default function LoginPage() {
         React.createElement(Card, { className: "w-full max-w-[420px] glass animate-fade-in", glass: true, __self: this, __source: { fileName: _jsxFileName, lineNumber: 185 } }
           , React.createElement(CardHeader, { className: "space-y-1", __self: this, __source: { fileName: _jsxFileName, lineNumber: 186 } }
             , React.createElement(CardTitle, { className: "text-2xl text-center flex items-center justify-center gap-2 text-emerald-600", __self: this, __source: { fileName: _jsxFileName, lineNumber: 187 } }
-              , React.createElement(Sparkles, { className: "h-6 w-6", __self: this, __source: { fileName: _jsxFileName, lineNumber: 188 } }), " Request Submitted"
+              , React.createElement(Sparkles, { className: "h-6 w-6", __self: this, __source: { fileName: _jsxFileName, lineNumber: 188 } }), " Registration Successful"
             )
-            , React.createElement(CardDescription, { className: "text-center text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 190 } }, "Your business registration is pending approval."
+            , React.createElement(CardDescription, { className: "text-center text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 190 } }, "Your business registration is complete."
 
             )
           )
@@ -246,8 +273,13 @@ export default function LoginPage() {
           )
           , React.createElement(CardContent, { __self: this, __source: { fileName: _jsxFileName, lineNumber: 215 } }
             , error && (
-              React.createElement('div', { className: "mb-4 rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive text-center", __self: this, __source: { fileName: _jsxFileName, lineNumber: 217 } }
-                , error
+              React.createElement('div', { className: "mb-4 rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive text-center flex flex-col items-center gap-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 217 } }
+                , React.createElement('span', null, error)
+                , error.includes("verify your email") && pendingUserId && React.createElement('button', {
+                    type: "button",
+                    onClick: handleResendVerification,
+                    className: "text-xs font-bold text-primary hover:underline mt-1"
+                  }, "Resend Verification Email")
               )
             )
 
@@ -346,7 +378,7 @@ export default function LoginPage() {
                       React.createElement('div', { className: "flex justify-end mt-1" }
                         , React.createElement('button', {
                           type: "button",
-                          onClick: () => setShowForgotDialog(true),
+                          onClick: () => navigate("/forgot-password"),
                           className: "text-[11px] text-primary hover:underline font-semibold"
                         }, "Forgot Password?")
                       )
@@ -554,7 +586,7 @@ export default function LoginPage() {
                       React.createElement('div', { className: "flex justify-end mt-1" }
                         , React.createElement('button', {
                           type: "button",
-                          onClick: () => setShowForgotDialog(true),
+                          onClick: () => navigate("/forgot-password"),
                           className: "text-[11px] text-primary hover:underline font-semibold"
                         }, "Forgot Password?")
                       )

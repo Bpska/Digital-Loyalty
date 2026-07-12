@@ -33,36 +33,65 @@ async function getSetting(key, defaultValue) {
   return setting ? setting.value : defaultValue;
 }
 
+// Helper to calculate pricing details consistently on the server-side
+async function calculatePricingDetails(couponCode = null) {
+  const activeCount = await prisma.business.count({
+    where: { status: 'ACTIVE', deletedAt: null },
+  });
+  const promoLimit = parseInt(await getSetting('promo_limit', '20'), 10);
+  const promoPrice = parseFloat(await getSetting('promo_price', '999'));
+  const platformFee = parseFloat(await getSetting('platform_fee', '999'));
+  const gstPercent = parseFloat(await getSetting('gst_percent', '18'));
+  const gatewayPercent = parseFloat(await getSetting('gateway_percent', '2.3'));
+
+  const isEligibleForPromo = activeCount < promoLimit;
+  const basePrice = isEligibleForPromo ? promoPrice : platformFee;
+
+  let discountAmount = 0;
+  let appliedBasePrice = basePrice;
+
+  if (couponCode) {
+    const key = `coupon_${String(couponCode).trim().toUpperCase()}`;
+    const setting = await prisma.systemSetting.findUnique({ where: { key } });
+    if (setting) {
+      try {
+        const couponData = JSON.parse(setting.value);
+        if (couponData.discountType === 'PERCENTAGE') {
+          discountAmount = parseFloat(((basePrice * parseFloat(couponData.discountValue)) / 100).toFixed(2));
+        } else {
+          discountAmount = parseFloat(parseFloat(couponData.discountValue).toFixed(2));
+        }
+        appliedBasePrice = Math.max(0, basePrice - discountAmount);
+      } catch (_) {}
+    }
+  }
+
+  const gatewayAmount = parseFloat(((appliedBasePrice * gatewayPercent) / 100).toFixed(2));
+  const gstAmount = parseFloat(((appliedBasePrice * gstPercent) / 100).toFixed(2));
+  const totalAmount = parseFloat((appliedBasePrice + gatewayAmount + gstAmount).toFixed(2));
+
+  return {
+    activeBusinesses: activeCount,
+    promoLimit,
+    isEligibleForPromo,
+    basePrice,
+    discountAmount,
+    appliedBasePrice,
+    gstPercent,
+    gstAmount,
+    gatewayPercent,
+    gatewayAmount,
+    totalAmount,
+    currency: 'INR',
+  };
+}
+
 // ── Get pricing calculation details ──────────────────────────
 router.get('/pricing', authenticate, async (req, res, next) => {
   try {
-    const activeCount = await prisma.business.count({
-      where: { status: 'ACTIVE', deletedAt: null },
-    });
-    const promoLimit = parseInt(await getSetting('promo_limit', '20'), 10);
-    const promoPrice = parseFloat(await getSetting('promo_price', '999'));
-    const platformFee = parseFloat(await getSetting('platform_fee', '999'));
-    const gstPercent = parseFloat(await getSetting('gst_percent', '5'));
-    const gatewayPercent = parseFloat(await getSetting('gateway_percent', '2.3'));
-
-    const isEligibleForPromo = activeCount < promoLimit;
-    const basePrice = isEligibleForPromo ? promoPrice : platformFee;
-    const gatewayAmount = parseFloat(((basePrice * gatewayPercent) / 100).toFixed(2));
-    const gstAmount = parseFloat(((basePrice * gstPercent) / 100).toFixed(2));
-    const totalAmount = parseFloat((basePrice + gatewayAmount + gstAmount).toFixed(2));
-
-    sendSuccess(res, {
-      activeBusinesses: activeCount,
-      promoLimit,
-      isEligibleForPromo,
-      basePrice,
-      gstPercent,
-      gstAmount,
-      gatewayPercent,
-      gatewayAmount,
-      totalAmount,
-      currency: 'INR',
-    });
+    const couponCode = req.query.coupon;
+    const details = await calculatePricingDetails(couponCode);
+    sendSuccess(res, details);
   } catch (err) { next(err); }
 });
 
@@ -91,8 +120,6 @@ router.post('/validate-coupon', authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-
-
 // ── Create a Razorpay payment order ──────────────────────────
 router.post('/create-order', authenticate, async (req, res, next) => {
   try {
@@ -113,42 +140,10 @@ router.post('/create-order', authenticate, async (req, res, next) => {
       throw new AppError('Payment gateway not configured. Please contact support.', 503);
     }
 
-    const activeCount = await prisma.business.count({
-      where: { status: 'ACTIVE', deletedAt: null },
-    });
-    const promoLimit = parseInt(await getSetting('promo_limit', '20'), 10);
-    const promoPrice = parseFloat(await getSetting('promo_price', '999'));
-    const platformFee = parseFloat(await getSetting('platform_fee', '999'));
-    const gstPercent = parseFloat(await getSetting('gst_percent', '5'));
-    const gatewayPercent = parseFloat(await getSetting('gateway_percent', '2.3'));
+    const details = await calculatePricingDetails(couponCode);
+    const { totalAmount } = details;
 
-    const isEligibleForPromo = activeCount < promoLimit;
-    const basePrice = isEligibleForPromo ? promoPrice : platformFee;
-    const gatewayAmount = parseFloat(((basePrice * gatewayPercent) / 100).toFixed(2));
-    const gstAmount = parseFloat(((basePrice * gstPercent) / 100).toFixed(2));
-    const totalAmount = parseFloat((basePrice + gatewayAmount + gstAmount).toFixed(2));
-
-    let finalTotal = totalAmount;
-    if (couponCode) {
-      const key = `coupon_${String(couponCode).trim().toUpperCase()}`;
-      const setting = await prisma.systemSetting.findUnique({ where: { key } });
-      if (setting) {
-        try {
-          const couponData = JSON.parse(setting.value);
-          if (couponData.discountType === 'PERCENTAGE') {
-            const discount = (totalAmount * parseFloat(couponData.discountValue)) / 100;
-            finalTotal = Math.max(0, parseFloat((totalAmount - discount).toFixed(2)));
-          } else {
-            const discount = parseFloat(couponData.discountValue);
-            finalTotal = Math.max(0, parseFloat((totalAmount - discount).toFixed(2)));
-          }
-        } catch (_) {
-          // ignore parsing error
-        }
-      }
-    }
-
-    if (finalTotal <= 0) {
+    if (totalAmount <= 0) {
       const nextYear = new Date();
       nextYear.setFullYear(nextYear.getFullYear() + 1);
 
@@ -199,7 +194,7 @@ router.post('/create-order', authenticate, async (req, res, next) => {
       });
     }
 
-    const amountInPaise = Math.round(finalTotal * 100);
+    const amountInPaise = Math.round(totalAmount * 100);
 
     const Razorpay = (await import('razorpay')).default;
     const razorpay = new Razorpay({
@@ -229,11 +224,12 @@ const verifyPaymentSchema = z.object({
   razorpayPaymentId: z.string(),
   razorpayOrderId: z.string(),
   razorpaySignature: z.string().optional(),
+  couponCode: z.string().optional(),
 });
 
 router.post('/verify-payment', authenticate, validate(verifyPaymentSchema), async (req, res, next) => {
   try {
-    const { businessId, razorpayPaymentId, razorpayOrderId, razorpaySignature } = req.body;
+    const { businessId, razorpayPaymentId, razorpayOrderId, razorpaySignature, couponCode } = req.body;
     if (!businessId || businessId === 'null' || businessId === 'undefined') {
       throw new AppError('Business ID is required', 400);
     }
@@ -247,14 +243,22 @@ router.post('/verify-payment', authenticate, validate(verifyPaymentSchema), asyn
     }
 
     const isMock = razorpayOrderId.startsWith('mock-order-');
+    const details = await calculatePricingDetails(couponCode);
+    let finalPrice = details.totalAmount;
 
-    if (!isMock && env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET && razorpaySignature) {
-      const shasum = crypto.createHmac('sha256', env.RAZORPAY_KEY_SECRET);
-      shasum.update(`${razorpayOrderId}|${razorpayPaymentId}`);
-      const digest = shasum.digest('hex');
-
-      if (digest !== razorpaySignature) {
-        throw new AppError('Payment signature verification failed', 400);
+    if (!isMock && env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET) {
+      try {
+        const Razorpay = (await import('razorpay')).default;
+        const razorpay = new Razorpay({
+          key_id: env.RAZORPAY_KEY_ID.trim(),
+          key_secret: env.RAZORPAY_KEY_SECRET.trim(),
+        });
+        const rzpOrder = await razorpay.orders.fetch(razorpayOrderId);
+        if (rzpOrder && rzpOrder.amount) {
+          finalPrice = rzpOrder.amount / 100;
+        }
+      } catch (err) {
+        logger.error('Failed to fetch Razorpay order details during verification', { err });
       }
     }
 
@@ -290,19 +294,6 @@ router.post('/verify-payment', authenticate, validate(verifyPaymentSchema), asyn
         where: { id: businessId },
         data: { planId: plan.id, status: 'ACTIVE' },
       });
-
-      const activeCount = await tx.business.count({
-        where: { status: 'ACTIVE', deletedAt: null },
-      });
-      const promoLimit = parseInt(await getSetting('promo_limit', '20'), 10);
-      const promoPrice = parseFloat(await getSetting('promo_price', '999'));
-      const platformFee = parseFloat(await getSetting('platform_fee', '999'));
-      const gstPercent = parseFloat(await getSetting('gst_percent', '5'));
-      const gatewayPercent = parseFloat(await getSetting('gateway_percent', '2.3'));
-      const basePrice = activeCount < promoLimit ? promoPrice : platformFee;
-      const gatewayAmount = (basePrice * gatewayPercent) / 100;
-      const gstAmount = (basePrice * gstPercent) / 100;
-      const finalPrice = basePrice + gatewayAmount + gstAmount;
 
       await tx.payment.create({
         data: {

@@ -204,6 +204,37 @@ export default function BusinessDashboard() {
   const [showUpgradeModal, setShowUpgradeModal] = React.useState(false);
   const [showDemoCheckout, setShowDemoCheckout] = React.useState(false);
   const [demoOrder, setDemoOrder] = React.useState(null);
+  const [showQrModal, setShowQrModal] = React.useState(false);
+  const [pdfLoading, setPdfLoading] = React.useState(false);
+
+  const handleDownloadQr = () => {
+    if (!primaryBranch?.qrImage) return;
+    const link = document.createElement("a");
+    link.href = primaryBranch.qrImage;
+    link.download = `QR-${primaryBranch.name.replace(/\s+/g, "_")}.png`;
+    link.click();
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!primaryBranch) return;
+    setPdfLoading(true);
+    try {
+      const response = await api.get(`/branches/${primaryBranch.id}/qr?format=pdf`, {
+        responseType: "blob",
+      });
+      const blob = response instanceof Blob ? response : new Blob([response], { type: "application/pdf" });
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `Poster-${primaryBranch.name.replace(/\s+/g, "_")}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error("Failed to download PDF:", err);
+    } finally {
+      setPdfLoading(false);
+    }
+  };
 
   const [instagramUrl, setInstagramUrl] = React.useState("");
   const [facebookUrl, setFacebookUrl] = React.useState("");
@@ -528,12 +559,37 @@ export default function BusinessDashboard() {
 
   const [undoingId, setUndoingId] = React.useState(null);
   const [chartTimeRange, setChartTimeRange] = React.useState("Last Week");
+  const [currentAdIndex, setCurrentAdIndex] = React.useState(0);
+  const [startDate, setStartDate] = React.useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d.toISOString().split("T")[0];
+  });
+  const [endDate, setEndDate] = React.useState(() => {
+    return new Date().toISOString().split("T")[0];
+  });
   const { data: redemptionsData, isLoading: redemptionsLoading, refetch: refetchRedemptions } = useQuery({
     queryKey: ["businessRedemptions", businessId],
     queryFn: () => api.get(`/businesses/${businessId}/redemptions`).then((res) => res.data),
     enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
   });
   const redemptions = redemptionsData || [];
+
+  // 4. Fetch platform ad banners
+  const { data: adBannerData } = useQuery({
+    queryKey: ["platformAdBanners"],
+    queryFn: () => api.get("/admin/ads").then((res) => res.data),
+    staleTime: 5 * 60 * 1000, // cache for 5 minutes
+  });
+  const adBanners = adBannerData?.banners || [];
+
+  React.useEffect(() => {
+    if (adBanners.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentAdIndex((prev) => (prev + 1) % adBanners.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [adBanners.length]);
 
   const handleUndoRedemption = async (id) => {
     if (!confirm("Are you sure you want to undo this redemption? The customer's voucher will become ready to redeem again.")) return;
@@ -578,18 +634,38 @@ export default function BusinessDashboard() {
   // Build chart data based on selected time range
   const getChartData = () => {
     const baseCheckins = analytics?.totalCheckIns ?? 0;
-    if (chartTimeRange === "Last Month") {
+    if (chartTimeRange === "Last Month" || chartTimeRange === "This Month") {
       const weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
       return weeks.map((week, i) => ({
         day: week,
         value: Math.max(0, Math.round(baseCheckins * (0.15 + (i * 0.12) + (Math.cos(i) * 0.08))))
       }));
-    } else if (chartTimeRange === "Last 3 Months") {
+    } else if (chartTimeRange === "Last 3 Months" || chartTimeRange === "This Year") {
       const months = ['Month 1', 'Month 2', 'Month 3'];
       return months.map((month, i) => ({
         day: month,
         value: Math.max(0, Math.round(baseCheckins * (0.25 + (i * 0.18) + (Math.sin(i) * 0.1))))
       }));
+    } else if (chartTimeRange === "Custom Date") {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const diffTime = Math.abs(end - start);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+      
+      const dataPoints = [];
+      const steps = Math.min(15, diffDays); // Limit chart points to 15 max to keep it clean
+      const stepSize = Math.max(1, Math.floor(diffDays / steps));
+
+      for (let i = 0; i <= steps; i++) {
+        const currDate = new Date(start.getTime() + i * stepSize * 24 * 60 * 60 * 1000);
+        if (currDate > end) break;
+        const dayLabel = currDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+        dataPoints.push({
+          day: dayLabel,
+          value: Math.max(0, Math.round(baseCheckins * (0.05 + (i * 0.05) + (Math.sin(i) * 0.04))))
+        });
+      }
+      return dataPoints.length > 0 ? dataPoints : [{ day: "No Date", value: 0 }];
     } else {
       // Last Week (default)
       const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -617,11 +693,13 @@ export default function BusinessDashboard() {
         , React.createElement('div', { className: "flex items-center gap-2" }
           , React.createElement('div', {
             onClick: () => logoInputRef.current?.click(),
-            className: "w-10 h-10 rounded-xl bg-[#F97316] flex items-center justify-center shadow-md cursor-pointer shrink-0"
+            className: "w-10 h-10 rounded-full bg-[#F97316]/10 border border-[#F97316]/20 flex items-center justify-center shadow-md cursor-pointer shrink-0"
           }
             , logoUploading
-              ? React.createElement(Loader2, { className: "h-5 w-5 animate-spin text-white" })
-              : React.createElement('img', { src: getImageUrl(business?.logoUrl) || "/new.png", alt: "logo", className: "w-full h-full object-cover rounded-xl" })
+              ? React.createElement(Loader2, { className: "h-5 w-5 animate-spin text-[#F97316]" })
+              : business?.logoUrl
+                ? React.createElement('img', { src: getImageUrl(business.logoUrl), alt: "logo", className: "w-full h-full object-cover rounded-full" })
+                : React.createElement('span', { className: "text-sm font-black text-[#F97316]" }, (business?.name?.[0]?.toUpperCase() || "B"))
           )
           , React.createElement('span', { className: "text-lg font-bold tracking-tight" }
             , React.createElement('span', { className: "text-[#0F172A]" }, "Scan")
@@ -643,7 +721,11 @@ export default function BusinessDashboard() {
                 )
               )
           )
-          , React.createElement('div', { className: "w-9 h-9 rounded-full bg-[#6D5DD3] flex items-center justify-center text-white text-sm font-bold shadow-sm" }
+          , React.createElement(Link, {
+              to: "/dashboard/business/profile",
+              className: "bg-[#6D5DD3] text-white text-sm font-bold shadow-sm cursor-pointer active:scale-95 transition-transform",
+              style: { borderRadius: "50%", width: "36px", height: "36px", minWidth: "36px", minHeight: "36px", padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }
+            }
             , _optionalChain([user, 'optionalAccess', _ => _.name, 'optionalAccess', _a => _a[0], 'optionalAccess', _b => _b.toUpperCase, 'optionalCall', _c => _c()])
           )
         )
@@ -654,12 +736,14 @@ export default function BusinessDashboard() {
         , React.createElement('div', { className: "flex items-center gap-4" }
           , React.createElement('div', {
             onClick: () => logoInputRef.current?.click(),
-            className: "relative group w-14 h-14 shrink-0 rounded-2xl border-2 border-border shadow-md overflow-hidden bg-slate-50 flex items-center justify-center cursor-pointer"
+            className: "relative group w-14 h-14 shrink-0 rounded-full border-2 border-border shadow-md overflow-hidden bg-slate-50 flex items-center justify-center cursor-pointer"
           }
             , logoUploading
               ? React.createElement(Loader2, { className: "h-6 w-6 animate-spin text-primary" })
               : React.createElement(React.Fragment, null
-                , React.createElement('img', { src: getImageUrl(business?.logoUrl) || "/new.png", alt: business?.name || "Logo", className: "w-full h-full object-cover group-hover:opacity-60 transition-opacity" })
+                , business?.logoUrl
+                  ? React.createElement('img', { src: getImageUrl(business.logoUrl), alt: business?.name || "Logo", className: "w-full h-full object-cover group-hover:opacity-60 transition-opacity" })
+                  : React.createElement('span', { className: "text-xl font-black bg-gradient-to-tr from-primary to-orange-600 bg-clip-text text-transparent" }, (business?.name?.[0]?.toUpperCase() || "B"))
                 , React.createElement('div', { className: "absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity" }
                   , React.createElement(Upload, { className: "h-4 w-4 text-white mb-1" })
                   , React.createElement('span', { className: "text-[9px] text-white font-extrabold tracking-wider uppercase" }, "Upload")
@@ -692,60 +776,44 @@ export default function BusinessDashboard() {
           , React.createElement('p', { className: "text-sm text-[#64748B] mt-0.5" }, "Let's grow your business today")
         )
 
-        /* C. Hero Banner */
-        , React.createElement('div', { className: "rounded-3xl overflow-hidden relative", style: { background: "linear-gradient(135deg, #FF8A3D 0%, #F0350C 100%)" } }
-          , React.createElement('div', { className: "px-6 py-5 relative z-10" }
-            , React.createElement('div', { className: "w-3/5" }
-              , React.createElement('h3', { className: "text-white font-bold text-xl leading-snug" }, "Grow loyalty.", React.createElement('br', null), "Grow your business. 🚀")
-              , React.createElement('p', { className: "text-white/90 text-sm mt-1.5 leading-snug" }, "Track check-ins, reward customers and boost engagement.")
-              , React.createElement('div', { className: "flex gap-2.5 mt-4 flex-wrap" }
-                , React.createElement('button', {
-                  onClick: () => { setShowRedeemModal(true); setScanningRedeem(true); },
-                  className: "flex items-center gap-1.5 bg-white text-[#0F172A] text-xs font-bold px-4 py-2 rounded-full shadow-md active:scale-95 transition-transform"
+        /* C. Hero Banner — shows ads carousel if uploaded, else fallback orange card */
+        , adBanners.length > 0
+          ? React.createElement('div', { className: "rounded-3xl overflow-hidden relative border border-zinc-200/50 shadow-sm bg-white" }
+              , React.createElement('div', { 
+                  className: "w-full overflow-hidden relative",
+                  style: { aspectRatio: "4/1", minHeight: "140px", maxHeight: "220px" }
                 }
-                  , React.createElement(ScanLine, { className: "h-4.5 w-4.5" })
-                  , "Scan & Redeem"
+                , adBanners.map((banner, index) => 
+                    React.createElement('img', {
+                      key: index,
+                      src: banner,
+                      alt: "Advertisement Banner " + (index + 1),
+                      className: cn(
+                        "w-full h-full object-cover absolute inset-0 transition-opacity duration-700 ease-in-out",
+                        index === currentAdIndex ? "opacity-100 z-10" : "opacity-0 z-0"
+                      )
+                    })
+                  )
+              )
+              /* Dots indicator */
+              , adBanners.length > 1 && React.createElement('div', { className: "absolute bottom-3 left-1/2 transform -translate-x-1/2 flex gap-1.5 z-20 bg-black/20 px-2.5 py-1 rounded-full backdrop-blur-sm" }
+                  , adBanners.map((_, index) => 
+                      React.createElement('div', {
+                        key: index,
+                        onClick: () => setCurrentAdIndex(index),
+                        className: cn(
+                          "w-1.5 h-1.5 rounded-full cursor-pointer transition-all duration-300",
+                          index === currentAdIndex ? "bg-white w-3" : "bg-white/50 hover:bg-white/85"
+                        )
+                      })
+                    )
                 )
+            )
+          : React.createElement('div', { className: "rounded-3xl overflow-hidden relative", style: { background: "linear-gradient(135deg, #FF8A3D 0%, #F0350C 100%)" } }
+              , React.createElement('div', { className: "px-6 py-5 relative z-10 min-h-[180px]" }
+                , React.createElement('div', { className: "w-3/5" })
               )
             )
-          )
-          /* Decorative right side */
-          , React.createElement('div', { className: "absolute right-0 top-0 h-full w-2/5 pointer-events-none select-none flex items-center justify-end pr-2" }
-            , React.createElement('svg', { viewBox: "0 0 130 140", className: "h-32 w-32 opacity-90", fill: "none" }
-              /* Phone outline */
-              , React.createElement('rect', { x: 45, y: 2, width: 55, height: 90, rx: 8, fill: "white", fillOpacity: 0.25 })
-              , React.createElement('rect', { x: 50, y: 10, width: 45, height: 74, rx: 4, fill: "white", fillOpacity: 0.5 })
-              /* QR code grid */
-              , React.createElement('rect', { x: 56, y: 17, width: 8, height: 8, rx: 1, fill: "#F97316" })
-              , React.createElement('rect', { x: 66, y: 17, width: 4, height: 4, rx: 0.5, fill: "#F97316", fillOpacity: 0.7 })
-              , React.createElement('rect', { x: 72, y: 17, width: 8, height: 8, rx: 1, fill: "#F97316" })
-              , React.createElement('rect', { x: 56, y: 27, width: 4, height: 4, rx: 0.5, fill: "#F97316", fillOpacity: 0.7 })
-              , React.createElement('rect', { x: 62, y: 27, width: 8, height: 8, rx: 1, fill: "#F97316" })
-              , React.createElement('rect', { x: 72, y: 27, width: 4, height: 4, rx: 0.5, fill: "#F97316", fillOpacity: 0.7 })
-              , React.createElement('rect', { x: 56, y: 35, width: 8, height: 8, rx: 1, fill: "#F97316" })
-              , React.createElement('rect', { x: 66, y: 35, width: 4, height: 4, rx: 0.5, fill: "#F97316", fillOpacity: 0.7 })
-              , React.createElement('rect', { x: 72, y: 35, width: 8, height: 8, rx: 1, fill: "#F97316" })
-              /* QR corner brackets */
-              , React.createElement('path', { d: "M54 14 h6 v1.5 h-4.5 v4.5 h-1.5z", fill: "#0F172A" })
-              , React.createElement('path', { d: "M83 14 h-6 v1.5 h4.5 v4.5 h1.5z", fill: "#0F172A" })
-              , React.createElement('path', { d: "M54 47 h1.5 v4.5 h4.5 v1.5 h-6z", fill: "#0F172A" })
-              , React.createElement('path', { d: "M83 47 h-1.5 v4.5 h-4.5 v1.5 h6z", fill: "#0F172A" })
-              /* Gift box */
-              , React.createElement('rect', { x: 28, y: 82, width: 44, height: 32, rx: 6, fill: "#F97316" })
-              , React.createElement('rect', { x: 28, y: 82, width: 44, height: 10, rx: 4, fill: "#E05E00" })
-              , React.createElement('rect', { x: 47, y: 82, width: 6, height: 32, fill: "#E05E00" })
-              /* Ribbon bow */
-              , React.createElement('path', { d: "M50 82 C50 78 42 72 40 76 C38 80 46 82 50 82z", fill: "#FDBA74" })
-              , React.createElement('path', { d: "M50 82 C50 78 58 72 60 76 C62 80 54 82 50 82z", fill: "#FDBA74" })
-              /* Stars/sparkles */
-              , React.createElement('circle', { cx: 22, cy: 30, r: 3, fill: "white", fillOpacity: 0.8 })
-              , React.createElement('circle', { cx: 108, cy: 50, r: 2, fill: "white", fillOpacity: 0.7 })
-              , React.createElement('circle', { cx: 18, cy: 70, r: 2, fill: "white", fillOpacity: 0.6 })
-              , React.createElement('path', { d: "M110 20 L112 24 L116 26 L112 28 L110 32 L108 28 L104 26 L108 24z", fill: "white", fillOpacity: 0.85 })
-              , React.createElement('path', { d: "M25 100 L26.5 103 L30 104.5 L26.5 106 L25 109 L23.5 106 L20 104.5 L23.5 103z", fill: "white", fillOpacity: 0.7 })
-            )
-          )
-        )
 
         /* D. Stats Grid — single card, 4 equal columns */
         , React.createElement('div', { className: "bg-white rounded-3xl shadow-sm p-4" }
@@ -837,7 +905,7 @@ export default function BusinessDashboard() {
               , React.createElement('span', { className: "text-sm font-bold text-[#0F172A]" }, "Check-in Overview")
             )
             , React.createElement('div', { className: "flex items-center gap-1" }
-              , ["Last Week", "Last Month", "Last 3 Months"].map(range =>
+              , ["Last Week", "Last Month", "Last 3 Months", "Custom Date"].map(range =>
                 React.createElement('button', {
                   key: range,
                   onClick: () => setChartTimeRange(range),
@@ -845,10 +913,30 @@ export default function BusinessDashboard() {
                   style: chartTimeRange === range
                     ? { background: "#6D5DD3", color: "white" }
                     : { background: "#F1F5F9", color: "#64748B" }
-                }, range === "Last Week" ? "1W" : range === "Last Month" ? "1M" : "3M")
+                }, range === "Last Week" ? "1W" : range === "Last Month" ? "1M" : range === "Last 3 Months" ? "3M" : "📅")
               )
             )
           )
+          , chartTimeRange === "Custom Date" && React.createElement('div', { className: "flex items-center gap-2 mb-3 bg-slate-50 p-2 rounded-2xl border border-slate-100/70" }
+              , React.createElement('div', { className: "flex-1 flex flex-col gap-0.5" }
+                  , React.createElement('span', { className: "text-[9px] text-[#64748B] font-bold" }, "Start Date")
+                  , React.createElement('input', {
+                      type: "date",
+                      value: startDate,
+                      onChange: (e) => setStartDate(e.target.value),
+                      className: "w-full text-xs font-bold bg-white border border-slate-200/50 rounded-lg p-1.5 outline-none"
+                    })
+                )
+              , React.createElement('div', { className: "flex-1 flex flex-col gap-0.5" }
+                  , React.createElement('span', { className: "text-[9px] text-[#64748B] font-bold" }, "End Date")
+                  , React.createElement('input', {
+                      type: "date",
+                      value: endDate,
+                      onChange: (e) => setEndDate(e.target.value),
+                      className: "w-full text-xs font-bold bg-white border border-slate-200/50 rounded-lg p-1.5 outline-none"
+                    })
+                )
+            )
           , React.createElement('div', { style: { height: "140px" } }
             , React.createElement(ResponsiveContainer, { width: "100%", height: "100%" }
               , React.createElement(AreaChart, { data: chartData, margin: { top: 5, right: 5, bottom: 0, left: -20 } }
@@ -1076,17 +1164,35 @@ export default function BusinessDashboard() {
               )
               , React.createElement(CardDescription, { className: "text-xs text-muted-foreground mt-1" }, "Check-in velocity and active engagement tracking")
             )
-            , React.createElement('div', { className: "flex items-center gap-1 px-3 py-1.5 rounded-full text-xs text-[#64748B] font-bold border border-slate-200 bg-white shadow-sm relative cursor-pointer hover:bg-slate-50 transition-colors" }
-              , React.createElement('select', {
-                  value: chartTimeRange,
-                  onChange: (e) => setChartTimeRange(e.target.value),
-                  className: "bg-transparent outline-none cursor-pointer pr-4 font-bold text-[#64748B] appearance-none focus:outline-none"
-                }
-                , React.createElement('option', { value: "This Week" }, "This Week")
-                , React.createElement('option', { value: "This Month" }, "This Month")
-                , React.createElement('option', { value: "This Year" }, "This Year")
+            , React.createElement('div', { className: "flex items-center gap-2" }
+              , chartTimeRange === "Custom Date" && React.createElement('div', { className: "flex items-center gap-2 text-xs" }
+                  , React.createElement('input', {
+                      type: "date",
+                      value: startDate,
+                      onChange: (e) => setStartDate(e.target.value),
+                      className: "text-xs font-bold border border-slate-200 rounded-lg p-1.5 outline-none bg-white"
+                    })
+                  , React.createElement('span', { className: "text-slate-400 font-bold" }, "to")
+                  , React.createElement('input', {
+                      type: "date",
+                      value: endDate,
+                      onChange: (e) => setEndDate(e.target.value),
+                      className: "text-xs font-bold border border-slate-200 rounded-lg p-1.5 outline-none bg-white"
+                    })
+                )
+              , React.createElement('div', { className: "flex items-center gap-1 px-3 py-1.5 rounded-full text-xs text-[#64748B] font-bold border border-slate-200 bg-white shadow-sm relative cursor-pointer hover:bg-slate-50 transition-colors" }
+                , React.createElement('select', {
+                    value: chartTimeRange,
+                    onChange: (e) => setChartTimeRange(e.target.value),
+                    className: "bg-transparent outline-none cursor-pointer pr-4 font-bold text-[#64748B] appearance-none focus:outline-none"
+                  }
+                  , React.createElement('option', { value: "Last Week" }, "Last Week")
+                  , React.createElement('option', { value: "Last Month" }, "Last Month")
+                  , React.createElement('option', { value: "Last 3 Months" }, "Last 3 Months")
+                  , React.createElement('option', { value: "Custom Date" }, "Custom Date")
+                )
+                , React.createElement(ChevronDown, { className: "h-3.5 w-3.5 absolute right-2 pointer-events-none text-slate-400" })
               )
-              , React.createElement(ChevronDown, { className: "h-3.5 w-3.5 absolute right-2 pointer-events-none text-slate-400" })
             )
           )
           , React.createElement(CardContent, { className: "p-6" }
@@ -1124,7 +1230,10 @@ export default function BusinessDashboard() {
               , React.createElement(CardContent, { className: "p-6 pt-2 flex flex-col items-center text-center space-y-4" }
                 , React.createElement('div', { className: "rounded-xl border border-dashed border-primary/20 bg-slate-50/50 p-4 shadow-sm" }
                   , primaryBranch.qrImage
-                    ? React.createElement('div', { className: "relative flex items-center justify-center bg-white" }
+                    ? React.createElement('div', { 
+                        onClick: () => setShowQrModal(true),
+                        className: "relative flex items-center justify-center bg-white cursor-pointer" 
+                      }
                       , React.createElement('img', { src: primaryBranch.qrImage, alt: "Branch Check-in QR Code", className: "h-40 w-40 shadow-sm border border-slate-100 rounded-lg" })
                       , React.createElement('div', { className: "absolute w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-md border border-[#FF6A00]/25" }
                         , React.createElement('span', { className: "text-[10px] font-black bg-gradient-to-tr from-[#FF6A00] to-[#800020] bg-clip-text text-transparent" }, "LS")
@@ -1356,6 +1465,59 @@ export default function BusinessDashboard() {
                 React.createElement(Button, { type: "button", onClick: handleNextOnboarding, className: "bg-gradient-to-r from-primary to-indigo-600 text-white text-xs font-bold px-5 h-9 rounded-xl" },
                   onboardingStep === onboardingSteps.length - 1 ? "Finish" : "Next"
                 )
+              )
+            )
+          )
+        )
+      )
+
+      /* QR Viewer Modal */
+      , showQrModal && primaryBranch && (
+        React.createElement(Dialog, { open: showQrModal, onOpenChange: (open) => !open && setShowQrModal(false) }
+          , React.createElement(DialogContent, { className: "max-w-[440px] bg-white border border-border" }
+            , React.createElement(DialogHeader, { className: "text-center" }
+              , React.createElement(DialogTitle, { className: "text-lg font-bold" }, primaryBranch.name)
+              , React.createElement(DialogDescription, { className: "text-xs" }, "Permanent Counter Check-in QR Code")
+            )
+            , React.createElement('div', { className: "flex flex-col items-center justify-center p-4 space-y-4" }
+              , React.createElement('div', { className: "rounded-xl bg-white p-3 border border-white/10 shadow-2xl" }
+                , primaryBranch.qrImage ? (
+                  React.createElement('div', { className: "relative flex items-center justify-center bg-white" }
+                    , React.createElement('img', { src: primaryBranch.qrImage, alt: "Branch QR Code", className: "h-80 w-80 rounded-xl" })
+                    , React.createElement('div', { className: "absolute w-16 h-16 bg-white rounded-xl flex items-center justify-center shadow-md border border-[#FF6A00]/25" }
+                      , React.createElement('span', { className: "text-base font-black tracking-tight bg-gradient-to-tr from-[#FF6A00] to-[#800020] bg-clip-text text-transparent" }, "LS")
+                    )
+                  )
+                ) : (
+                  React.createElement('div', { className: "h-80 w-80 flex items-center justify-center" }
+                    , React.createElement(Loader2, { className: "h-8 w-8 animate-spin text-zinc-500" })
+                  )
+                )
+              )
+              , React.createElement('p', { className: "text-[10px] text-zinc-500 text-center max-w-xs" }, "Stick this permanent QR code inside your shop. Customers scan this to verify their location and check in.")
+              , primaryBranch.qrPayload && (
+                React.createElement('div', { className: "w-full space-y-1 text-center bg-slate-50 border border-border/60 rounded-lg p-2.5" }
+                  , React.createElement('span', { className: "text-[9px] font-bold text-muted-foreground uppercase tracking-wider block" }, "Testing QR Link (Copy & Paste):")
+                  , React.createElement('a', { href: primaryBranch.qrPayload, target: "_blank", rel: "noreferrer", className: "text-[10px] text-primary hover:underline break-all block font-mono select-all" }, primaryBranch.qrPayload)
+                )
+              )
+            )
+            , React.createElement(DialogFooter, { className: "flex gap-2" }
+              , React.createElement(Button, {
+                  variant: "outline",
+                  className: "flex-1 text-xs",
+                  onClick: handleDownloadPdf,
+                  disabled: pdfLoading || !primaryBranch.qrImage
+                }
+                , pdfLoading ? React.createElement(Loader2, { className: "mr-1.5 h-3.5 w-3.5 animate-spin" }) : null
+                , "Download PDF"
+              )
+              , React.createElement(Button, {
+                  className: "flex-1 text-xs bg-primary text-white hover:bg-primary/95",
+                  onClick: handleDownloadQr,
+                  disabled: !primaryBranch.qrImage
+                }
+                , "Download PNG"
               )
             )
           )

@@ -381,7 +381,10 @@ export default function BranchesPage() {
                 , React.createElement(CardContent, { className: "p-6 flex flex-col items-center justify-center space-y-5" }
                   , React.createElement('div', { className: "bg-white p-4 rounded-2xl border border-zinc-100 shadow-md relative group transition-transform duration-300 hover:scale-105" }
                     , selectedBranch?.id === branches[0].id && selectedQrImage ? (
-                      React.createElement('div', { className: "relative flex items-center justify-center bg-white" }
+                      React.createElement('div', { 
+                          onClick: () => handleShowQr(branches[0]),
+                          className: "relative flex items-center justify-center bg-white cursor-pointer" 
+                        }
                         , React.createElement('img', { src: selectedQrImage, alt: "Branch QR Code", className: "h-44 w-44 rounded-xl" })
                         , React.createElement('div', { className: "absolute w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-md border border-[#FF6A00]/25" }
                           , React.createElement('span', { className: "text-xs font-black tracking-tight bg-gradient-to-tr from-[#FF6A00] to-[#800020] bg-clip-text text-transparent" }, "LS")
@@ -639,25 +642,25 @@ export default function BranchesPage() {
       /* QR Viewer Modal */
       , showQrModal && selectedBranch && (
         React.createElement(Dialog, { open: showQrModal, onOpenChange: (open) => !open && setShowQrModal(false), __self: this, __source: { fileName: _jsxFileName, lineNumber: 418 } }
-          , React.createElement(DialogContent, { className: "max-w-[340px]", __self: this, __source: { fileName: _jsxFileName, lineNumber: 419 } }
+          , React.createElement(DialogContent, { className: "max-w-[440px]", __self: this, __source: { fileName: _jsxFileName, lineNumber: 419 } }
             , React.createElement(DialogHeader, { className: "text-center", __self: this, __source: { fileName: _jsxFileName, lineNumber: 420 } }
               , React.createElement(DialogTitle, { className: "text-lg font-bold", __self: this, __source: { fileName: _jsxFileName, lineNumber: 421 } }, selectedBranch.name)
               , React.createElement(DialogDescription, { className: "text-xs", __self: this, __source: { fileName: _jsxFileName, lineNumber: 422 } }, "Permanent Counter Check-in QR Code"
-
+ 
               )
             )
-
+ 
             , React.createElement('div', { className: "flex flex-col items-center justify-center p-4 space-y-4", __self: this, __source: { fileName: _jsxFileName, lineNumber: 427 } }
               , React.createElement('div', { className: "rounded-xl bg-white p-3 border border-white/10 shadow-2xl", __self: this, __source: { fileName: _jsxFileName, lineNumber: 428 } }
                 , selectedQrImage ? (
                   React.createElement('div', { className: "relative flex items-center justify-center bg-white" }
-                    , React.createElement('img', { src: selectedQrImage, alt: "Branch QR Code", className: "h-48 w-48 rounded-xl" })
-                    , React.createElement('div', { className: "absolute w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-md border border-[#FF6A00]/25" }
-                      , React.createElement('span', { className: "text-sm font-black tracking-tight bg-gradient-to-tr from-[#FF6A00] to-[#800020] bg-clip-text text-transparent" }, "LS")
+                    , React.createElement('img', { src: selectedQrImage, alt: "Branch QR Code", className: "h-80 w-80 rounded-xl" })
+                    , React.createElement('div', { className: "absolute w-16 h-16 bg-white rounded-xl flex items-center justify-center shadow-md border border-[#FF6A00]/25" }
+                      , React.createElement('span', { className: "text-base font-black tracking-tight bg-gradient-to-tr from-[#FF6A00] to-[#800020] bg-clip-text text-transparent" }, "LS")
                     )
                   )
                 ) : (
-                  React.createElement('div', { className: "h-48 w-48 flex items-center justify-center" }
+                  React.createElement('div', { className: "h-80 w-80 flex items-center justify-center" }
                     , React.createElement(Loader2, { className: "h-8 w-8 animate-spin text-zinc-500" })
                   )
                 )

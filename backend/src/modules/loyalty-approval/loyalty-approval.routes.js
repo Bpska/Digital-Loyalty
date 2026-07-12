@@ -352,7 +352,9 @@ router.post(
       });
 
       if (!request) throw new AppError('Loyalty request not found', 404);
-      if (request.status !== 'PENDING') throw new AppError(`Request is already ${request.status}`, 400);
+      if (request.status !== 'PENDING' && request.status !== 'REJECTED') {
+        throw new AppError(`Request is already ${request.status}`, 400);
+      }
 
       if (req.user.role === Role.BUSINESS_ADMIN) {
         await assertBusinessOwner(req.user.sub, request.businessId);
@@ -772,7 +774,9 @@ router.post(
       });
 
       if (!request) throw new AppError('Loyalty request not found', 404);
-      if (request.status !== 'PENDING') throw new AppError(`Request is already ${request.status}`, 400);
+      if (request.status !== 'PENDING' && request.status !== 'REJECTED') {
+        throw new AppError(`Request is already ${request.status}`, 400);
+      }
 
       if (req.user.role === Role.BUSINESS_ADMIN) {
         await assertBusinessOwner(req.user.sub, request.businessId);

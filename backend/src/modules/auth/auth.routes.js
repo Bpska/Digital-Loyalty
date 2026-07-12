@@ -11,6 +11,10 @@ import {
   googleLoginSchema,
   registerBusinessSchema,
   updateProfileSchema,
+  sendEmailOtpSchema,
+  verifyEmailOtpSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 } from './auth.validator.js';
 
 const router = Router();
@@ -36,5 +40,14 @@ router.post('/logout', controller.logoutHandler);
 // ── Authenticated user info ───────────────────────────────────
 router.get('/me', authenticate, controller.getMe);
 router.patch('/profile', authenticate, validate(updateProfileSchema), controller.updateProfile);
+
+// ── Email OTP Verification ────────────────────────────────────
+router.post('/send-email-otp', otpRateLimiter, validate(sendEmailOtpSchema), controller.sendEmailOtpHandler);
+router.post('/verify-email-otp', otpRateLimiter, validate(verifyEmailOtpSchema), controller.verifyEmailOtpHandler);
+router.post('/resend-email-otp', otpRateLimiter, validate(sendEmailOtpSchema), controller.sendEmailOtpHandler);
+
+// ── Forgot/Reset Password ─────────────────────────────────────
+router.post('/forgot-password', authRateLimiter, validate(forgotPasswordSchema), controller.forgotPasswordHandler);
+router.post('/reset-password', authRateLimiter, validate(resetPasswordSchema), controller.resetPasswordHandler);
 
 export default router;

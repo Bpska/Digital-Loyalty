@@ -1,15 +1,16 @@
 const _jsxFileName = "src\\pages\\(customer)\\history\\page.tsx"; function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }"use client";
 
 import { Link } from "react-router-dom";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
   Loader2, Calendar, Award, ChevronLeft, ArrowUpRight, MapPin, Clock, ShieldCheck, Tag,
-  Wallet, Gift, Star, Coffee, Scissors, Utensils, SlidersHorizontal, ChevronRight, Store
+  Wallet, Gift, Star, Coffee, Scissors, Utensils, SlidersHorizontal, ChevronRight, Store, Hotel, Coins, TrendingUp, X
 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -49,6 +50,7 @@ export default function HistoryPage() {
   const [activeTab, setActiveTab] = useState("visits"); // "visits" | "vouchers"
   const [selectedItem, setSelectedItem] = useState(null);
   const [filterChip, setFilterChip] = useState("All");
+  const [selectedStore, setSelectedStore] = useState(null);
 
   // Fetch checkin history
   const { data: checkinsData, isLoading: checkinsLoading } = useQuery({
@@ -68,10 +70,19 @@ export default function HistoryPage() {
     queryFn: () => api.get("/customer/dashboard").then((res) => res.data),
   });
 
+  // Fetch per-store points history
+  const { data: pointsHistoryData, isLoading: pointsHistoryLoading } = useQuery({
+    queryKey: ["pointsHistory"],
+    queryFn: () => api.get("/customer/points-history").then((res) => res.data),
+    enabled: filterChip === "Points",
+  });
+  const storePoints = (pointsHistoryData?.storePoints ?? pointsHistoryData?.data?.storePoints) || [];
+  const grandTotal = (pointsHistoryData?.grandTotal ?? pointsHistoryData?.data?.grandTotal) || 0;
+
   const checkins = checkinsData || [];
-  const rewards = rewardsData?.rewards || [];
-  const totalPointsEarned = rewardsData?.totalPointsEarned ?? 0;
-  const totalExtraPoints = rewardsData?.totalExtraPoints ?? 0;
+  const rewards = (rewardsData?.rewards ?? rewardsData?.data?.rewards) || [];
+  const totalPointsEarned = (rewardsData?.totalPointsEarned ?? rewardsData?.data?.totalPointsEarned) ?? 0;
+  const totalExtraPoints = (rewardsData?.totalExtraPoints ?? rewardsData?.data?.totalExtraPoints) ?? 0;
 
   // Filter lists based on chip
   const filteredCheckins = checkins.filter(item => {
@@ -351,6 +362,65 @@ export default function HistoryPage() {
             )
         )
 
+      /* POINTS TAB: per-store breakdown */
+      , filterChip === "Points" && React.createElement(React.Fragment, null
+          , pointsHistoryLoading ? (
+            React.createElement('div', { className: "flex flex-col items-center justify-center py-14 gap-3" }
+              , React.createElement(Loader2, { className: "h-7 w-7 animate-spin text-[#F97316]" })
+              , React.createElement('p', { className: "text-xs text-[#64748B]" }, "Loading points history...")
+            )
+          ) : storePoints.length === 0 ? (
+            React.createElement('div', { className: "flex flex-col items-center justify-center py-14 gap-3" }
+              , React.createElement('div', { className: "w-16 h-16 rounded-full bg-[#FFEDD5] flex items-center justify-center" }
+                , React.createElement(Star, { className: "h-8 w-8 text-[#F97316]" })
+              )
+              , React.createElement('p', { className: "text-sm text-[#0F172A] font-black" }, "No points earned yet")
+              , React.createElement('p', { className: "text-xs text-[#64748B] text-center max-w-xs" }, "Visit partner stores and earn points with every check-in.")
+            )
+          ) : React.createElement('div', { className: "space-y-3" }
+            /* Grand Total Banner */
+            , React.createElement('div', { className: "bg-gradient-to-r from-[#F97316] to-[#EA580C] rounded-3xl p-4 flex items-center justify-between" }
+              , React.createElement('div', null
+                , React.createElement('p', { className: "text-[10px] text-white/75 font-semibold uppercase tracking-wide" }, "Total Points Earned")
+                , React.createElement('p', { className: "text-2xl font-black text-white leading-none mt-0.5" }, grandTotal)
+              )
+              , React.createElement('div', { className: "w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center" }
+                , React.createElement(TrendingUp, { className: "h-6 w-6 text-white" })
+              )
+            )
+            /* Per-store cards */
+            , storePoints.map((store) => {
+                const styles = getCategoryStyle(store.category);
+                const StoreIcon = styles.icon;
+                return React.createElement('div', {
+                  key: store.businessId,
+                  onClick: () => setSelectedStore(store),
+                  className: "bg-white rounded-3xl border border-slate-100 p-4 shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex items-center justify-between gap-3 cursor-pointer hover:scale-[1.01] active:scale-[0.99] transition-all"
+                }
+                  , React.createElement('div', { className: "flex items-center gap-3 min-w-0" }
+                    , React.createElement('div', { className: cn("w-11 h-11 rounded-2xl flex items-center justify-center shrink-0", styles.bg, styles.text) }
+                      , React.createElement(StoreIcon, { className: "h-5 w-5" })
+                    )
+                    , React.createElement('div', { className: "min-w-0" }
+                      , React.createElement('h4', { className: "font-black text-sm text-[#0F172A] truncate" }, store.businessName)
+                      , React.createElement('div', { className: "flex items-center gap-1.5 mt-0.5" }
+                        , React.createElement('span', { className: "text-[9px] bg-slate-100 text-slate-500 font-extrabold px-1.5 py-0.5 rounded-full" }, store.category || "Store")
+                        , React.createElement('span', { className: "text-[9px] text-[#64748B]" }, `${store.visitCount} visit${store.visitCount !== 1 ? 's' : ''}`)
+                      )
+                    )
+                  )
+                  , React.createElement('div', { className: "flex items-center gap-2 shrink-0" }
+                    , React.createElement('div', { className: "text-right" }
+                      , React.createElement('p', { className: "text-base font-black text-[#F97316] leading-none" }, `+${store.totalPoints}`)
+                      , React.createElement('p', { className: "text-[9px] text-[#64748B] font-semibold mt-0.5" }, "pts earned")
+                    )
+                    , React.createElement(ChevronRight, { className: "h-4 w-4 text-slate-300" })
+                  )
+                );
+              })
+          )
+        )
+
       /* G. Reward-progress callout */
       , React.createElement('div', { className: "bg-[#FFF1E6] rounded-3xl p-4 flex items-center justify-between gap-3 border border-[#FFF1E6]" }
         , React.createElement('div', { className: "flex items-start gap-2.5" }
@@ -379,6 +449,42 @@ export default function HistoryPage() {
           , React.createElement(ChevronRight, { className: "h-4 w-4 text-[#F97316] ml-0.5" })
         )
       )
+
+      /* Store Points Detail Modal */
+      , selectedStore && React.createElement(
+          Dialog, { open: !!selectedStore, onOpenChange: (open) => !open && setSelectedStore(null) },
+          React.createElement(DialogContent, { className: "max-w-[360px] bg-white border border-border p-6 rounded-3xl shadow-xl" },
+            React.createElement('div', { className: "space-y-4 w-full" }
+              , React.createElement(DialogHeader, { className: "flex flex-col items-center" }
+                , React.createElement('div', { className: cn("h-12 w-12 rounded-full flex items-center justify-center mb-2", getCategoryStyle(selectedStore.category).bg, getCategoryStyle(selectedStore.category).text) }
+                  , React.createElement(Store, { className: "h-6 w-6" })
+                )
+                , React.createElement(DialogTitle, { className: "text-base font-black text-foreground" }, selectedStore.businessName)
+                , React.createElement(DialogDescription, { className: "text-xs text-muted-foreground" }, `${selectedStore.visitCount} verified visit${selectedStore.visitCount !== 1 ? 's' : ''} • ${selectedStore.category}`)
+              )
+              , React.createElement('div', { className: "bg-gradient-to-r from-[#FFEDD5] to-[#FFF7ED] rounded-2xl p-4 flex items-center justify-between" }
+                , React.createElement('div', null
+                  , React.createElement('p', { className: "text-[10px] text-[#64748B] font-semibold" }, "Total Points from this Store")
+                  , React.createElement('p', { className: "text-2xl font-black text-[#F97316]" }, selectedStore.totalPoints)
+                )
+                , React.createElement(Star, { className: "h-8 w-8 text-[#F97316]/40" })
+              )
+              , selectedStore.recentVisits.length > 0 && React.createElement('div', { className: "space-y-2" }
+                , React.createElement('p', { className: "text-[10px] font-black text-[#64748B] uppercase tracking-wider" }, "Recent Visits")
+                , selectedStore.recentVisits.map((visit, i) => React.createElement('div', { key: i, className: "flex items-center justify-between bg-slate-50 rounded-xl px-3 py-2" }
+                    , React.createElement('div', null
+                      , React.createElement('p', { className: "text-[10px] text-[#64748B]" }, formatDate(visit.date))
+                    )
+                    , React.createElement('div', { className: "text-right" }
+                      , React.createElement('p', { className: "text-xs font-black text-[#F97316]" }, `+${visit.points} pts`)
+                      , visit.extraPoints > 0 && React.createElement('p', { className: "text-[9px] text-amber-500 font-bold" }, `+${visit.extraPoints} extra`)
+                    )
+                  ))
+              )
+              , React.createElement(Button, { type: "button", variant: "outline", onClick: () => setSelectedStore(null), className: "w-full text-xs rounded-xl" }, "Close")
+            )
+          )
+        )
 
       /* Details Modal Dialog */
       , selectedItem && React.createElement(

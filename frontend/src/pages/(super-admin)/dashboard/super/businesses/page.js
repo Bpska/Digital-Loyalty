@@ -257,7 +257,7 @@ export default function BusinessesManagementPage() {
   React.useEffect(() => {
     if (settingsData) {
       setPlatformFee(settingsData.platform_fee || "999");
-      setGstPercent(settingsData.gst_percent || "5");
+      setGstPercent(settingsData.gst_percent || "18");
       setPromoLimit(settingsData.promo_limit || "20");
       setPromoPrice(settingsData.promo_price || "999");
       setGatewayPercent(settingsData.gateway_percent || "2.3");

@@ -110,6 +110,10 @@ export async function register(req, res, next) {
   try {
     const ip = getClientIp(req);
     const result = await authService.registerCustomer(req.body, ip);
+    if (result.requiresVerification) {
+      sendCreated(res, { requiresVerification: true, userId: result.userId, email: result.email }, 'Registration successful. Verification code sent.');
+      return;
+    }
     setTokenCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
     sendCreated(res, { user: result.user, accessToken: result.tokens.accessToken }, 'Registration successful');
   } catch (err) {
@@ -129,6 +133,10 @@ export async function registerBusiness(req, res, next) {
   try {
     const ip = getClientIp(req);
     const result = await authService.registerBusiness(req.body, ip);
+    if (result.requiresVerification) {
+      sendCreated(res, { requiresVerification: true, userId: result.userId, email: result.email }, 'Registration successful. Verification code sent.');
+      return;
+    }
     setTokenCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
     sendCreated(res, { user: result.user, accessToken: result.tokens.accessToken }, 'Registration successful');
   } catch (err) {
@@ -197,7 +205,7 @@ export async function login(req, res, next) {
 export async function refresh(req, res, next) {
   try {
     // Prefer httpOnly cookie; allow body fallback for API clients
-    const rawToken = _nullishCoalesce(_optionalChain([req, 'access', _ => _.cookies, 'optionalAccess', _2 => _2.refreshToken]), () => ( _optionalChain([req, 'access', _3 => _3.body, 'optionalAccess', _4 => _4.refreshToken])));
+    const rawToken = req.cookies?.refreshToken ?? req.body?.refreshToken;
     if (!rawToken) {
       Responses.unauthorized(res, 'No refresh token provided');
       return;
@@ -228,7 +236,7 @@ export async function logoutHandler(
   next
 ) {
   try {
-    const rawToken = _nullishCoalesce(_optionalChain([req, 'access', _5 => _5.cookies, 'optionalAccess', _6 => _6.refreshToken]), () => ( _optionalChain([req, 'access', _7 => _7.body, 'optionalAccess', _8 => _8.refreshToken])));
+    const rawToken = req.cookies?.refreshToken ?? req.body?.refreshToken;
     if (rawToken) {
       await authService.logout(rawToken);
     }
@@ -298,4 +306,43 @@ export async function updateProfile(req, res, next) {
   }
 }
 
+export async function sendEmailOtpHandler(req, res, next) {
+  try {
+    const result = await authService.sendEmailOtp(req.body.userId);
+    sendSuccess(res, result, 'Verification email sent successfully');
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function verifyEmailOtpHandler(req, res, next) {
+  try {
+    const ip = getClientIp(req);
+    const result = await authService.verifyEmailOtp(req.body.userId, req.body.otp, ip);
+    setTokenCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
+    sendSuccess(res, { user: result.user, accessToken: result.tokens.accessToken }, 'Email verified successfully');
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function forgotPasswordHandler(req, res, next) {
+  try {
+    const result = await authService.sendForgotPasswordOtp(req.body.email);
+    sendSuccess(res, result, 'Password reset email sent successfully');
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function resetPasswordHandler(req, res, next) {
+  try {
+    const result = await authService.resetPassword(req.body.email, req.body.otp, req.body.newPassword);
+    sendSuccess(res, result, 'Password reset successfully');
+  } catch (err) {
+    next(err);
+  }
+}
+
 // Central helper getClientIp is imported from utils/ip.js
+

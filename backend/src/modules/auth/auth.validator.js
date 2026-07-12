@@ -83,6 +83,25 @@ export const updateProfileSchema = z.object({
   phone: phoneSchema.optional(),
 });
 
+// ── Email OTP Verification ────────────────────────────────────
 
+export const sendEmailOtpSchema = z.object({
+  userId: z.string().min(1, 'User ID is required'),
+});
 
+export const verifyEmailOtpSchema = z.object({
+  userId: z.string().min(1, 'User ID is required'),
+  otp: z.string().length(6).regex(/^\d+$/, 'OTP must be 6 digits'),
+});
 
+// ── Forgot Password ──────────────────────────────────────────
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('Invalid email format'),
+});
+
+export const resetPasswordSchema = z.object({
+  email: z.string().email('Invalid email format'),
+  otp: z.string().length(6).regex(/^\d+$/, 'OTP must be 6 digits'),
+  newPassword: z.string().min(8).max(128),
+});

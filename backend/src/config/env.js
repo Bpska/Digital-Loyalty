@@ -72,6 +72,13 @@ const envSchema = z.object({
   // ── Logging ──────────────────────────────────────────────
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
   LOG_DIR: z.string().default('./logs'),
+
+  // ── SMTP (Email OTP) ──────────────────────────────────────
+  SMTP_HOST: z.string().default('smtp.hostinger.com'),
+  SMTP_PORT: z.coerce.number().default(465),
+  SMTP_USER: z.string().default('verify@logisaar.in'),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().default('ScanLoyal <verify@logisaar.in>'),
 });
 
 const parsed = envSchema.safeParse(process.env);

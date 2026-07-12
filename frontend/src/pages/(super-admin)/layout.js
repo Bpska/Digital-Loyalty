@@ -12,10 +12,12 @@ import {
   Menu, 
   X, 
   Loader2,
-  MessageSquare
+  MessageSquare,
+  Megaphone
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import Loader from "@/components/Loader";
 
 export default function SuperAdminLayout({
   children,
@@ -41,7 +43,7 @@ export default function SuperAdminLayout({
   if (loading || !authorized) {
     return (
       React.createElement('div', { className: "flex min-h-screen items-center justify-center bg-background"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 42}}
-        , React.createElement(Loader2, { className: "h-8 w-8 animate-spin text-primary"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 43}} )
+        , React.createElement(Loader)
       )
     );
   }
@@ -51,6 +53,7 @@ export default function SuperAdminLayout({
     { label: "Businesses & Plans", icon: Building2, href: "/dashboard/super/businesses" },
     { label: "Fraud Monitor", icon: AlertTriangle, href: "/dashboard/super/fraud" },
     { label: "Support Messages", icon: MessageSquare, href: "/dashboard/super/support" },
+    { label: "Ads Management", icon: Megaphone, href: "/dashboard/super/ads" },
   ];
 
   return (

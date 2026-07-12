@@ -25,7 +25,15 @@ import {
   ChevronDown,
   ChevronUp,
   ArrowUp,
-  Building2
+  Building2,
+  ShoppingCart,
+  Coins,
+  Bot,
+  Globe,
+  Heart,
+  TrendingUp,
+  Users,
+  BarChart3
 } from "lucide-react";
 
 
@@ -195,14 +203,14 @@ export default function LandingPage() {
 
       /* 1. Global Navigation Bar */
       , React.createElement('header', { className: "sticky top-0 z-50 w-full border-b border-slate-100 bg-white/80 backdrop-blur-md" }
-        , React.createElement('div', { className: "max-w-7xl mx-auto px-6 h-20 flex items-center justify-between" }
+        , React.createElement('div', { className: "max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between" }
           /* Left Logo */
-          , React.createElement('div', { className: "flex items-center space-x-2.5" }
+          , React.createElement('div', { className: "flex items-center space-x-2.5 shrink-0" }
             , React.createElement('div', { className: "w-9 h-9 bg-black rounded-lg flex items-center justify-center font-bold text-white text-sm" }, "SL")
-            , React.createElement('span', { className: "text-lg font-bold text-[#0F172A] tracking-tight" }, "Scanloyal")
+            , React.createElement('span', { className: "text-lg font-bold text-[#0F172A] tracking-tight hidden sm:block" }, "Scanloyal")
           )
           /* Middle Links (Hidden on mobile) */
-          , React.createElement('nav', { className: "hidden md:flex items-center space-x-8 text-xs font-semibold text-[#64748B]" }
+          , React.createElement('nav', { className: "hidden md:flex items-center space-x-8 text-sm font-semibold text-[#64748B]" }
             , React.createElement('a', { href: "#features", className: "hover:text-[#F97316] transition-colors" }, "Features")
             , React.createElement('a', { href: "#how-it-works", className: "hover:text-[#F97316] transition-colors" }, "How It Works")
             , React.createElement('a', { href: "#pricing", className: "hover:text-[#F97316] transition-colors" }, "Pricing")
@@ -210,11 +218,11 @@ export default function LandingPage() {
             , React.createElement('a', { href: "#", className: "hover:text-[#F97316] transition-colors" }, "Resources")
           )
           /* Right Actions */
-          , React.createElement('div', { className: "flex items-center space-x-4" }
-            , React.createElement(Link, { to: "/login", className: "text-xs font-bold text-[#64748B] hover:text-[#0F172A] transition-colors" }, "Log in")
-            , React.createElement(Link, { to: "/login?signup=true", className: "bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow-sm transition-all" }, "Start Free Trial")
+          , React.createElement('div', { className: "flex items-center gap-3 sm:gap-5 shrink-0" }
+            , React.createElement(Link, { to: "/login", className: "flex items-center text-xs sm:text-sm font-bold text-[#64748B] hover:text-[#0F172A] transition-colors" }, "Log in")
+            , React.createElement(Link, { to: "/login?signup=true", className: "flex items-center justify-center bg-[#F97316] hover:bg-[#EA580C] text-white text-xs sm:text-sm font-bold px-3 py-2 sm:px-5 sm:py-2.5 rounded-lg shadow-sm transition-all whitespace-nowrap" }, "Start Free Trial")
             /* Mobile menu button */
-            , React.createElement('button', { className: "md:hidden text-[#0F172A] hover:text-[#F97316]" }
+            , React.createElement('button', { className: "md:hidden flex items-center justify-center p-1 text-[#0F172A] hover:text-[#F97316]" }
               , React.createElement('svg', { className: "w-6 h-6", fill: "none", stroke: "currentColor", strokeWidth: "2", viewBox: "0 0 24 24" }
                 , React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M4 6h16M4 12h16M4 18h16" })
               )
@@ -324,85 +332,261 @@ export default function LandingPage() {
       )
 
 
-
-      /* 3. Features Section */
-      , React.createElement('section', { id: "features", className: "py-24 md:py-32 border-t border-[#EAE3DF]/30 bg-[#FAF8F6] bg-dots" }
-        , React.createElement('div', { className: "max-w-7xl mx-auto px-6 text-center space-y-12" }
-          , React.createElement('div', { className: "max-w-2xl mx-auto space-y-4" }
-            , React.createElement('span', { className: "text-xs font-black text-[#FF6A00] uppercase tracking-widest block mb-2" }, "Comprehensive SaaS Features" )
-            , React.createElement('h2', { className: "text-4xl sm:text-5xl font-extrabold text-[#2B201A] tracking-tight" }, "Designed to Grow Store Customer Retention"
-            )
-            , React.createElement('p', { className: "text-sm sm:text-base text-[#5A4E46] leading-relaxed" }, "We provide merchants with the tools to create premium digital loyalty stamp programs and verify scans using location guardrails."
+      /* ── NEW: How It Works – 7 Simple Steps ── */
+      , React.createElement('section', { id: "how-it-works-steps", className: "py-20 md:py-24 bg-white border-t border-[#EAE3DF]/30" }
+        , React.createElement('div', { className: "max-w-7xl mx-auto px-6 space-y-14" }
+          /* Section Header */
+          , React.createElement('div', { className: "text-center space-y-3" }
+            , React.createElement('h2', { className: "text-3xl sm:text-4xl md:text-4xl font-extrabold text-[#2B201A] tracking-tight" }
+              , "How It Works – "
+              , React.createElement('span', { className: "text-[#F97316]" }, "7 Simple Steps")
             )
           )
 
-          , React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-3 gap-8 pt-4" }
+          /* Steps Timeline - Shared Data */
+          , (() => {
+              const timelineSteps = [
+                { num: 1, color: "#F97316", icon: React.createElement('img', { src: "/customer-visits.jpg", alt: "Customer Visits", className: "w-full h-full object-cover scale-[1.3]" }), title: "Customer Visits", desc: "A customer visits your store or outlet." },
+                { num: 2, color: "#EAB308", icon: React.createElement('img', { src: "/customer-buys.jpg", alt: "Customer Buys", className: "w-full h-full object-cover scale-[1.3]" }), title: "Customer Buys", desc: "Customer makes a purchase and pays." },
+                { num: 3, color: "#22C55E", icon: React.createElement('img', { src: "/scan-qr-code-v2.jpg", alt: "Scan QR", className: "w-full h-full object-cover scale-[1.3]" }), title: "Scans QR Code", desc: "Customer scans the QR code to check-in." },
+                { num: 4, color: "#6366F1", icon: React.createElement('img', { src: "/earns-points.jpg", alt: "Earns Points", className: "w-full h-full object-cover scale-[1.3]" }), title: "Earns Points", desc: "Instantly gets loyalty points in their account." },
+                { num: 5, color: "#3B82F6", icon: React.createElement('img', { src: "/ai-gen-review.jpg", alt: "AI Gen Review", className: "w-full h-full object-cover scale-[1.3]" }), title: "AI Gen Review", desc: "Our AI helps them write a review easily." },
+                { num: 6, color: "#EA580C", icon: React.createElement('img', { src: "/google-review.jpg", alt: "Google Review", className: "w-full h-full object-cover scale-[1.3]" }), title: "Google Review", desc: "A 5-star review is posted on Google." },
+                { num: 7, color: "#EC4899", icon: React.createElement('img', { src: "/becomes-loyal-v2.jpg", alt: "Becomes Loyal", className: "w-full h-full object-cover scale-[1.3]" }), title: "Becomes Loyal", desc: "Happy customers earn rewards and stay loyal." }
+              ];
 
-            /* Feature 1 */
-            , React.createElement('div', { className: "glass-card rounded-[28px] p-8 text-left space-y-4 relative overflow-hidden" }
-              , React.createElement('div', { className: "text-left space-y-4 p-0" }
-                , React.createElement('div', { className: "h-12 w-12 rounded-xl bg-[#FF6A00]/10 backdrop-blur-sm flex items-center justify-center text-[#FF6A00] border border-[#FF6A00]/15 shadow-sm" }
-                  , React.createElement(QrCode, { className: "h-5.5 w-5.5" } )
+              return React.createElement(React.Fragment, null
+                , /* Steps Timeline - Mobile View (Vertical) */
+                  React.createElement('div', { className: "md:hidden relative" }
+                  , React.createElement('div', { className: "space-y-8" }
+                    , timelineSteps.map((step, idx) =>
+                      React.createElement('div', { key: step.num, className: "flex items-start gap-4 animate-step", style: { animationDelay: `${idx * 0.15}s` } }
+                        , React.createElement('div', { className: "shrink-0 relative" }
+                          , React.createElement('div', { className: "w-14 h-14 rounded-2xl overflow-hidden bg-white border border-slate-100 shadow-sm flex items-center justify-center text-3xl" }
+                            , step.icon
+                          )
+                        )
+                        , React.createElement('div', { className: "pt-1 space-y-1" }
+                          , React.createElement('h3', { className: "text-base font-extrabold text-[#0F172A]" }, step.title)
+                          , React.createElement('p', { className: "text-sm text-[#475569] leading-relaxed" }, step.desc)
+                        )
+                      )
+                    )
+                  )
                 )
-                , React.createElement('h3', { className: "text-lg font-extrabold text-[#2B201A]" }, "Premium Printed QR Codes" )
-                , React.createElement('p', { className: "text-xs leading-relaxed text-[#5A4E46] p-0" }, "We provide and deliver a premium, ready-to-use printed QR code stand directly to your business location within 4 to 7 days." )
+
+                , /* Steps Timeline - Desktop View (Horizontal layout exactly as in screenshot) */
+                  React.createElement('div', { className: "hidden md:flex items-start justify-between gap-2 relative" }
+                  , timelineSteps.map((step, idx, arr) =>
+                    React.createElement(React.Fragment, { key: step.num }
+                      , React.createElement('div', { className: "flex-1 flex flex-col items-center text-center space-y-3 relative group animate-step", style: { animationDelay: `${idx * 0.15}s` } }
+                          /* Colorful Icon in Container */
+                          , React.createElement('div', { className: "w-20 h-20 rounded-2xl overflow-hidden bg-white border border-[#F1F5F9] flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:-translate-y-1 transition-all duration-300 relative text-4xl" }
+                            , step.icon
+                          )
+                          /* Title & Desc */
+                          , React.createElement('div', { className: "space-y-1.5 px-1" }
+                            , React.createElement('h3', { className: "text-sm font-black text-[#0F172A] leading-snug tracking-tight" }, step.title)
+                            , React.createElement('p', { className: "text-xs text-[#475569] leading-relaxed max-w-full mx-auto" }, step.desc)
+                          )
+                      )
+                      /* Dotted connector arrow (if not last step) */
+                      , idx < arr.length - 1 && React.createElement('div', { className: "mt-7 text-slate-300 font-extrabold text-sm select-none px-1 animate-step", style: { animationDelay: `${idx * 0.15 + 0.1}s` } }, "⋯>")
+                    )
+                  )
+                )
+              );
+          })()
+        )
+      )
+
+      /* ── NEW: Real Impact for Your Business ── */
+      , React.createElement('section', { className: "py-16 bg-[#FAF8F6] border-t border-[#EAE3DF]/30" }
+        , React.createElement('div', { className: "max-w-7xl mx-auto px-6" }
+          , React.createElement('div', { className: "flex flex-col lg:flex-row lg:items-center justify-between gap-8" }
+            /* Left Title block */
+            , React.createElement('div', { className: "lg:max-w-[200px] text-left shrink-0 space-y-1" }
+              , React.createElement('h2', { className: "text-2xl md:text-3xl font-black text-[#2B201A] tracking-tight leading-tight" }
+                , "Real Impact"
+                , React.createElement('br')
+                , "for Your Business"
               )
             )
 
-            /* Feature 2 */
-            , React.createElement('div', { className: "glass-card rounded-[28px] p-8 text-left space-y-4 relative overflow-hidden" }
-              , React.createElement('div', { className: "text-left space-y-4 p-0" }
-                , React.createElement('div', { className: "h-12 w-12 rounded-xl bg-[#FF6A00]/10 backdrop-blur-sm flex items-center justify-center text-[#FF6A00] border border-[#FF6A00]/15 shadow-sm" }
-                  , React.createElement(MapPin, { className: "h-5.5 w-5.5" } )
+            /* Right Stats Cards */
+            , React.createElement('div', { className: "flex-1 grid grid-cols-2 lg:grid-cols-4 gap-4" }
+              , [
+                  { value: "3x", label: "More Google Reviews", color: "#22C55E", icon: React.createElement(Star, { className: "h-4 w-4" }) },
+                  { value: "37%", label: "Increase in Repeat Visits", color: "#F97316", icon: React.createElement(TrendingUp, { className: "h-4 w-4" }) },
+                  { value: "24%", label: "Growth in Revenue", color: "#3B82F6", icon: React.createElement(BarChart3, { className: "h-4 w-4" }) },
+                  { value: "2.5x", label: "More Customer Engagement", color: "#8B5CF6", icon: React.createElement(Users, { className: "h-4 w-4" }) }
+                ].map((stat, i) =>
+                  React.createElement('div', { key: i, className: "bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-3.5" }
+                    , React.createElement('div', { className: "w-10 h-10 rounded-xl flex items-center justify-center shrink-0", style: { backgroundColor: stat.color + '15', color: stat.color } }
+                      , stat.icon
+                    )
+                    , React.createElement('div', { className: "text-left" }
+                      , React.createElement('p', { className: "text-2xl font-black tracking-tight leading-none", style: { color: stat.color } }, stat.value)
+                      , React.createElement('p', { className: "text-[10px] font-bold text-[#64748B] uppercase tracking-wider leading-tight mt-0.5" }, stat.label)
+                    )
+                  )
                 )
-                , React.createElement('h3', { className: "text-lg font-extrabold text-[#2B201A]" }, "In-Store GPS Protection" )
-                , React.createElement('p', { className: "text-xs leading-relaxed text-[#5A4E46]" }, "Stop fake check-ins. Customers must be physically present at your shop to earn stamps. They cannot cheat or scan the code from their home." )
+            )
+          )
+        )
+      )
+
+      /* ── NEW: Bottom CTA Banner ── */
+      , React.createElement('section', { className: "py-12 bg-white border-t border-[#EAE3DF]/30" }
+        , React.createElement('div', { className: "max-w-7xl mx-auto px-6 space-y-10" }
+          , React.createElement('div', { className: "bg-gradient-to-r from-[#FFF7ED] to-[#FFEDD5] rounded-3xl p-6 lg:py-6 lg:px-8 flex flex-col lg:flex-row items-center justify-between gap-6 border border-[#FED7AA]/60 shadow-sm" }
+            /* Left Text & Icon Block */
+            , React.createElement('div', { className: "flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left flex-1" }
+              , React.createElement('div', { className: "w-12 h-12 rounded-full bg-[#F97316] flex items-center justify-center text-white shrink-0 shadow-sm" }
+                , React.createElement(ShieldCheck, { className: "h-6 w-6" })
+              )
+              , React.createElement('div', { className: "space-y-1" }
+                , React.createElement('h3', { className: "text-base font-extrabold text-[#0F172A] leading-tight" }
+                  , "One Scan. More Reviews. More Rewards. More Loyalty."
+                )
+                , React.createElement('p', { className: "text-xs text-[#64748B]" }, "Automate reviews, rewards and retention – all in one simple platform.")
               )
             )
 
-            /* Feature 3 */
-            , React.createElement('div', { className: "glass-card rounded-[28px] p-8 text-left space-y-4 relative overflow-hidden" }
-              , React.createElement('div', { className: "text-left space-y-4 p-0" }
-                , React.createElement('div', { className: "h-12 w-12 rounded-xl bg-[#FF6A00]/10 backdrop-blur-sm flex items-center justify-center text-[#FF6A00] border border-[#FF6A00]/15 shadow-sm" }
-                  , React.createElement(Smartphone, { className: "h-5.5 w-5.5" } )
-                )
-                , React.createElement('h3', { className: "text-lg font-extrabold text-[#2B201A]" }, "Zero App Downloads" )
-                , React.createElement('p', { className: "text-xs leading-relaxed text-[#5A4E46]" }, "Customers don't need to install any heavy apps. They just scan the QR code using their phone camera, verify in seconds, and collect stamps." )
+            /* Middle Trust Elements */
+            , React.createElement('div', { className: "flex flex-row lg:flex-col items-center lg:items-start gap-4 lg:gap-1 text-[10px] font-bold text-[#64748B] whitespace-nowrap" }
+              , React.createElement('span', { className: "flex items-center gap-1" }
+                , React.createElement(Check, { className: "h-3.5 w-3.5 text-[#22C55E]" }), "No Credit Card Required"
+              )
+              , React.createElement('span', { className: "flex items-center gap-1" }
+                , React.createElement(Check, { className: "h-3.5 w-3.5 text-[#22C55E]" }), "Setup in 2 Minutes"
+              )
+              , React.createElement('span', { className: "flex items-center gap-1" }
+                , React.createElement(Check, { className: "h-3.5 w-3.5 text-[#22C55E]" }), "Cancel Anytime"
               )
             )
 
-            /* Feature 4 */
-            , React.createElement('div', { className: "glass-card rounded-[28px] p-8 text-left space-y-4 relative overflow-hidden" }
-              , React.createElement('div', { className: "text-left space-y-4 p-0" }
-                , React.createElement('div', { className: "h-12 w-12 rounded-xl bg-[#FF6A00]/10 backdrop-blur-sm flex items-center justify-center text-[#FF6A00] border border-[#FF6A00]/15 shadow-sm" }
-                  , React.createElement(Award, { className: "h-5.5 w-5.5" } )
-                )
-                , React.createElement('h3', { className: "text-lg font-extrabold text-[#2B201A]" }, "Automatic Rewards Vouchers" )
-                , React.createElement('p', { className: "text-xs leading-relaxed text-[#5A4E46]" }, "Vouchers are generated instantly in the customer's digital wallet once they complete a stamp card. They show it to your cashier to redeem." )
+            /* Right Buttons */
+            , React.createElement('div', { className: "flex flex-col sm:flex-row gap-3 shrink-0 w-full sm:w-auto" }
+              , React.createElement(Link, { to: "/login?signup=true", className: "bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-extrabold px-6 py-3 rounded-full flex items-center justify-center gap-1.5 transition-all shadow-md shadow-[#F97316]/20 active:scale-95 whitespace-nowrap h-10 w-full sm:w-auto" }
+                , "Start Free Trial"
+                , React.createElement(ArrowRight, { className: "h-3.5 w-3.5" })
+              )
+              , React.createElement('a', { href: "https://wa.me/919692919917", target: "_blank", rel: "noopener noreferrer", className: "bg-white border border-slate-200 text-[#0F172A] hover:bg-slate-50 text-xs font-extrabold px-6 py-3 rounded-full flex items-center justify-center gap-1.5 transition-all active:scale-95 whitespace-nowrap h-10 w-full sm:w-auto" }
+                , "Book a Demo"
               )
             )
+          )
 
-            /* Feature 5 */
-            , React.createElement('div', { className: "glass-card rounded-[28px] p-8 text-left space-y-4 relative overflow-hidden" }
-              , React.createElement('div', { className: "text-left space-y-4 p-0" }
-                , React.createElement('div', { className: "h-12 w-12 rounded-xl bg-[#FF6A00]/10 backdrop-blur-sm flex items-center justify-center text-[#FF6A00] border border-[#FF6A00]/15 shadow-sm" }
-                  , React.createElement(Activity, { className: "h-5.5 w-5.5" } )
-                )
-                , React.createElement('h3', { className: "text-lg font-extrabold text-[#2B201A]" }, "Easy Store Dashboard" )
-                , React.createElement('p', { className: "text-xs leading-relaxed text-[#5A4E46]" }, "Keep track of your regular customers, see how many stamps are collected daily, and monitor your repeat business growth from one simple dashboard." )
-              )
-            )
+        )
+      )
 
-            /* Feature 6 */
-            , React.createElement('div', { className: "glass-card rounded-[28px] p-8 text-left space-y-4 relative overflow-hidden" }
-              , React.createElement('div', { className: "text-left space-y-4 p-0" }
-                , React.createElement('div', { className: "h-12 w-12 rounded-xl bg-[#FF6A00]/10 backdrop-blur-sm flex items-center justify-center text-[#FF6A00] border border-[#FF6A00]/15 shadow-sm" }
-                  , React.createElement(ShieldCheck, { className: "h-5.5 w-5.5" } )
-                )
-                , React.createElement('h3', { className: "text-lg font-extrabold text-[#2B201A]" }, "Double-Check Protection" )
-                , React.createElement('p', { className: "text-xs leading-relaxed text-[#5A4E46]" }, "Our smart system prevents double check-ins and detects fake scans automatically, so you can run your rewards program with absolute peace of mind." )
+      /* 3. Features Section */
+      , React.createElement('section', { id: "features", className: "py-24 md:py-32 bg-gradient-to-b from-white to-orange-50/30 relative overflow-hidden" }
+        , React.createElement('div', { className: "max-w-[1400px] mx-auto px-6 text-center relative z-10" }
+          
+          /* Header */
+          , React.createElement('div', { className: "max-w-2xl mx-auto space-y-4 mb-16" }
+            , React.createElement('div', { className: "inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-50 border border-orange-100 shadow-sm" }
+                , React.createElement(Sparkles, { className: "w-4 h-4 text-[#F97316]" })
+                , React.createElement('span', { className: "text-xs font-black text-[#F97316] uppercase tracking-widest" }, "Comprehensive SaaS Features")
               )
+            , React.createElement('h2', { className: "text-4xl md:text-[54px] font-black text-[#0F172A] tracking-tight leading-[1.1] mt-6" }
+              , "Designed to Grow Store"
+              , React.createElement('br')
+              , React.createElement('span', { className: "text-[#F97316]" }, "Customer Retention")
             )
+            , React.createElement('p', { className: "text-[15px] sm:text-base text-[#64748B] leading-relaxed max-w-xl mx-auto mt-6 font-medium" }
+              , "We provide merchants with the tools to create premium digital loyalty stamp programs and verify scans using location guardrails."
+            )
+          )
+
+          /* Feature Cards Grid */
+          , React.createElement('div', { className: "grid grid-cols-1 lg:grid-cols-3 gap-6" }
+            , [
+                {
+                  title: "Premium Printed QR Codes",
+                  desc: "We provide and deliver a premium, ready-to-use printed QR code stand directly to your business location within 4 to 7 days.",
+                  color: "#F97316",
+                  icon: QrCode,
+                  graphic: "/feature-qr-stand.png"
+                },
+                {
+                  title: "In-Store GPS Protection",
+                  desc: "Stop fake check-ins. Customers must be physically present at your shop to earn stamps. They cannot cheat or scan the code from their home.",
+                  color: "#F97316",
+                  icon: MapPin,
+                  graphic: "/feature-gps-map.png"
+                },
+                {
+                  title: "Zero App Downloads",
+                  desc: "Customers don't need to install any heavy apps. They just scan the QR code using their phone camera, verify in seconds, and collect stamps.",
+                  color: "#F97316",
+                  icon: Smartphone,
+                  graphic: "/feature-phone-scan.png"
+                },
+                {
+                  title: "Automatic Rewards Vouchers",
+                  desc: "Vouchers are generated instantly in the customer's digital wallet once they complete a stamp card. They show it to your cashier to redeem.",
+                  color: "#22C55E",
+                  icon: Gift,
+                  graphic: "/feature-rewards.png"
+                },
+                {
+                  title: "Easy Store Dashboard",
+                  desc: "Keep track of your regular customers, see how many stamps are collected daily, and monitor your repeat business growth from one simple dashboard.",
+                  color: "#3B82F6",
+                  icon: Activity,
+                  graphic: "/feature-dashboard.png"
+                },
+                {
+                  title: "Double-Check Protection",
+                  desc: "Our smart system prevents double check-ins and detects fake scans automatically, so you can run your rewards program with absolute peace of mind.",
+                  color: "#8B5CF6",
+                  icon: ShieldCheck,
+                  graphic: "/feature-shield.png"
+                }
+              ].map((feature, i) =>
+                React.createElement('div', { key: i, className: "bg-white rounded-[24px] p-6 sm:p-8 flex flex-col sm:flex-row relative overflow-hidden border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 group" }
+                  
+                  /* Left Content */
+                  , React.createElement('div', { className: "relative z-10 w-full sm:w-[60%] flex flex-col items-start text-left" }
+                    , React.createElement('div', { className: "h-12 w-12 rounded-xl flex items-center justify-center text-white mb-5 shadow-md", style: { backgroundColor: feature.color } }
+                      , React.createElement(feature.icon, { className: "h-6 w-6" })
+                    )
+                    , React.createElement('h3', { className: "text-[17px] font-extrabold text-[#0F172A] mb-3 leading-snug" }, feature.title)
+                    , React.createElement('div', { className: "w-6 h-1 rounded-full mb-4 opacity-80", style: { backgroundColor: feature.color } })
+                    , React.createElement('p', { className: "text-xs font-medium leading-relaxed text-[#64748B]" }, feature.desc)
+                  )
+                  
+                  /* Right Graphic Area */
+                  , React.createElement('div', { className: "mt-8 sm:mt-0 w-full sm:absolute sm:right-0 sm:top-0 sm:bottom-0 sm:w-[40%] flex items-center justify-center sm:justify-end sm:pr-4 lg:pr-8 pointer-events-none" }
+                    , React.createElement('div', { className: "absolute w-48 h-48 rounded-full blur-[40px] opacity-20 group-hover:opacity-30 transition-opacity", style: { backgroundColor: feature.color, right: '-10%', top: '10%' } })
+                    , React.createElement('div', { className: "absolute w-32 h-32 rounded-full opacity-10", style: { backgroundColor: feature.color, right: '5%', top: '20%' } })
+                    , React.createElement('img', { src: feature.graphic, alt: feature.title, className: "relative z-10 w-32 h-32 sm:w-36 sm:h-36 object-contain drop-shadow-2xl transform group-hover:scale-105 transition-transform duration-500" })
+                  )
+                )
+              )
+          )
+
+          /* Bottom Feature Bar */
+          , React.createElement('div', { className: "mt-16 mx-auto max-w-[900px] bg-white rounded-3xl sm:rounded-full p-4 sm:p-6 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.06)] flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 relative z-20" }
+            , [
+                { icon: ShieldCheck, color: "text-[#F97316]", title: "Trust & Security", desc: "100% secure & reliable", bg: "bg-orange-50" },
+                { icon: Users, color: "text-[#22C55E]", title: "Customer First", desc: "Built for happy customers", bg: "bg-green-50" },
+                { icon: Activity, color: "text-[#3B82F6]", title: "Save Time", desc: "Automate & simplify", bg: "bg-blue-50" },
+                { icon: TrendingUp, color: "text-[#8B5CF6]", title: "Grow Together", desc: "More visits, more loyalty", bg: "bg-purple-50" }
+              ].map((item, i) =>
+                React.createElement('div', { key: i, className: "flex items-center justify-center sm:justify-start gap-4 px-2 sm:px-6 w-full sm:w-1/4 pt-4 sm:pt-0 first:pt-0" }
+                  , React.createElement('div', { className: `w-12 h-12 sm:w-10 sm:h-10 rounded-xl sm:rounded-lg flex items-center justify-center shrink-0 ${item.bg} ${item.color}` }
+                    , React.createElement(item.icon, { className: "w-6 h-6 sm:w-5 sm:h-5" })
+                  )
+                  , React.createElement('div', { className: "text-left" }
+                    , React.createElement('h4', { className: "text-sm sm:text-[13px] font-extrabold text-[#0F172A] whitespace-nowrap" }, item.title)
+                    , React.createElement('p', { className: "text-[11px] font-medium text-[#64748B] whitespace-nowrap" }, item.desc)
+                  )
+                )
+              )
           )
         )
       )

@@ -103,6 +103,7 @@ model User {
   passwordHash String?                      // null for OTP-only customers
   role         Role      @default(CUSTOMER)
   isActive     Boolean   @default(true)
+  isEmailVerified Boolean @default(false) @map("is_email_verified")
   deletedAt    DateTime?                    // GDPR soft-delete
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -128,6 +129,7 @@ model User {
   claimedCoupons       ClaimedCoupon[]
   reservedReviews      ReviewTemplate[]      @relation("ReservedReviews")
   usedReviews          ReviewTemplate[]      @relation("UsedReviews")
+  emailVerifications   EmailVerification[]
 
   @@index([phone])
   @@index([role])
@@ -569,6 +571,27 @@ model OtpVerification {
   @@index([phone])
   @@index([expiresAt])
   @@map("otp_verifications")
+}
+
+/// Email OTP verification record for email address verification and password reset.
+model EmailVerification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email       String
+  otpHash     String   @map("otp_hash")   // argon2 hash of the 6-digit OTP
+  expiresAt   DateTime @map("expires_at")
+  isVerified  Boolean  @default(false) @map("is_verified")
+  attempts    Int      @default(0)
+  resendCount Int      @default(0) @map("resend_count")
+  purpose     String   @default("EMAIL_VERIFY") // EMAIL_VERIFY or PASSWORD_RESET
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([email])
+  @@index([expiresAt])
+  @@map("email_verifications")
 }
 
 /// Hashed refresh tokens stored server-side for revocation support.

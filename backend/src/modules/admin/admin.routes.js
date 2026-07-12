@@ -12,7 +12,20 @@ import { BusinessStatus } from '@prisma/client';
 
 const router = Router();
 
-// All admin routes require SUPER_ADMIN role
+// ── Public Ad Banner Read (no super-admin role needed) ────────
+// Business dashboard fetches this to display banners in the hero carousel
+router.get('/ads', async (req, res, next) => {
+  try {
+    const setting = await prisma.systemSetting.findUnique({ where: { key: 'ad_banners' } });
+    let banners = [];
+    if (setting) {
+      try { banners = JSON.parse(setting.value); } catch (_) {}
+    }
+    sendSuccess(res, { banners });
+  } catch (err) { next(err); }
+});
+
+// All other admin routes require SUPER_ADMIN role
 router.use(authenticate, authorize(Role.SUPER_ADMIN));
 
 // ── Dashboard Stats ───────────────────────────────────────────
@@ -850,5 +863,62 @@ router.delete('/coupons/:code', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── Ad Banner Management ──────────────────────────────────────
+// Stores banners as a JSON array in SystemSetting with key = 'ad_banners'
+// POST /admin/ads — add a new banner to the array
+router.post('/ads', async (req, res, next) => {
+  try {
+    const { bannerImage } = req.body;
+    if (!bannerImage || typeof bannerImage !== 'string') {
+      return res.status(400).json({ success: false, message: 'bannerImage (base64) is required.' });
+    }
+    const setting = await prisma.systemSetting.findUnique({ where: { key: 'ad_banners' } });
+    let banners = [];
+    if (setting) {
+      try { banners = JSON.parse(setting.value); } catch (_) {}
+    }
+    banners.push(bannerImage);
+    await prisma.systemSetting.upsert({
+      where: { key: 'ad_banners' },
+      update: { value: JSON.stringify(banners) },
+      create: { key: 'ad_banners', value: JSON.stringify(banners) },
+    });
+    sendSuccess(res, { count: banners.length }, 'Banner added successfully');
+  } catch (err) { next(err); }
+});
+
+// DELETE /admin/ads/:index — remove a specific banner by index
+router.delete('/ads/:index', async (req, res, next) => {
+  try {
+    const idx = parseInt(req.params.index, 10);
+    const setting = await prisma.systemSetting.findUnique({ where: { key: 'ad_banners' } });
+    let banners = [];
+    if (setting) {
+      try { banners = JSON.parse(setting.value); } catch (_) {}
+    }
+    if (idx < 0 || idx >= banners.length) {
+      return res.status(404).json({ success: false, message: 'Banner not found at given index.' });
+    }
+    banners.splice(idx, 1);
+    await prisma.systemSetting.upsert({
+      where: { key: 'ad_banners' },
+      update: { value: JSON.stringify(banners) },
+      create: { key: 'ad_banners', value: JSON.stringify(banners) },
+    });
+    sendSuccess(res, { count: banners.length }, 'Banner removed successfully');
+  } catch (err) { next(err); }
+});
+
+// DELETE /admin/ads — remove ALL banners
+router.delete('/ads', async (req, res, next) => {
+  try {
+    await prisma.systemSetting.deleteMany({ where: { key: 'ad_banners' } });
+    // Also clean up old single-banner key if it exists
+    await prisma.systemSetting.deleteMany({ where: { key: 'ad_banner' } });
+    sendSuccess(res, null, 'All banners removed');
+  } catch (err) { next(err); }
+});
+
 export default router;
+
 

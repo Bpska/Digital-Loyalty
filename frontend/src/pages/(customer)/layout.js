@@ -12,6 +12,7 @@ import { formatDate } from "@/lib/utils";
 
 import { cn } from "@/lib/utils";
 import { subscribeUserToPush } from "@/lib/pushSubscription";
+import Loader from "@/components/Loader";
 
 export default function CustomerLayout({
   children,
@@ -125,7 +126,7 @@ export default function CustomerLayout({
   if (loading || !authorized) {
     return (
       React.createElement('div', { className: "flex min-h-screen items-center justify-center bg-background"    , __self: this, __source: {fileName: _jsxFileName, lineNumber: 41}}
-        , React.createElement(Loader2, { className: "h-8 w-8 animate-spin text-primary"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 42}} )
+        , React.createElement(Loader)
       )
     );
   }
@@ -176,7 +177,10 @@ export default function CustomerLayout({
                 className: "relative w-9 h-9 rounded-full bg-slate-50 flex items-center justify-center text-[#0F172A] hover:bg-slate-100 transition-colors"
               }
               , React.createElement(Bell, { className: "h-4.5 w-4.5" })
-              , React.createElement('span', { className: "absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-[#F97316] text-white text-[8px] font-black rounded-full flex items-center justify-center border border-white" }, unreadCount > 0 ? unreadCount : "3")
+              , React.createElement('span', {
+                  className: "absolute -top-1 -right-1 bg-[#F97316] text-white text-[8px] font-black flex items-center justify-center border border-white shadow-sm",
+                  style: { borderRadius: "50%", width: "16px", height: "16px", minWidth: "16px", minHeight: "16px", padding: 0 }
+                }, unreadCount > 0 ? unreadCount : "3")
             )
             , React.createElement(Link, {
                 to: "/profile",
@@ -253,6 +257,7 @@ export default function CustomerLayout({
                             , React.createElement('span', { className: "font-bold text-foreground" }, notif.title)
                             , React.createElement('span', { className: "text-[9px] text-muted-foreground" }, formatDate(notif.createdAt))
                           )
+                          , notif.business?.name && React.createElement('div', { className: "text-[10px] text-primary font-bold mb-1" }, notif.business.name)
                           , React.createElement('p', { className: "text-muted-foreground leading-relaxed text-[11px]" }, notif.body)
                         )
                       ))

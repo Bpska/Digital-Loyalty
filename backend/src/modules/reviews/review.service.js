@@ -60,11 +60,11 @@ export async function generateReviewSuggestions(userId, businessId, rating) {
     },
   });
 
-  let selectedTemplates = [...templates];
+  let selectedTemplates = templates.map(t => ({ id: t.id, reviewText: t.reviewText }));
 
-  // If we have fewer than 3 templates, pull fallbacks from 'Business' category
+  // If we have fewer than 3 templates, pull fallbacks from 'Business' category in DB
   if (selectedTemplates.length < 3) {
-    const fallbackTemplates = await prisma.reviewTemplate.findMany({
+    const fallbackDb = await prisma.reviewTemplate.findMany({
       where: {
         status: 'AVAILABLE',
         starRating: rating,
@@ -74,7 +74,38 @@ export async function generateReviewSuggestions(userId, businessId, rating) {
         },
       },
     });
-    selectedTemplates = [...selectedTemplates, ...fallbackTemplates];
+    selectedTemplates = [...selectedTemplates, ...fallbackDb.map(t => ({ id: t.id, reviewText: t.reviewText }))];
+  }
+
+  // Hardcoded fallback review templates if DB has no reviews seeded (ensures prod never breaks)
+  const STATIC_FALLBACKS = {
+    3: [
+      "Average experience. The service was okay but there is room for improvement.",
+      "Decent visit. Everything was fine, but nothing particularly stood out.",
+      "Okay experience. Clean place and polite staff, but wait times were slightly long."
+    ],
+    4: [
+      "Great service and friendly staff! Had a very good experience and will visit again.",
+      "Really liked the quality and hospitality here. Definitely recommend it to others.",
+      "Very pleasant experience! Clean environment, good atmosphere, and helpful team."
+    ],
+    5: [
+      "Absolutely amazing! Extremely satisfied with the service and quality. Highly recommended!",
+      "Outstanding experience! Excellent customer support and top-notch hospitality.",
+      "Fantastic place! The staff goes above and beyond to make you feel welcome. 10/10!"
+    ]
+  };
+
+  if (selectedTemplates.length < 3) {
+    const defaultTexts = STATIC_FALLBACKS[rating] || STATIC_FALLBACKS[5];
+    defaultTexts.forEach((txt, idx) => {
+      if (selectedTemplates.length < 3 && !selectedTemplates.some(t => t.reviewText === txt)) {
+        selectedTemplates.push({
+          id: `fallback-${rating}-${idx}`,
+          reviewText: txt
+        });
+      }
+    });
   }
 
   // Shuffle and pick 3
@@ -116,8 +147,8 @@ export async function trackReviewSelection(userId, reviewGenerationId, selectedR
   if (!record) throw new AppError('Review generation record not found', 404);
   if (record.userId !== userId) throw new AppError('Forbidden', 403);
 
-  // 1. Perform reservation if templateId is provided
-  if (templateId) {
+  // 1. Perform reservation if templateId is provided and is a valid DB template
+  if (templateId && !templateId.startsWith('fallback-')) {
     // Verify template is still AVAILABLE
     const template = await prisma.reviewTemplate.findUnique({
       where: { id: templateId },
@@ -140,7 +171,7 @@ export async function trackReviewSelection(userId, reviewGenerationId, selectedR
     where: { id: reviewGenerationId },
     data: {
       selectedReview,
-      reviewTemplateId: templateId || null,
+      reviewTemplateId: (templateId && !templateId.startsWith('fallback-')) ? templateId : null,
     },
   });
 }

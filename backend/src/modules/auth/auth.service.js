@@ -19,6 +19,7 @@ import {
   normalizePhone,
   sendOtpViaSms,
 } from '../../utils/otp.js';
+import { sendVerificationEmail, sendPasswordResetEmail } from '../../utils/email.js';
 import { logger } from '../../utils/logger.js';
 
 
@@ -192,14 +193,31 @@ export async function registerCustomer(
 
   logger.info('Customer registered via email/password', { userId: user.id, email });
 
-  const tokenUser = {
-    id: user.id,
-    role: user.role,
-    businessId: null,
-    branchId: null,
-  };
+  // Generate email verification OTP
+  const otp = generateOtp();
+  const otpHash = await argon2.hash(otp);
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-  return issueTokens(tokenUser, ipAddress);
+  await prisma.emailVerification.create({
+    data: {
+      userId: user.id,
+      email,
+      otpHash,
+      expiresAt,
+      purpose: 'EMAIL_VERIFY',
+    },
+  });
+
+  // Send verification email
+  await sendVerificationEmail(email, otp);
+  logger.info('Email verification OTP sent', { userId: user.id, email });
+
+  // Return requiresVerification instead of tokens
+  return {
+    requiresVerification: true,
+    userId: user.id,
+    email,
+  };
 }
 
 export async function registerBusiness(
@@ -277,14 +295,31 @@ export async function registerBusiness(
 
   logger.info('New business admin registered and auto-logged in', { email, businessName: input.businessName });
 
-  const tokenUser = {
-    id: user.id,
-    role: user.role,
-    businessId: b.id,
-    branchId: null,
-  };
+  // Generate email verification OTP
+  const otp = generateOtp();
+  const otpHash = await argon2.hash(otp);
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-  return issueTokens(tokenUser, ipAddress);
+  await prisma.emailVerification.create({
+    data: {
+      userId: user.id,
+      email,
+      otpHash,
+      expiresAt,
+      purpose: 'EMAIL_VERIFY',
+    },
+  });
+
+  // Send verification email
+  await sendVerificationEmail(email, otp);
+  logger.info('Email verification OTP sent', { userId: user.id, email });
+
+  // Return requiresVerification instead of tokens
+  return {
+    requiresVerification: true,
+    userId: user.id,
+    email,
+  };
 }
 
 export async function loginWithGoogle(
@@ -434,6 +469,11 @@ export async function passwordLogin(
   const isPasswordValid = await argon2.verify(user.passwordHash, input.password);
   if (!isPasswordValid) {
     throw new AppError('Invalid email or password', 401);
+  }
+
+  // Block login if email is not verified (skip for SUPER_ADMIN)
+  if (!user.isEmailVerified && user.role !== 'SUPER_ADMIN') {
+    throw new AppError('Please verify your email before logging in.', 403, true, { code: 'EMAIL_NOT_VERIFIED' });
   }
 
   const tokenUser = {
@@ -625,4 +665,248 @@ export async function getMeProfile(userId) {
     businessId,
     branchId: user.staffProfile?.branchId || null,
   };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Email OTP Verification
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Send or resend email OTP for email verification.
+ * Max 3 resends per verification cycle.
+ */
+export async function sendEmailOtp(userId) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+  if (user.isEmailVerified) {
+    throw new AppError('Email is already verified', 400);
+  }
+  if (!user.email) {
+    throw new AppError('No email address on file', 400);
+  }
+
+  // Check resend count from latest record
+  const latestRecord = await prisma.emailVerification.findFirst({
+    where: { userId, purpose: 'EMAIL_VERIFY', isVerified: false },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (latestRecord && latestRecord.resendCount >= 3) {
+    throw new AppError('Maximum resend limit reached. Please try again later.', 429);
+  }
+
+  // Expire all previous unverified OTPs for this user
+  await prisma.emailVerification.updateMany({
+    where: { userId, purpose: 'EMAIL_VERIFY', isVerified: false },
+    data: { expiresAt: new Date() },
+  });
+
+  const otp = generateOtp();
+  const otpHash = await argon2.hash(otp);
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+  await prisma.emailVerification.create({
+    data: {
+      userId,
+      email: user.email,
+      otpHash,
+      expiresAt,
+      purpose: 'EMAIL_VERIFY',
+      resendCount: latestRecord ? latestRecord.resendCount + 1 : 0,
+    },
+  });
+
+  await sendVerificationEmail(user.email, otp);
+  logger.info('Email verification OTP resent', { userId, email: user.email });
+
+  return { sent: true };
+}
+
+/**
+ * Verify email OTP and mark user as verified. Issues tokens on success.
+ */
+export async function verifyEmailOtp(userId, otp, ipAddress) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+  if (user.isEmailVerified) {
+    throw new AppError('Email is already verified', 400);
+  }
+
+  // Find latest valid OTP
+  const record = await prisma.emailVerification.findFirst({
+    where: {
+      userId,
+      purpose: 'EMAIL_VERIFY',
+      isVerified: false,
+      expiresAt: { gt: new Date() },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (!record) {
+    throw new AppError('OTP expired or not found. Please request a new one.', 400);
+  }
+
+  if (record.attempts >= 5) {
+    throw new AppError('Too many failed attempts. Please request a new OTP.', 429);
+  }
+
+  const isValid = await argon2.verify(record.otpHash, otp);
+  if (!isValid) {
+    await prisma.emailVerification.update({
+      where: { id: record.id },
+      data: { attempts: { increment: 1 } },
+    });
+    throw new AppError('Invalid OTP. Please try again.', 400);
+  }
+
+  // Mark OTP as verified
+  await prisma.emailVerification.update({
+    where: { id: record.id },
+    data: { isVerified: true },
+  });
+
+  // Mark user email as verified
+  await prisma.user.update({
+    where: { id: userId },
+    data: { isEmailVerified: true },
+  });
+
+  logger.info('Email verified successfully', { userId });
+
+  // Issue tokens now that email is verified
+  let businessId = null;
+  let branchId = null;
+
+  if (user.role === Role.BUSINESS_ADMIN) {
+    const biz = await prisma.business.findFirst({
+      where: { ownerId: user.id, deletedAt: null },
+      select: { id: true },
+    });
+    businessId = biz?.id || null;
+  } else if (user.role === Role.STAFF) {
+    const staff = await prisma.staff.findFirst({
+      where: { userId: user.id },
+      select: { businessId: true, branchId: true },
+    });
+    businessId = staff?.businessId || null;
+    branchId = staff?.branchId || null;
+  }
+
+  const tokenUser = {
+    id: user.id,
+    role: user.role,
+    businessId,
+    branchId,
+  };
+
+  return issueTokens(tokenUser, ipAddress);
+}
+
+// ─────────────────────────────────────────────────────────────
+// Forgot Password
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Send OTP for password reset.
+ */
+export async function sendForgotPasswordOtp(email) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const user = await prisma.user.findFirst({
+    where: { email: normalizedEmail, deletedAt: null },
+  });
+
+  if (!user) {
+    // Don't reveal if email exists — return success anyway
+    logger.info('Forgot password requested for non-existent email', { email: normalizedEmail });
+    return { sent: true };
+  }
+
+  // Expire all previous password reset OTPs for this user
+  await prisma.emailVerification.updateMany({
+    where: { userId: user.id, purpose: 'PASSWORD_RESET', isVerified: false },
+    data: { expiresAt: new Date() },
+  });
+
+  const otp = generateOtp();
+  const otpHash = await argon2.hash(otp);
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+  await prisma.emailVerification.create({
+    data: {
+      userId: user.id,
+      email: normalizedEmail,
+      otpHash,
+      expiresAt,
+      purpose: 'PASSWORD_RESET',
+    },
+  });
+
+  await sendPasswordResetEmail(normalizedEmail, otp);
+  logger.info('Password reset OTP sent', { userId: user.id, email: normalizedEmail });
+
+  return { sent: true };
+}
+
+/**
+ * Verify password reset OTP and update password.
+ */
+export async function resetPassword(email, otp, newPassword) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const user = await prisma.user.findFirst({
+    where: { email: normalizedEmail, deletedAt: null },
+  });
+
+  if (!user) {
+    throw new AppError('Invalid email or OTP', 400);
+  }
+
+  // Find latest valid OTP
+  const record = await prisma.emailVerification.findFirst({
+    where: {
+      userId: user.id,
+      purpose: 'PASSWORD_RESET',
+      isVerified: false,
+      expiresAt: { gt: new Date() },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (!record) {
+    throw new AppError('OTP expired or not found. Please request a new one.', 400);
+  }
+
+  if (record.attempts >= 5) {
+    throw new AppError('Too many failed attempts. Please request a new OTP.', 429);
+  }
+
+  const isValid = await argon2.verify(record.otpHash, otp);
+  if (!isValid) {
+    await prisma.emailVerification.update({
+      where: { id: record.id },
+      data: { attempts: { increment: 1 } },
+    });
+    throw new AppError('Invalid OTP. Please try again.', 400);
+  }
+
+  // Mark OTP as verified
+  await prisma.emailVerification.update({
+    where: { id: record.id },
+    data: { isVerified: true },
+  });
+
+  // Update password
+  const passwordHash = await argon2.hash(newPassword);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash },
+  });
+
+  logger.info('Password reset successfully', { userId: user.id });
+
+  return { success: true };
 }
