@@ -584,7 +584,7 @@ export default function CouponsPage() {
             , [
                 { title: "Active Coupons", value: coupons.filter(c => c.isActive && new Date(c.validTo) >= new Date()).length, label: "Live", color: "text-[#22C55E] bg-[#DCFCE7]" }
                 , { title: "Total Used", value: coupons.reduce((sum, c) => sum + (c.totalUsed || 0), 0), label: "This Month", color: "text-[#F59E0B] bg-[#FEF3C7]" }
-                , { title: "Customers", value: coupons.reduce((sum, c) => sum + (c.totalUsed ? 1 : 0), 0) + 12, label: "Benefited", color: "text-[#7C3AED] bg-[#EDE9FE]" }
+                , { title: "Customers", value: coupons.reduce((sum, c) => sum + (c.totalUsed ? 1 : 0), 0), label: "Benefited", color: "text-[#7C3AED] bg-[#EDE9FE]" }
               ].map((stat, i) => React.createElement('div', { key: i, className: "bg-white rounded-2xl p-3 border border-[#F1F5F9] shadow-sm flex flex-col justify-between" }
                   , React.createElement('div', { className: "flex items-center gap-1" }
                     , React.createElement('span', { className: "text-[9px] font-bold text-[#64748B] tracking-tight truncate" }, stat.title)

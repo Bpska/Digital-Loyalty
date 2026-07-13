@@ -286,9 +286,14 @@ router.get(
       const take = Math.min(parseInt(limit, 10) || 50, 100);
       const skip = (Math.max(parseInt(page, 10) || 1, 1) - 1) * take;
 
+      const whereClause = {
+        businessId,
+        ...(status && status !== 'ALL' && status !== 'all' && { status })
+      };
+
       const [requests, total] = await Promise.all([
         prisma.loyaltyRequest.findMany({
-          where: { businessId, status: status },
+          where: whereClause,
           orderBy: { createdAt: 'desc' },
           take,
           skip,
@@ -298,7 +303,7 @@ router.get(
             loyaltyTransaction: { select: { points: true } },
           },
         }),
-        prisma.loyaltyRequest.count({ where: { businessId, status: status } }),
+        prisma.loyaltyRequest.count({ where: whereClause }),
       ]);
 
       // Include customer's current points balance and wallet data for accurate display

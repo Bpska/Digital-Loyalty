@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { formatDate, cn } from "@/lib/utils";
 import BusinessBottomNav from "@/components/BusinessBottomNav";
+import BranchMap from "@/components/BranchMap";
 
 // Curated built-in icon map
 const BUILTIN_ICONS = {
@@ -84,6 +85,13 @@ export default function BusinessProfilePage() {
   const [ownerPhone, setOwnerPhone] = useState("");
   const [ownerSaving, setOwnerSaving] = useState(false);
 
+  // --- Branch Location States ---
+  const isOwnerOrAdmin = user?.role === "BUSINESS_ADMIN" || user?.role === "SUPER_ADMIN";
+  const [branchLat, setBranchLat] = useState("");
+  const [branchLng, setBranchLng] = useState("");
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [branchLocationSaving, setBranchLocationSaving] = useState(false);
+
   // --- Branding Page States ---
   const [savingBrand, setSavingBrand] = useState(false);
   const [activeBrandTab, setActiveBrandTab] = useState("library"); // library or upload
@@ -131,6 +139,66 @@ export default function BusinessProfilePage() {
     queryFn: () => api.get(`/analytics/business/${businessId}`).then((res) => res.data),
     enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
   });
+
+  // Fetch business branches
+  const { data: branches = [], refetch: refetchBranches } = useQuery({
+    queryKey: ["businessBranches", businessId],
+    queryFn: () => api.get(`/branches/business/${businessId}`).then((res) => res.data),
+    enabled: !!businessId && businessId !== "null" && businessId !== "undefined",
+  });
+
+  const activeBranch = branches[0];
+
+  useEffect(() => {
+    if (activeBranch) {
+      setBranchLat(activeBranch.latitude || "");
+      setBranchLng(activeBranch.longitude || "");
+    }
+  }, [activeBranch]);
+
+  const getGpsLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setBranchLat(position.coords.latitude.toFixed(6));
+        setBranchLng(position.coords.longitude.toFixed(6));
+        setGeoLoading(false);
+      },
+      (error) => {
+        alert("Error fetching GPS location: " + error.message);
+        setGeoLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const handleSaveBranchLocation = async () => {
+    if (!activeBranch) return;
+    const lat = parseFloat(branchLat);
+    const lng = parseFloat(branchLng);
+    if (isNaN(lat) || isNaN(lng)) {
+      setMessage({ type: "error", text: "Please enter valid coordinates." });
+      return;
+    }
+    setBranchLocationSaving(true);
+    setMessage(null);
+    try {
+      await api.patch(`/branches/${activeBranch.id}`, {
+        latitude: lat,
+        longitude: lng,
+      });
+      await refetchBranches();
+      setMessage({ type: "success", text: "Branch location updated successfully!" });
+    } catch (err) {
+      setMessage({ type: "error", text: err.response?.data?.message || err.message || "Failed to save branch location." });
+    } finally {
+      setBranchLocationSaving(false);
+    }
+  };
 
   useEffect(() => {
     if (business) {
@@ -727,6 +795,78 @@ export default function BusinessProfilePage() {
               </div>
 
             </div>
+
+            {/* Branch Location Section (Mobile only, Owner/Admin only) */}
+            {isOwnerOrAdmin && activeBranch && (
+              <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#F1F5F9] space-y-4">
+                <div className="flex justify-between items-center pb-2 border-b border-[#F8FAFC]">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center">
+                      <MapPin className="h-4 w-4 text-[#F97316]" />
+                    </div>
+                    <span className="font-black text-sm text-[#0F172A]">Branch Location</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 block mb-1">Latitude</label>
+                      <Input
+                        type="number"
+                        value={branchLat}
+                        onChange={(e) => setBranchLat(e.target.value)}
+                        placeholder="e.g. 20.296"
+                        className="bg-[#F8FAFC] border-slate-200 rounded-xl text-xs h-9 font-medium"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 block mb-1">Longitude</label>
+                      <Input
+                        type="number"
+                        value={branchLng}
+                        onChange={(e) => setBranchLng(e.target.value)}
+                        placeholder="e.g. 85.824"
+                        className="bg-[#F8FAFC] border-slate-200 rounded-xl text-xs h-9 font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  <BranchMap
+                    lat={branchLat}
+                    lng={branchLng}
+                    radius={activeBranch?.radiusMeters || 50}
+                    onChange={(lat, lng) => {
+                      setBranchLat(lat);
+                      setBranchLng(lng);
+                    }}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={getGpsLocation}
+                    disabled={geoLoading}
+                    className="w-full py-3.5 border border-[#FFEBE0] hover:bg-slate-50 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold text-slate-800 bg-white transition-all active:scale-98 shadow-sm"
+                  >
+                    {geoLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-[#F97316]" />
+                    ) : (
+                      <MapPin className="h-4 w-4 text-[#F97316]" />
+                    )}
+                    <span>{geoLoading ? "Locating device..." : "Use My Current GPS location"}</span>
+                  </button>
+
+                  <Button
+                    type="button"
+                    onClick={handleSaveBranchLocation}
+                    disabled={branchLocationSaving}
+                    className="w-full bg-[#F97316] hover:bg-orange-600 text-white font-bold rounded-xl text-xs h-10 mt-2"
+                  >
+                    {branchLocationSaving ? "Saving Location..." : "Save Branch Location"}
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* G. Sign Out Row */}
             <button 

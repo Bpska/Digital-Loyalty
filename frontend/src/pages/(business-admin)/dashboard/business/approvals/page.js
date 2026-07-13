@@ -265,20 +265,16 @@ export default function BusinessApprovalsPage() {
       , React.createElement("div", { className: "md:hidden px-4 pt-4" }
         , React.createElement("div", { className: "bg-white rounded-2xl p-1.5 border border-[#F1F5F9] shadow-sm flex gap-1 items-center justify-between" }
           , [
-              { key: "ALL", label: "All", badge: requests.length + 15, badgeBg: "bg-slate-100 text-slate-600", activeBg: "bg-[#F97316] text-white" },
+              { key: "ALL", label: "All", badge: pendingCount + approvedToday + rejectedToday, badgeBg: "bg-slate-100 text-slate-600", activeBg: "bg-[#F97316] text-white" },
               { key: "PENDING", label: "Pending", badge: pendingCount, badgeBg: "bg-[#FFEDD5] text-[#F97316]", activeBg: "bg-[#F97316] text-white" },
               { key: "APPROVED", label: "Approved", badge: approvedToday, badgeBg: "bg-[#DCFCE7] text-[#22C55E]", activeBg: "bg-[#F97316] text-white" },
               { key: "REJECTED", label: "Rejected", badge: rejectedToday, badgeBg: "bg-[#FEE2E2] text-[#EF4444]", activeBg: "bg-[#F97316] text-white" }
             ].map(tab => {
-              const isActive = (tab.key === "ALL" && statusFilter === "PENDING" && requests.length > 0) || (statusFilter === tab.key);
+              const isActive = statusFilter === tab.key;
               return React.createElement("button", {
                 key: tab.key,
                 onClick: () => {
-                  if (tab.key === "ALL") {
-                    setStatusFilter("PENDING");
-                  } else {
-                    setStatusFilter(tab.key);
-                  }
+                  setStatusFilter(tab.key);
                 },
                 className: cn(
                   "flex-1 flex items-center justify-center gap-1 py-2 px-1 rounded-xl text-xs font-bold transition-all"
@@ -578,14 +574,14 @@ export default function BusinessApprovalsPage() {
 
         /* Status Tabs */
         , React.createElement("div", { className: "flex items-center gap-2 border-b border-border pb-1" }
-          , ["PENDING", "APPROVED", "REJECTED"].map(s => React.createElement("button", {
+          , ["ALL", "PENDING", "APPROVED", "REJECTED"].map(s => React.createElement("button", {
               key: s,
               onClick: () => setStatusFilter(s),
               className: cn(
                 "px-4 py-1.5 rounded-full text-xs font-bold transition-colors"
                 , statusFilter === s ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted"
               )
-            }, s.charAt(0) + s.slice(1).toLowerCase()))
+            }, s === "ALL" ? "All" : s.charAt(0) + s.slice(1).toLowerCase()))
         )
 
         /* Desktop List */

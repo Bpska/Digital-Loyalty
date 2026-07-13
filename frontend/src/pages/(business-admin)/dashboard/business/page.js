@@ -1057,7 +1057,11 @@ export default function BusinessDashboard() {
             , React.createElement('span', { className: "text-sm font-bold text-[#0F172A]" }, "Customer Check-in QR Code")
           )
           , React.createElement('div', { className: "flex flex-col items-center gap-3" }
-            , React.createElement('div', { className: "rounded-2xl border-2 border-dashed p-3 flex items-center justify-center", style: { borderColor: "#FED7AA" } }
+            , React.createElement('div', {
+                className: "rounded-2xl border-2 border-dashed p-3 flex items-center justify-center cursor-pointer hover:bg-slate-50 transition-all",
+                style: { borderColor: "#FED7AA" },
+                onClick: () => setShowQrModal(true)
+              }
               , primaryBranch.qrImage
                 ? React.createElement('div', { className: "relative" }
                   , React.createElement('img', { src: primaryBranch.qrImage, alt: "Check-in QR", className: "h-40 w-40 rounded-xl" })
@@ -1070,7 +1074,7 @@ export default function BusinessDashboard() {
                 : React.createElement('div', { className: "h-40 w-40 flex items-center justify-center" }
                   , React.createElement(Loader2, { className: "h-6 w-6 animate-spin text-[#F97316]" })
                 )
-            )
+              )
             , React.createElement('input', { readOnly: true, value: primaryBranch.qrPayload || "", className: "w-full text-[10px] font-mono bg-[#F8FAFC] border border-[#F1F5F9] p-2.5 rounded-xl text-center text-[#64748B]" })
             , React.createElement('div', { className: "flex gap-2 w-full" }
               , React.createElement('button', {
@@ -1104,7 +1108,7 @@ export default function BusinessDashboard() {
                 , React.createElement('p', { className: "font-bold text-[#0F172A]" }, bizType || "—")
               )
               , React.createElement('div', { className: "p-3 rounded-2xl", style: { background: "#F8FAFC" } }
-                , React.createElement('p', { className: "text-[9px] text-[#94A3B8] uppercase tracking-wider font-bold mb-1" }, "Google Link")
+                , React.createElement('p', { className: "text-[9px] text-[#94A3B8] uppercase tracking-wider font-bold mb-1" }, "Google Review")
                 , React.createElement('p', { className: "font-bold text-[#0F172A] truncate" }, revGoogleUrl ? "✓ Set" : "—")
               )
             )

@@ -221,12 +221,6 @@ export default function LandingPage() {
           , React.createElement('div', { className: "flex items-center gap-3 sm:gap-5 shrink-0" }
             , React.createElement(Link, { to: "/login", className: "flex items-center text-xs sm:text-sm font-bold text-[#64748B] hover:text-[#0F172A] transition-colors" }, "Log in")
             , React.createElement(Link, { to: "/login?signup=true", className: "flex items-center justify-center bg-[#F97316] hover:bg-[#EA580C] text-white text-xs sm:text-sm font-bold px-3 py-2 sm:px-5 sm:py-2.5 rounded-lg shadow-sm transition-all whitespace-nowrap" }, "Start Free Trial")
-            /* Mobile menu button */
-            , React.createElement('button', { className: "md:hidden flex items-center justify-center p-1 text-[#0F172A] hover:text-[#F97316]" }
-              , React.createElement('svg', { className: "w-6 h-6", fill: "none", stroke: "currentColor", strokeWidth: "2", viewBox: "0 0 24 24" }
-                , React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M4 6h16M4 12h16M4 18h16" })
-              )
-            )
           )
         )
       )
