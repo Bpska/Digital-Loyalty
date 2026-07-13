@@ -291,13 +291,15 @@ export default function SuperDashboard() {
             )
           )
           , React.createElement(CardContent, { className: "space-y-4", __self: this, __source: {fileName: _jsxFileName, lineNumber: 134}}
-            , React.createElement('div', { className: "bg-slate-50 p-4 rounded-xl border border-border/50 flex justify-between items-center"       , __self: this, __source: {fileName: _jsxFileName, lineNumber: 135}}
-              , React.createElement('div', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 136}}
-                , React.createElement('span', { className: "text-[10px] text-muted-foreground font-bold uppercase block tracking-wider"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 137}}, "Paid Subscription Enrolls"  )
-                , React.createElement('span', { className: "text-2xl font-extrabold text-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 138}}, _optionalChain([stats, 'optionalAccess', _6 => _6.activeSubscriptions]), " Businesses" )
-              )
-              , React.createElement('span', { className: "text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full uppercase"         , __self: this, __source: {fileName: _jsxFileName, lineNumber: 140}}, "Captured"
+            , React.createElement(Link, { to: "/dashboard/super/businesses", className: "block hover:no-underline" }
+              , React.createElement('div', { className: "bg-slate-50 hover:bg-slate-100 transition-colors p-4 rounded-xl border border-border/50 flex justify-between items-center cursor-pointer"       , __self: this, __source: {fileName: _jsxFileName, lineNumber: 135}}
+                , React.createElement('div', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 136}}
+                  , React.createElement('span', { className: "text-[10px] text-muted-foreground font-bold uppercase block tracking-wider"     , __self: this, __source: {fileName: _jsxFileName, lineNumber: 137}}, "Paid Subscription Enrolls"  )
+                  , React.createElement('span', { className: "text-2xl font-extrabold text-foreground"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 138}}, _optionalChain([stats, 'optionalAccess', _6 => _6.activeSubscriptions]), " Businesses" )
+                )
+                , React.createElement('span', { className: "text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full uppercase"         , __self: this, __source: {fileName: _jsxFileName, lineNumber: 140}}, "Captured"
 
+                )
               )
             )
             , React.createElement('p', { className: "text-xs text-muted-foreground" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 144}}, "Merchant subscription billings are processed directly through Razorpay Subscriptions link callbacks. Tenants failing payment automatically enter a 7-day grace period before suspension."

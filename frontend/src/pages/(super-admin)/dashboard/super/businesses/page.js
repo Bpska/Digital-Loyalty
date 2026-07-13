@@ -358,8 +358,9 @@ export default function BusinessesManagementPage() {
   // Delete business mutation
   const deleteBusinessMutation = useMutation({
     mutationFn: (id) => api.delete(`/admin/businesses/${id}`),
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["superBusinessesList"] });
+      alert("Business deleted successfully!");
     },
     onError: (err) => {
       console.error("Delete business mutation failed:", err);
@@ -517,10 +518,9 @@ export default function BusinessesManagementPage() {
       )
 
       , React.createElement(Tabs, { defaultValue: "businesses", className: "w-full", onValueChange: (val) => { setActiveTab(val); resetPlanForm(); setNotifSuccess(null); setNotifError(null); setSettingsSuccess(null); setSettingsError(null); }, __self: this, __source: { fileName: _jsxFileName, lineNumber: 160 } }
-        , React.createElement(TabsList, { className: "grid w-full grid-cols-5 mb-6" }
+        , React.createElement(TabsList, { className: "grid w-full grid-cols-4 mb-6" }
           , React.createElement(TabsTrigger, { value: "businesses" }, "Tenants")
           , React.createElement(TabsTrigger, { value: "plans" }, "Pricing Plans")
-          , React.createElement(TabsTrigger, { value: "notifications" }, "Send Alerts")
           , React.createElement(TabsTrigger, { value: "ai-reviews" }
             , React.createElement(MessageSquareText, { className: "h-3.5 w-3.5 mr-1.5" })
             , "AI Reviews"
@@ -751,7 +751,6 @@ export default function BusinessesManagementPage() {
                               size: "sm",
                               className: "text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center justify-center mt-1 w-full",
                               onClick: () => {
-                                console.log("Restore button clicked for business:", business.id);
                                 restoreBusinessMutation.mutate(business.id);
                               },
                               disabled: restoreBusinessMutation.isPending
@@ -763,8 +762,9 @@ export default function BusinessesManagementPage() {
                               size: "sm",
                               className: "text-xs text-red-600 hover:text-red-750 hover:bg-red-50/50 mt-1 flex items-center justify-center font-bold w-full",
                               onClick: () => {
-                                console.log("Delete permanently button clicked for business:", business.name);
-                                setBusinessToDelete(business);
+                                if (window.confirm(`PERMANENTLY delete "${business.name}"? This will erase ALL data (check-ins, staff, rewards, wallets). This is IRREVERSIBLE!`)) {
+                                  deleteBusinessMutation.mutate(business.id);
+                                }
                               },
                               disabled: deleteBusinessMutation.isPending
                             }
@@ -777,10 +777,11 @@ export default function BusinessesManagementPage() {
                           size: "sm",
                           className: "text-xs text-red-500 hover:text-red-750 hover:bg-red-50/50 mt-1 flex items-center justify-center",
                           onClick: () => {
-                            console.log("Delete business button clicked for business:", business.name);
-                            setBusinessToDelete(business);
+                            if (window.confirm(`Delete "${business.name}"? It will be soft-deleted and moved to Recycle Bin.`)) {
+                              deleteBusinessMutation.mutate(business.id);
+                            }
                           },
-                          disabled: deleteBusinessMutation.isPending && deleteBusinessMutation?.variables === business.id
+                          disabled: deleteBusinessMutation.isPending
                         }
                           , "Delete Business"
                         )
@@ -890,71 +891,7 @@ export default function BusinessesManagementPage() {
           )
         )
 
-        /* Send Alerts Tab */
-        , React.createElement(TabsContent, { value: "notifications", className: "space-y-4" }
-          , React.createElement(Card, { className: "glass max-w-md mx-auto", glass: true }
-            , React.createElement(CardHeader, null
-              , React.createElement(CardTitle, { className: "text-lg font-bold" }, "Send Direct Notification")
-              , React.createElement(CardDescription, { className: "text-xs" }, "Push message notifications directly to user phones or business owners.")
-            )
-            , React.createElement(CardContent, null
-              , notifSuccess && React.createElement('div', { className: "mb-4 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-lg p-3 text-center font-medium animate-fade-in" }, notifSuccess)
-              , notifError && React.createElement('div', { className: "mb-4 bg-destructive/10 border border-destructive/20 text-destructive text-xs rounded-lg p-3 text-center font-medium animate-fade-in" }, notifError)
-              , React.createElement('form', { onSubmit: handleSendNotification, className: "space-y-4" }
-                , React.createElement('div', { className: "space-y-1.5" }
-                  , React.createElement(Label, { htmlFor: "notif-target" }, "Target Type")
-                  , React.createElement('select', {
-                    id: "notif-target",
-                    value: notifTargetType,
-                    onChange: (e) => { setNotifTargetType(e.target.value); setNotifTargetValue(""); },
-                    className: "w-full h-10 border border-border rounded-md bg-white text-xs px-3 outline-none"
-                  },
-                    React.createElement('option', { value: "user_phone" }, "Direct User Phone (e.g. +91XXXXXXXXXX)"),
-                    React.createElement('option', { value: "user_id" }, "Direct User ID (CUID)"),
-                    React.createElement('option', { value: "business_id" }, "Business Owner (Business ID)")
-                  )
-                )
-                , React.createElement('div', { className: "space-y-1" }
-                  , React.createElement(Label, { htmlFor: "notif-value" }, "Target Value Identifier")
-                  , React.createElement(Input, {
-                    id: "notif-value",
-                    placeholder: notifTargetType === "user_phone" ? "e.g. +919937012345" : notifTargetType === "user_id" ? "e.g. clabc123..." : "e.g. seed-business-cafe",
-                    value: notifTargetValue,
-                    onChange: (e) => setNotifTargetValue(e.target.value),
-                    required: true,
-                    className: "text-xs"
-                  })
-                )
-                , React.createElement('div', { className: "space-y-1" }
-                  , React.createElement(Label, { htmlFor: "notif-title" }, "Alert Title")
-                  , React.createElement(Input, {
-                    id: "notif-title",
-                    placeholder: "e.g. Reward Ready! or System Update",
-                    value: notifTitle,
-                    onChange: (e) => setNotifTitle(e.target.value),
-                    required: true,
-                    className: "text-xs"
-                  })
-                )
-                , React.createElement('div', { className: "space-y-1" }
-                  , React.createElement(Label, { htmlFor: "notif-body" }, "Alert Body Message")
-                  , React.createElement('textarea', {
-                    id: "notif-body",
-                    placeholder: "Enter details of the push notification alert...",
-                    value: notifBody,
-                    onChange: (e) => setNotifBody(e.target.value),
-                    required: true,
-                    className: "w-full min-h-[90px] text-xs border border-border rounded-md p-3 focus:outline-none focus:ring-1 focus:ring-primary bg-background text-foreground"
-                  })
-                )
-                , React.createElement(Button, { type: "submit", className: "w-full bg-primary text-primary-foreground", disabled: notifLoading }
-                  , notifLoading ? React.createElement(Loader2, { className: "mr-2 h-4 w-4 animate-spin" }) : null
-                  , "Send Push Notification"
-                )
-              )
-            )
-          )
-        )
+        /* Send Alerts Tab removed */
         /* ── AI Reviews Tab ─────────────────────────────────── */
         , React.createElement(TabsContent, { value: "ai-reviews", className: "space-y-6" }
 
@@ -1502,47 +1439,7 @@ export default function BusinessesManagementPage() {
         )
       )
       
-      /* Delete Business Confirmation Dialog */
-      , React.createElement(Dialog, {
-          open: !!businessToDelete,
-          onOpenChange: (open) => !open && setBusinessToDelete(null),
-        }
-          , !!businessToDelete && React.createElement(DialogContent, { className: "max-w-[400px] bg-white border border-border" }
-            , React.createElement(DialogHeader, null
-              , React.createElement(DialogTitle, { className: "text-red-600 flex items-center gap-2" }
-                , React.createElement(Trash2, { className: "h-5 w-5" })
-                , "Confirm Deletion"
-              )
-              , React.createElement(DialogDescription, { className: "text-sm text-slate-600 mt-2" }
-                , businessToDelete.status === "DELETED"
-                  ? `Are you sure you want to PERMANENTLY delete the business "${businessToDelete.name}"? This will permanently erase all check-ins, staff accounts, rewards, and wallets from the database. This action is irreversible!`
-                  : `Are you sure you want to delete the business "${businessToDelete.name}"? This will soft-delete the business and move it to the Recycle Bin.`
-              )
-            )
-            , React.createElement(DialogFooter, { className: "pt-4" }
-              , React.createElement(Button, {
-                  type: "button",
-                  variant: "outline",
-                  onClick: () => setBusinessToDelete(null)
-                }
-                , "No, Cancel"
-              )
-              , React.createElement(Button, {
-                  type: "button",
-                  className: "bg-red-600 hover:bg-red-700 text-white font-bold",
-                  onClick: () => {
-                    deleteBusinessMutation.mutate(businessToDelete.id);
-                    setBusinessToDelete(null);
-                  },
-                  disabled: deleteBusinessMutation.isPending
-                }
-                , deleteBusinessMutation.isPending
-                  ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin" })
-                  : businessToDelete.status === "DELETED" ? "Yes, Delete Permanently" : "Yes, Soft Delete"
-              )
-            )
-          )
-        )
+      /* Delete Business Confirmation Dialog removed - now using window.confirm() inline */
 
       /* AI Review Settings Dialog */
       , !!editingReviewBusiness && (
