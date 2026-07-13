@@ -141,8 +141,25 @@ export default function BranchesPage() {
   const handleUseCurrentLocation = async () => {
     try {
       const coords = await getPosition();
-      setLatitude(coords.latitude.toString());
-      setLongitude(coords.longitude.toString());
+      if (coords && coords.latitude !== null && coords.longitude !== null) {
+        setLatitude(coords.latitude.toString());
+        setLongitude(coords.longitude.toString());
+      } else {
+        if (!navigator.geolocation) {
+          alert("Geolocation is not supported by your browser.");
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setLatitude(position.coords.latitude.toFixed(6));
+            setLongitude(position.coords.longitude.toFixed(6));
+          },
+          (err) => {
+            alert("Could not fetch location: " + err.message);
+          },
+          { enableHighAccuracy: true }
+        );
+      }
     } catch (err) {
       console.error("GPS fetch error:", err);
     }

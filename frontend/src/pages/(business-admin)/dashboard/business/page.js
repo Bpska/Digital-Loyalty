@@ -651,7 +651,7 @@ export default function BusinessDashboard() {
       const end = new Date(endDate);
       const diffTime = Math.abs(end - start);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
-      
+
       const dataPoints = [];
       const steps = Math.min(15, diffDays); // Limit chart points to 15 max to keep it clean
       const stepSize = Math.max(1, Math.floor(diffDays / steps));
@@ -716,16 +716,16 @@ export default function BusinessDashboard() {
           }
             , React.createElement(Bell, { className: "h-5.5 w-5.5" })
             , unreadCount > 0 && (
-                React.createElement('span', { className: "absolute top-0.5 right-0.5 w-4.5 h-4.5 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center leading-none shadow-sm" }
-                  , String(unreadCount)
-                )
+              React.createElement('span', { className: "absolute top-0.5 right-0.5 w-4.5 h-4.5 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center leading-none shadow-sm" }
+                , String(unreadCount)
               )
+            )
           )
           , React.createElement(Link, {
-              to: "/dashboard/business/profile",
-              className: "bg-[#6D5DD3] text-white text-sm font-bold shadow-sm cursor-pointer active:scale-95 transition-transform",
-              style: { borderRadius: "50%", width: "36px", height: "36px", minWidth: "36px", minHeight: "36px", padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }
-            }
+            to: "/dashboard/business/profile",
+            className: "bg-[#6D5DD3] text-white text-sm font-bold shadow-sm cursor-pointer active:scale-95 transition-transform",
+            style: { borderRadius: "50%", width: "36px", height: "36px", minWidth: "36px", minHeight: "36px", padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }
+          }
             , _optionalChain([user, 'optionalAccess', _ => _.name, 'optionalAccess', _a => _a[0], 'optionalAccess', _b => _b.toUpperCase, 'optionalCall', _c => _c()])
           )
         )
@@ -778,42 +778,42 @@ export default function BusinessDashboard() {
 
         /* C. Hero Banner — shows ads carousel if uploaded, else fallback orange card */
         , adBanners.length > 0
-          ? React.createElement('div', { className: "rounded-3xl overflow-hidden relative border border-zinc-200/50 shadow-sm bg-white" }
-              , React.createElement('div', { 
-                  className: "w-full overflow-hidden relative",
-                  style: { aspectRatio: "4/1", minHeight: "140px", maxHeight: "220px" }
-                }
-                , adBanners.map((banner, index) => 
-                    React.createElement('img', {
-                      key: index,
-                      src: banner,
-                      alt: "Advertisement Banner " + (index + 1),
-                      className: cn(
-                        "w-full h-full object-cover absolute inset-0 transition-opacity duration-700 ease-in-out",
-                        index === currentAdIndex ? "opacity-100 z-10" : "opacity-0 z-0"
-                      )
-                    })
+          ? React.createElement('div', { className: "rounded-3xl overflow-hidden relative border-2 border-[#F97316]/50 shadow-[0_8px_30px_rgba(249,115,22,0.12)] bg-white" }
+            , React.createElement('div', {
+              className: "w-full overflow-hidden relative",
+              style: { aspectRatio: "4/1", minHeight: "140px", maxHeight: "220px" }
+            }
+              , adBanners.map((banner, index) =>
+                React.createElement('img', {
+                  key: index,
+                  src: banner,
+                  alt: "Advertisement Banner " + (index + 1),
+                  className: cn(
+                    "w-full h-full object-cover absolute inset-0 transition-opacity duration-700 ease-in-out",
+                    index === currentAdIndex ? "opacity-100 z-10" : "opacity-0 z-0"
                   )
+                })
               )
-              /* Dots indicator */
-              , adBanners.length > 1 && React.createElement('div', { className: "absolute bottom-3 left-1/2 transform -translate-x-1/2 flex gap-1.5 z-20 bg-black/20 px-2.5 py-1 rounded-full backdrop-blur-sm" }
-                  , adBanners.map((_, index) => 
-                      React.createElement('div', {
-                        key: index,
-                        onClick: () => setCurrentAdIndex(index),
-                        className: cn(
-                          "w-1.5 h-1.5 rounded-full cursor-pointer transition-all duration-300",
-                          index === currentAdIndex ? "bg-white w-3" : "bg-white/50 hover:bg-white/85"
-                        )
-                      })
-                    )
-                )
             )
+            /* Dots indicator */
+            , adBanners.length > 1 && React.createElement('div', { className: "absolute bottom-3 left-1/2 transform -translate-x-1/2 flex gap-1.5 z-20 bg-black/20 px-2.5 py-1 rounded-full backdrop-blur-sm" }
+              , adBanners.map((_, index) =>
+                React.createElement('div', {
+                  key: index,
+                  onClick: () => setCurrentAdIndex(index),
+                  className: cn(
+                    "w-1.5 h-1.5 rounded-full cursor-pointer transition-all duration-300",
+                    index === currentAdIndex ? "bg-white w-3" : "bg-white/50 hover:bg-white/85"
+                  )
+                })
+              )
+            )
+          )
           : React.createElement('div', { className: "rounded-3xl overflow-hidden relative", style: { background: "linear-gradient(135deg, #FF8A3D 0%, #F0350C 100%)" } }
-              , React.createElement('div', { className: "px-6 py-5 relative z-10 min-h-[180px]" }
-                , React.createElement('div', { className: "w-3/5" })
-              )
+            , React.createElement('div', { className: "px-6 py-5 relative z-10 min-h-[180px]" }
+              , React.createElement('div', { className: "w-3/5" })
             )
+          )
 
         /* D. Stats Grid — single card, 4 equal columns */
         , React.createElement('div', { className: "bg-white rounded-3xl shadow-sm p-4" }
@@ -865,34 +865,34 @@ export default function BusinessDashboard() {
           , React.createElement('div', { className: "grid grid-cols-3 gap-3" }
             /* Create Coupon */
             , React.createElement('a', { href: "/dashboard/business/coupons", className: "flex flex-col items-center gap-2 active:scale-95 transition-transform" }
-               , React.createElement('div', { className: "w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm", style: { background: "#FEF3E2" } }
-                 , React.createElement(Ticket, { className: "h-7 w-7", style: { color: "#F97316" } })
-               )
-               , React.createElement('span', { className: "text-[11px] text-[#0F172A] font-bold text-center leading-tight" }, "Create Coupon")
+              , React.createElement('div', { className: "w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm", style: { background: "#FEF3E2" } }
+                , React.createElement(Ticket, { className: "h-7 w-7", style: { color: "#F97316" } })
+              )
+              , React.createElement('span', { className: "text-[11px] text-[#0F172A] font-bold text-center leading-tight" }, "Create Coupon")
             )
             /* Add Reward */
             , React.createElement('a', { href: "/dashboard/business/loyalty-config", className: "flex flex-col items-center gap-2 active:scale-95 transition-transform" }
-               , React.createElement('div', { className: "w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm", style: { background: "#FDE8F0" } }
-                 , React.createElement(Gift, { className: "h-7 w-7", style: { color: "#EC4899" } })
-               )
-               , React.createElement('span', { className: "text-[11px] text-[#0F172A] font-bold text-center leading-tight" }, "Add Reward")
+              , React.createElement('div', { className: "w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm", style: { background: "#FDE8F0" } }
+                , React.createElement(Gift, { className: "h-7 w-7", style: { color: "#EC4899" } })
+              )
+              , React.createElement('span', { className: "text-[11px] text-[#0F172A] font-bold text-center leading-tight" }, "Add Reward")
             )
             /* Review Settings Quick Action */
             , React.createElement('button', {
-                type: "button",
-                onClick: (e) => {
-                  e.preventDefault();
-                  setIsEditingReview(true);
-                  const isMobile = window.innerWidth < 768;
-                  const targetId = isMobile ? "review-settings-card" : "review-settings-desktop-card";
-                  document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth" });
-                },
-                className: "flex flex-col items-center gap-2 active:scale-95 transition-transform bg-transparent border-0 outline-none"
-              }
-               , React.createElement('div', { className: "w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm", style: { background: "#FEF3E2" } }
-                 , React.createElement(Star, { className: "h-7 w-7", style: { color: "#F97316" } })
-               )
-               , React.createElement('span', { className: "text-[11px] text-[#0F172A] font-bold text-center leading-tight" }, "Review Settings")
+              type: "button",
+              onClick: (e) => {
+                e.preventDefault();
+                setIsEditingReview(true);
+                const isMobile = window.innerWidth < 768;
+                const targetId = isMobile ? "review-settings-card" : "review-settings-desktop-card";
+                document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth" });
+              },
+              className: "flex flex-col items-center gap-2 active:scale-95 transition-transform bg-transparent border-0 outline-none"
+            }
+              , React.createElement('div', { className: "w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm", style: { background: "#FEF3E2" } }
+                , React.createElement(Star, { className: "h-7 w-7", style: { color: "#F97316" } })
+              )
+              , React.createElement('span', { className: "text-[11px] text-[#0F172A] font-bold text-center leading-tight" }, "Review Settings")
             )
           )
         )
@@ -918,25 +918,25 @@ export default function BusinessDashboard() {
             )
           )
           , chartTimeRange === "Custom Date" && React.createElement('div', { className: "flex items-center gap-2 mb-3 bg-slate-50 p-2 rounded-2xl border border-slate-100/70" }
-              , React.createElement('div', { className: "flex-1 flex flex-col gap-0.5" }
-                  , React.createElement('span', { className: "text-[9px] text-[#64748B] font-bold" }, "Start Date")
-                  , React.createElement('input', {
-                      type: "date",
-                      value: startDate,
-                      onChange: (e) => setStartDate(e.target.value),
-                      className: "w-full text-xs font-bold bg-white border border-slate-200/50 rounded-lg p-1.5 outline-none"
-                    })
-                )
-              , React.createElement('div', { className: "flex-1 flex flex-col gap-0.5" }
-                  , React.createElement('span', { className: "text-[9px] text-[#64748B] font-bold" }, "End Date")
-                  , React.createElement('input', {
-                      type: "date",
-                      value: endDate,
-                      onChange: (e) => setEndDate(e.target.value),
-                      className: "w-full text-xs font-bold bg-white border border-slate-200/50 rounded-lg p-1.5 outline-none"
-                    })
-                )
+            , React.createElement('div', { className: "flex-1 flex flex-col gap-0.5" }
+              , React.createElement('span', { className: "text-[9px] text-[#64748B] font-bold" }, "Start Date")
+              , React.createElement('input', {
+                type: "date",
+                value: startDate,
+                onChange: (e) => setStartDate(e.target.value),
+                className: "w-full text-xs font-bold bg-white border border-slate-200/50 rounded-lg p-1.5 outline-none"
+              })
             )
+            , React.createElement('div', { className: "flex-1 flex flex-col gap-0.5" }
+              , React.createElement('span', { className: "text-[9px] text-[#64748B] font-bold" }, "End Date")
+              , React.createElement('input', {
+                type: "date",
+                value: endDate,
+                onChange: (e) => setEndDate(e.target.value),
+                className: "w-full text-xs font-bold bg-white border border-slate-200/50 rounded-lg p-1.5 outline-none"
+              })
+            )
+          )
           , React.createElement('div', { style: { height: "140px" } }
             , React.createElement(ResponsiveContainer, { width: "100%", height: "100%" }
               , React.createElement(AreaChart, { data: chartData, margin: { top: 5, right: 5, bottom: 0, left: -20 } }
@@ -989,22 +989,22 @@ export default function BusinessDashboard() {
           )
           /* Google — full-width highlighted row */
           , React.createElement('a', {
-              href: revGoogleUrl || undefined,
-              target: "_blank",
-              rel: "noopener noreferrer",
-              className: "flex items-center gap-3 p-3 rounded-2xl mb-2 border-2 transition-all duration-200",
-              style: {
-                background: revGoogleUrl ? "linear-gradient(135deg, #FFF8F4 0%, #FFF3EA 100%)" : "#F8FAFC",
-                borderColor: revGoogleUrl ? "#F97316" : "#E2E8F0",
-                boxShadow: revGoogleUrl ? "0 4px 16px rgba(249, 115, 22, 0.15)" : "none",
-                textDecoration: "none"
-              }
+            href: revGoogleUrl || undefined,
+            target: "_blank",
+            rel: "noopener noreferrer",
+            className: "flex items-center gap-3 p-3 rounded-2xl mb-2 border-2 transition-all duration-200",
+            style: {
+              background: revGoogleUrl ? "linear-gradient(135deg, #FFF8F4 0%, #FFF3EA 100%)" : "#F8FAFC",
+              borderColor: revGoogleUrl ? "#F97316" : "#E2E8F0",
+              boxShadow: revGoogleUrl ? "0 4px 16px rgba(249, 115, 22, 0.15)" : "none",
+              textDecoration: "none"
             }
+          }
             , React.createElement('div', { className: "relative shrink-0" }
               , React.createElement('img', { src: "/google-reviews-logo.png", alt: "Google", className: "w-10 h-10 object-contain rounded-full shadow-sm bg-white" })
               , revGoogleUrl && React.createElement('div', {
-                  className: "absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-white flex items-center justify-center"
-                }
+                className: "absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-white flex items-center justify-center"
+              }
                 , React.createElement('span', { className: "text-white text-[7px] font-black" }, "✓")
               )
             )
@@ -1022,12 +1022,12 @@ export default function BusinessDashboard() {
           /* Instagram + Facebook — 2-col grid */
           , React.createElement('div', { className: "grid grid-cols-2 gap-2" }
             , React.createElement(revInstagramUrl ? 'a' : 'div', {
-                href: revInstagramUrl || undefined,
-                target: revInstagramUrl ? "_blank" : undefined,
-                rel: revInstagramUrl ? "noopener noreferrer" : undefined,
-                className: cn("flex items-center gap-2 p-2.5 rounded-2xl border transition-all duration-200", revInstagramUrl ? "hover:scale-[1.02] active:scale-98" : ""),
-                style: { background: revInstagramUrl ? "#FDE8F5" : "#F8FAFC", borderColor: revInstagramUrl ? "#E1306C" : "#E2E8F0", textDecoration: "none", cursor: revInstagramUrl ? "pointer" : "default" }
-              }
+              href: revInstagramUrl || undefined,
+              target: revInstagramUrl ? "_blank" : undefined,
+              rel: revInstagramUrl ? "noopener noreferrer" : undefined,
+              className: cn("flex items-center gap-2 p-2.5 rounded-2xl border transition-all duration-200", revInstagramUrl ? "hover:scale-[1.02] active:scale-98" : ""),
+              style: { background: revInstagramUrl ? "#FDE8F5" : "#F8FAFC", borderColor: revInstagramUrl ? "#E1306C" : "#E2E8F0", textDecoration: "none", cursor: revInstagramUrl ? "pointer" : "default" }
+            }
               , React.createElement('img', { src: "/Instagram_icon.png", alt: "Instagram", className: "w-8 h-8 object-contain rounded-full shadow-sm shrink-0" })
               , React.createElement('div', { className: "min-w-0" }
                 , React.createElement('p', { className: "text-[10px] font-bold text-[#0F172A] truncate" }, "Instagram")
@@ -1035,12 +1035,12 @@ export default function BusinessDashboard() {
               )
             )
             , React.createElement(revFacebookUrl ? 'a' : 'div', {
-                href: revFacebookUrl || undefined,
-                target: revFacebookUrl ? "_blank" : undefined,
-                rel: revFacebookUrl ? "noopener noreferrer" : undefined,
-                className: cn("flex items-center gap-2 p-2.5 rounded-2xl border transition-all duration-200", revFacebookUrl ? "hover:scale-[1.02] active:scale-98" : ""),
-                style: { background: revFacebookUrl ? "#E7F0FD" : "#F8FAFC", borderColor: revFacebookUrl ? "#1877F2" : "#E2E8F0", textDecoration: "none", cursor: revFacebookUrl ? "pointer" : "default" }
-              }
+              href: revFacebookUrl || undefined,
+              target: revFacebookUrl ? "_blank" : undefined,
+              rel: revFacebookUrl ? "noopener noreferrer" : undefined,
+              className: cn("flex items-center gap-2 p-2.5 rounded-2xl border transition-all duration-200", revFacebookUrl ? "hover:scale-[1.02] active:scale-98" : ""),
+              style: { background: revFacebookUrl ? "#E7F0FD" : "#F8FAFC", borderColor: revFacebookUrl ? "#1877F2" : "#E2E8F0", textDecoration: "none", cursor: revFacebookUrl ? "pointer" : "default" }
+            }
               , React.createElement('img', { src: "/Facebook_f_logo_(2021).svg.webp", alt: "Facebook", className: "w-8 h-8 object-contain rounded-full shadow-sm shrink-0" })
               , React.createElement('div', { className: "min-w-0" }
                 , React.createElement('p', { className: "text-[10px] font-bold text-[#0F172A] truncate" }, "Facebook")
@@ -1058,10 +1058,10 @@ export default function BusinessDashboard() {
           )
           , React.createElement('div', { className: "flex flex-col items-center gap-3" }
             , React.createElement('div', {
-                className: "rounded-2xl border-2 border-dashed p-3 flex items-center justify-center cursor-pointer hover:bg-slate-50 transition-all",
-                style: { borderColor: "#FED7AA" },
-                onClick: () => setShowQrModal(true)
-              }
+              className: "rounded-2xl border-2 border-dashed p-3 flex items-center justify-center cursor-pointer hover:bg-slate-50 transition-all",
+              style: { borderColor: "#FED7AA" },
+              onClick: () => setShowQrModal(true)
+            }
               , primaryBranch.qrImage
                 ? React.createElement('div', { className: "relative" }
                   , React.createElement('img', { src: primaryBranch.qrImage, alt: "Check-in QR", className: "h-40 w-40 rounded-xl" })
@@ -1074,7 +1074,7 @@ export default function BusinessDashboard() {
                 : React.createElement('div', { className: "h-40 w-40 flex items-center justify-center" }
                   , React.createElement(Loader2, { className: "h-6 w-6 animate-spin text-[#F97316]" })
                 )
-              )
+            )
             , React.createElement('input', { readOnly: true, value: primaryBranch.qrPayload || "", className: "w-full text-[10px] font-mono bg-[#F8FAFC] border border-[#F1F5F9] p-2.5 rounded-xl text-center text-[#64748B]" })
             , React.createElement('div', { className: "flex gap-2 w-full" }
               , React.createElement('button', {
@@ -1170,26 +1170,26 @@ export default function BusinessDashboard() {
             )
             , React.createElement('div', { className: "flex items-center gap-2" }
               , chartTimeRange === "Custom Date" && React.createElement('div', { className: "flex items-center gap-2 text-xs" }
-                  , React.createElement('input', {
-                      type: "date",
-                      value: startDate,
-                      onChange: (e) => setStartDate(e.target.value),
-                      className: "text-xs font-bold border border-slate-200 rounded-lg p-1.5 outline-none bg-white"
-                    })
-                  , React.createElement('span', { className: "text-slate-400 font-bold" }, "to")
-                  , React.createElement('input', {
-                      type: "date",
-                      value: endDate,
-                      onChange: (e) => setEndDate(e.target.value),
-                      className: "text-xs font-bold border border-slate-200 rounded-lg p-1.5 outline-none bg-white"
-                    })
-                )
+                , React.createElement('input', {
+                  type: "date",
+                  value: startDate,
+                  onChange: (e) => setStartDate(e.target.value),
+                  className: "text-xs font-bold border border-slate-200 rounded-lg p-1.5 outline-none bg-white"
+                })
+                , React.createElement('span', { className: "text-slate-400 font-bold" }, "to")
+                , React.createElement('input', {
+                  type: "date",
+                  value: endDate,
+                  onChange: (e) => setEndDate(e.target.value),
+                  className: "text-xs font-bold border border-slate-200 rounded-lg p-1.5 outline-none bg-white"
+                })
+              )
               , React.createElement('div', { className: "flex items-center gap-1 px-3 py-1.5 rounded-full text-xs text-[#64748B] font-bold border border-slate-200 bg-white shadow-sm relative cursor-pointer hover:bg-slate-50 transition-colors" }
                 , React.createElement('select', {
-                    value: chartTimeRange,
-                    onChange: (e) => setChartTimeRange(e.target.value),
-                    className: "bg-transparent outline-none cursor-pointer pr-4 font-bold text-[#64748B] appearance-none focus:outline-none"
-                  }
+                  value: chartTimeRange,
+                  onChange: (e) => setChartTimeRange(e.target.value),
+                  className: "bg-transparent outline-none cursor-pointer pr-4 font-bold text-[#64748B] appearance-none focus:outline-none"
+                }
                   , React.createElement('option', { value: "Last Week" }, "Last Week")
                   , React.createElement('option', { value: "Last Month" }, "Last Month")
                   , React.createElement('option', { value: "Last 3 Months" }, "Last 3 Months")
@@ -1234,10 +1234,10 @@ export default function BusinessDashboard() {
               , React.createElement(CardContent, { className: "p-6 pt-2 flex flex-col items-center text-center space-y-4" }
                 , React.createElement('div', { className: "rounded-xl border border-dashed border-primary/20 bg-slate-50/50 p-4 shadow-sm" }
                   , primaryBranch.qrImage
-                    ? React.createElement('div', { 
-                        onClick: () => setShowQrModal(true),
-                        className: "relative flex items-center justify-center bg-white cursor-pointer" 
-                      }
+                    ? React.createElement('div', {
+                      onClick: () => setShowQrModal(true),
+                      className: "relative flex items-center justify-center bg-white cursor-pointer"
+                    }
                       , React.createElement('img', { src: primaryBranch.qrImage, alt: "Branch Check-in QR Code", className: "h-40 w-40 shadow-sm border border-slate-100 rounded-lg" })
                       , React.createElement('div', { className: "absolute w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-md border border-[#FF6A00]/25" }
                         , React.createElement('span', { className: "text-[10px] font-black bg-gradient-to-tr from-[#FF6A00] to-[#800020] bg-clip-text text-transparent" }, "LS")
@@ -1508,19 +1508,19 @@ export default function BusinessDashboard() {
             )
             , React.createElement(DialogFooter, { className: "flex gap-2" }
               , React.createElement(Button, {
-                  variant: "outline",
-                  className: "flex-1 text-xs",
-                  onClick: handleDownloadPdf,
-                  disabled: pdfLoading || !primaryBranch.qrImage
-                }
+                variant: "outline",
+                className: "flex-1 text-xs",
+                onClick: handleDownloadPdf,
+                disabled: pdfLoading || !primaryBranch.qrImage
+              }
                 , pdfLoading ? React.createElement(Loader2, { className: "mr-1.5 h-3.5 w-3.5 animate-spin" }) : null
                 , "Download PDF"
               )
               , React.createElement(Button, {
-                  className: "flex-1 text-xs bg-primary text-white hover:bg-primary/95",
-                  onClick: handleDownloadQr,
-                  disabled: !primaryBranch.qrImage
-                }
+                className: "flex-1 text-xs bg-primary text-white hover:bg-primary/95",
+                onClick: handleDownloadQr,
+                disabled: !primaryBranch.qrImage
+              }
                 , "Download PNG"
               )
             )

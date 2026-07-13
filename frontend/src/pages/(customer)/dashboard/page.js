@@ -298,14 +298,42 @@ export default function CustomerDashboard() {
     if (!b.business?.planId) return false;
     if (!userCoords) return true;
     const dist = getDistance(userCoords.lat, userCoords.lng, parseFloat(b.latitude), parseFloat(b.longitude));
-    return dist <= 2.0; // 2km radius
+    return dist <= 7.0; // 7km radius
   });
 
-  const displayBranches = nearbyBranches.length > 0 
-    ? nearbyBranches 
-    : branches.filter(b => b.business?.planId);
+  const mockBranches = [
+    {
+      id: "mock-br-1",
+      name: "Main Counter",
+      address: "Jayadev Vihar Road, Bhubaneswar",
+      latitude: 20.2985,
+      longitude: 85.8210,
+      business: { name: "Downtown Cafe", planId: "demo-plan" }
+    },
+    {
+      id: "mock-br-2",
+      name: "Primary Outlet",
+      address: "Acharya Vihar, Bhubaneswar",
+      latitude: 20.2940,
+      longitude: 85.8300,
+      business: { name: "Urban Scissors", planId: "demo-plan" }
+    },
+    {
+      id: "mock-br-3",
+      name: "Bhubaneswar Branch",
+      address: "Near NH16, Bhubaneswar",
+      latitude: 20.2890,
+      longitude: 85.8215,
+      business: { name: "Bite & Byte Burger", planId: "demo-plan" }
+    }
+  ];
 
-  const isTestingFallback = nearbyBranches.length === 0 && displayBranches.length > 0;
+  const displayBranches = [
+    ...branches.filter(b => b.business?.planId),
+    ...mockBranches
+  ];
+
+  const isTestingFallback = false;
 
   return (
     React.createElement('div', { className: "space-y-6 pb-12" }
@@ -736,9 +764,9 @@ export default function CustomerDashboard() {
                 "Subscriber Stores Map"
               ),
               React.createElement(DialogDescription, { className: "text-[10px] text-muted-foreground flex flex-col gap-1" },
-                "Showing partner stores who purchased our plan within 2 km of your location",
+                "Showing partner stores who purchased our plan within 7 km of your location",
                 isTestingFallback && React.createElement("span", { className: "text-amber-700 font-bold bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 mt-1 block text-[9px] w-fit" },
-                  "⚠️ No partner stores within 2 km. Showing all active registered stores for testing."
+                  "⚠️ No partner stores within 7 km. Showing all active registered stores for testing."
                 )
               )
             ),
@@ -754,6 +782,35 @@ export default function CustomerDashboard() {
                 }
                   , React.createElement(SubscriberMap, { userCoords, nearbyBranches: displayBranches })
                 ) : React.createElement("div", { className: "text-xs text-muted-foreground" }, "Map initialization delayed...")
+            ),
+            React.createElement(Button, {
+              variant: "outline",
+              className: "w-full border-primary text-primary hover:bg-orange-50 font-bold text-xs rounded-full mb-2 flex items-center justify-center gap-1.5",
+              onClick: () => {
+                if (!navigator.geolocation) {
+                  alert("Geolocation is not supported by your browser.");
+                  return;
+                }
+                setMapLoading(true);
+                setMapRenderDelay(false);
+                navigator.geolocation.getCurrentPosition(
+                  (pos) => {
+                    setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                    setMapLoading(false);
+                    setTimeout(() => setMapRenderDelay(true), 350);
+                  },
+                  (err) => {
+                    alert("Error fetching location: " + err.message);
+                    setMapLoading(false);
+                    setTimeout(() => setMapRenderDelay(true), 350);
+                  },
+                  { enableHighAccuracy: true, timeout: 10000 }
+                );
+              },
+              disabled: mapLoading
+            }
+              , mapLoading ? React.createElement(Loader2, { className: "h-3.5 w-3.5 animate-spin" }) : React.createElement(MapPin, { className: "h-3.5 w-3.5" })
+              , "Use My Current Location"
             ),
             React.createElement(Button, {
               className: "w-full bg-primary text-primary-foreground hover:bg-primary/90 rounded-full",
