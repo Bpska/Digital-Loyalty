@@ -7,7 +7,7 @@ import { useAuthStore } from "@/store/authStore";
 import { Home, Scan, History, User, LogOut, Loader2, Bell, Award, Star } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { api } from "@/lib/api";
+import { api, getImageUrl } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 
 import { cn } from "@/lib/utils";
@@ -177,16 +177,21 @@ export default function CustomerLayout({
                 className: "relative w-9 h-9 rounded-full bg-slate-50 flex items-center justify-center text-[#0F172A] hover:bg-slate-100 transition-colors"
               }
               , React.createElement(Bell, { className: "h-4.5 w-4.5" })
-              , React.createElement('span', {
+              , unreadCount > 0 && React.createElement('span', {
                   className: "absolute -top-1 -right-1 bg-[#F97316] text-white text-[8px] font-black flex items-center justify-center border border-white shadow-sm",
                   style: { borderRadius: "50%", width: "16px", height: "16px", minWidth: "16px", minHeight: "16px", padding: 0 }
-                }, unreadCount > 0 ? unreadCount : "3")
+                }, unreadCount)
             )
-            , React.createElement(Link, {
+             , React.createElement(Link, {
                 to: "/profile",
-                className: "w-9 h-9 rounded-full bg-[#FFEDD5] border border-[#FED7AA] flex items-center justify-center text-[#F97316] text-xs font-black shadow-sm transition-transform active:scale-95"
+                className: "w-9 h-9 rounded-full bg-[#FFEDD5] border border-[#FED7AA] flex items-center justify-center text-[#F97316] text-xs font-black shadow-sm transition-transform active:scale-95 overflow-hidden shrink-0",
+                style: { borderRadius: "50%", width: "36px", height: "36px", minWidth: "36px", minHeight: "36px", padding: 0 }
               }
-              , initials
+              , user?.avatarUrl ? (
+                  React.createElement('img', { src: getImageUrl(user.avatarUrl), alt: user.name, className: "w-full h-full object-cover rounded-full" })
+                ) : (
+                  initials
+                )
             )
           )
         )

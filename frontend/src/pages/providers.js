@@ -31,8 +31,9 @@ export default function ClientProviders({
     if (!mounted) return;
     
     const applyTheme = () => {
-      const isDark = localStorage.getItem("theme") === "dark" || 
-        (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      const currentTheme = localStorage.getItem("theme");
+      const isDark = currentTheme === "dark" || 
+        ((!currentTheme || currentTheme === "system") && window.matchMedia("(prefers-color-scheme: dark)").matches);
       if (isDark) {
         document.documentElement.classList.add("dark");
       } else {
@@ -65,7 +66,7 @@ export default function ClientProviders({
       window.removeEventListener("theme-changed", applyTheme);
       mediaQuery.removeEventListener("change", applyTheme);
     };
-  }, [checkSession]);
+  }, [checkSession, mounted]);
 
   if (!mounted || !initialized) {
     return (

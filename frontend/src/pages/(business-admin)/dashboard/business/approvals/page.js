@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, getImageUrl } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -265,10 +265,9 @@ export default function BusinessApprovalsPage() {
       , React.createElement("div", { className: "md:hidden px-4 pt-4" }
         , React.createElement("div", { className: "bg-white rounded-2xl p-1.5 border border-[#F1F5F9] shadow-sm flex gap-1 items-center justify-between" }
           , [
-              { key: "ALL", label: "All", badge: pendingCount + approvedToday + rejectedToday, badgeBg: "bg-slate-100 text-slate-600", activeBg: "bg-[#F97316] text-white" },
+              { key: "ALL", label: "All", badge: pendingCount + approvedToday, badgeBg: "bg-slate-100 text-slate-600", activeBg: "bg-[#F97316] text-white" },
               { key: "PENDING", label: "Pending", badge: pendingCount, badgeBg: "bg-[#FFEDD5] text-[#F97316]", activeBg: "bg-[#F97316] text-white" },
-              { key: "APPROVED", label: "Approved", badge: approvedToday, badgeBg: "bg-[#DCFCE7] text-[#22C55E]", activeBg: "bg-[#F97316] text-white" },
-              { key: "REJECTED", label: "Rejected", badge: rejectedToday, badgeBg: "bg-[#FEE2E2] text-[#EF4444]", activeBg: "bg-[#F97316] text-white" }
+              { key: "APPROVED", label: "Approved", badge: approvedToday, badgeBg: "bg-[#DCFCE7] text-[#22C55E]", activeBg: "bg-[#F97316] text-white" }
             ].map(tab => {
               const isActive = statusFilter === tab.key;
               return React.createElement("button", {
@@ -319,8 +318,12 @@ export default function BusinessApprovalsPage() {
               /* Top Row */
               , React.createElement("div", { className: "flex justify-between items-start" }
                 , React.createElement("div", { className: "flex gap-3" }
-                  , React.createElement("div", { className: "w-12 h-12 rounded-full bg-[#FFEDD5] border border-[#FED7AA] flex items-center justify-center text-[#F97316] font-bold text-sm" }
-                    , (request.customer?.name || "C")[0].toUpperCase()
+                  , React.createElement("div", { className: "w-12 h-12 rounded-full bg-[#FFEDD5] border border-[#FED7AA] flex items-center justify-center text-[#F97316] font-bold text-sm overflow-hidden" }
+                    , request.customer?.avatarUrl ? (
+                        React.createElement("img", { src: getImageUrl(request.customer.avatarUrl), alt: request.customer.name, className: "w-full h-full object-cover" })
+                      ) : (
+                        (request.customer?.name || "C")[0].toUpperCase()
+                      )
                   )
                   , React.createElement("div", { className: "space-y-1" }
                     , React.createElement("p", { className: "font-bold text-sm text-[#0F172A] leading-none" }, request.customer?.name || "Unknown Customer")
@@ -454,22 +457,20 @@ export default function BusinessApprovalsPage() {
               /* Action Buttons Row */
               , React.createElement("div", { className: "flex gap-2.5 pt-1" }
                 , (request.status === "PENDING" || editingRequestId === request.id)
-                  ? React.createElement(React.Fragment, null
+                  ? React.createElement("div", { className: "flex gap-2 w-full" }
                       , React.createElement("button", {
                           onClick: () => editingRequestId === request.id ? handleUpdateApproval(request.id, request.status) : handleApproveWallet(request.id),
-                          disabled: !(showCustomInput[request.id] ? parseFloat(customAmounts[request.id]) : selectedAmounts[request.id]) || isApproving || isRejecting,
+                          disabled: !(showCustomInput[request.id] ? parseFloat(customAmounts[request.id]) : selectedAmounts[request.id]) || isApproving,
                           className: "flex-1 bg-[#22C55E] text-white font-bold rounded-xl text-xs py-2.5 h-10 flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
                         }
                         , isApproving ? React.createElement(Loader2, { className: "h-3.5 w-3.5 animate-spin" }) : React.createElement(CheckCircle2, { className: "h-3.5 w-3.5" })
                         , isApproving ? "Processing..." : "Approve"
                       )
-                      , React.createElement("button", {
-                          onClick: () => editingRequestId === request.id ? setEditingRequestId(null) : handleReject(request.id),
-                          disabled: isApproving || isRejecting,
-                          className: "flex-1 bg-[#FEE2E2] text-[#DC2626] font-bold rounded-xl text-xs py-2.5 h-10 flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+                      , editingRequestId === request.id && React.createElement("button", {
+                          onClick: () => setEditingRequestId(null),
+                          className: "px-4 bg-slate-100 text-[#0F172A] font-bold rounded-xl text-xs py-2.5 h-10 flex items-center justify-center active:scale-95 transition-transform"
                         }
-                        , React.createElement(XCircle, { className: "h-3.5 w-3.5" })
-                        , editingRequestId === request.id ? "Cancel" : "Reject"
+                        , "Cancel"
                       )
                     )
                   : React.createElement(React.Fragment, null
@@ -486,7 +487,7 @@ export default function BusinessApprovalsPage() {
                         , React.createElement(Eye, { className: "h-3.5 w-3.5" })
                         , isExpanded ? "Hide Details" : "View Details"
                       )
-                      , (request.status === "APPROVED" || request.status === "REJECTED") && editingRequestId !== request.id && React.createElement("button", {
+                      , request.status === "APPROVED" && editingRequestId !== request.id && React.createElement("button", {
                           onClick: () => {
                             setEditingRequestId(request.id);
                             selectCustom(request.id);
@@ -574,7 +575,7 @@ export default function BusinessApprovalsPage() {
 
         /* Status Tabs */
         , React.createElement("div", { className: "flex items-center gap-2 border-b border-border pb-1" }
-          , ["ALL", "PENDING", "APPROVED", "REJECTED"].map(s => React.createElement("button", {
+          , ["ALL", "PENDING", "APPROVED"].map(s => React.createElement("button", {
               key: s,
               onClick: () => setStatusFilter(s),
               className: cn(
@@ -607,8 +608,12 @@ export default function BusinessApprovalsPage() {
                   , React.createElement(CardContent, { className: "p-5 space-y-4" }
                     , React.createElement("div", { className: "flex items-start justify-between gap-4" }
                       , React.createElement("div", { className: "flex items-center gap-3 min-w-0" }
-                        , React.createElement("div", { className: "h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0" }
-                          , React.createElement(User, { className: "h-5 w-5 text-primary" })
+                        , React.createElement("div", { className: "h-10 w-10 rounded-full bg-primary/10 border border-slate-100 flex items-center justify-center shrink-0 overflow-hidden" }
+                          , request.customer?.avatarUrl ? (
+                              React.createElement("img", { src: getImageUrl(request.customer.avatarUrl), alt: request.customer.name, className: "w-full h-full object-cover" })
+                            ) : (
+                              React.createElement(User, { className: "h-5 w-5 text-primary" })
+                            )
                         )
                         , React.createElement("div", { className: "min-w-0" }
                           , React.createElement("p", { className: "font-bold text-sm text-foreground truncate" }, request.customer?.name || "Unknown")
@@ -652,7 +657,7 @@ export default function BusinessApprovalsPage() {
                             )
                           )
                       )
-                      , (request.status === "APPROVED" || request.status === "REJECTED") && editingRequestId !== request.id && React.createElement(Button, {
+                      , request.status === "APPROVED" && editingRequestId !== request.id && React.createElement(Button, {
                           variant: "outline",
                           size: "sm",
                           className: "h-8 bg-white border-border shrink-0",
@@ -699,17 +704,16 @@ export default function BusinessApprovalsPage() {
                           , React.createElement(Button, {
                               className: "flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-9 text-xs rounded-xl",
                               onClick: () => editingRequestId === request.id ? handleUpdateApproval(request.id, request.status) : handleApproveWallet(request.id),
-                              disabled: !(showCustomInput[request.id] ? parseFloat(customAmounts[request.id]) : selectedAmounts[request.id]) || isApproving || isRejecting
+                              disabled: !(showCustomInput[request.id] ? parseFloat(customAmounts[request.id]) : selectedAmounts[request.id]) || isApproving
                             }
                             , isApproving ? "Processing..." : "Approve"
                           )
-                          , React.createElement(Button, {
+                          , editingRequestId === request.id && React.createElement(Button, {
                               variant: "outline",
-                              className: "border-red-300 text-red-600 hover:bg-red-50 h-9 text-xs rounded-xl flex-1",
-                              onClick: () => editingRequestId === request.id ? setEditingRequestId(null) : handleReject(request.id),
-                              disabled: isApproving || isRejecting
+                              className: "border-slate-200 text-slate-700 hover:bg-slate-100 h-9 text-xs rounded-xl",
+                              onClick: () => setEditingRequestId(null)
                             }
-                            , editingRequestId === request.id ? "Cancel" : "Reject"
+                            , "Cancel"
                           )
                         )
                       )

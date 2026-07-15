@@ -3,7 +3,7 @@ const _jsxFileName = "src\\pages\\(customer)\\profile\\page.tsx"; function _opti
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, getImageUrl } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,8 @@ import { cn } from "@/lib/utils";
 export default function ProfilePage() {
   const { logout, checkSession } = useAuthStore();
   const queryClient = useQueryClient();
+  const fileInputRef = React.useRef(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState("");
@@ -43,6 +45,41 @@ export default function ProfilePage() {
     localStorage.setItem("theme", theme);
     window.dispatchEvent(new Event("theme-changed"));
   }, [theme]);
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      setMessage({ type: "error", text: "Image size must be less than 2MB." });
+      return;
+    }
+
+    setAvatarUploading(true);
+    setMessage(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      await api.post("/customer/profile/avatar", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      setMessage({ type: "success", text: "Profile picture updated successfully!" });
+      refetch();
+      checkSession();
+      queryClient.invalidateQueries({ queryKey: ["customerProfile"] });
+    } catch (err) {
+      console.error("Avatar upload failed:", err);
+      const errMsg = err.response?.data?.message || err.message || "Failed to upload avatar.";
+      setMessage({ type: "error", text: errMsg });
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
   // Fetch customer profile
   const { data: profile, isLoading, refetch } = useQuery({
@@ -121,7 +158,7 @@ export default function ProfilePage() {
 
   const initials = profile?.name ? profile.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "SL";
   const memberSince = profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' }) : "5 Jul 2026";
-  const totalVisits = checkinsData?.length || 12;
+  const totalVisits = checkinsData?.length ?? 0;
 
   return (
     React.createElement('div', { className: "space-y-6" }
@@ -145,15 +182,29 @@ export default function ProfilePage() {
         , React.createElement('div', { className: "flex items-center gap-4 z-10 w-full" }
           /* Avatar with upload trigger */
           , React.createElement('div', { className: "relative shrink-0" }
-            , React.createElement('div', { className: "w-20 h-20 rounded-full bg-[#FFEDD5] border-2 border-[#FDBA74] flex items-center justify-center text-[#F97316] text-2xl font-black shadow-sm" }
-              , initials
+            , React.createElement('div', { className: "w-20 h-20 rounded-full bg-[#FFEDD5] border-2 border-[#FDBA74] flex items-center justify-center text-[#F97316] text-2xl font-black shadow-sm overflow-hidden" }
+              , avatarUploading ? (
+                  React.createElement(Loader2, { className: "h-6 w-6 animate-spin text-[#F97316]" })
+                ) : profile?.avatarUrl ? (
+                  React.createElement('img', { src: getImageUrl(profile.avatarUrl), alt: profile.name || "Avatar", className: "w-full h-full object-cover" })
+                ) : (
+                  initials
+                )
             )
             , React.createElement('button', {
+                onClick: () => fileInputRef.current?.click(),
                 className: "absolute bottom-0 right-0 text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-md",
                 style: { borderRadius: "50%", backgroundColor: "#0F172A", width: "24px", height: "24px", minWidth: "24px", minHeight: "24px", padding: 0, border: "2px solid white" }
               }
               , React.createElement(Camera, { className: "h-3.5 w-3.5" })
             )
+            , React.createElement('input', {
+                type: "file",
+                ref: fileInputRef,
+                accept: "image/*",
+                onChange: handleAvatarChange,
+                style: { display: "none" }
+              })
           )
 
           /* Name & details */
@@ -202,7 +253,7 @@ export default function ProfilePage() {
             , React.createElement('p', { className: "text-[10px] text-white/90" }, "Keep scanning and unlock amazing rewards.")
           )
         )
-        , React.createElement(Link, { to: "/loyalty-history", className: "bg-white text-[#F97316] font-bold text-[10px] px-3.5 py-2 rounded-full whitespace-nowrap active:scale-95 transition-transform" }, "View Rewards")
+        , React.createElement(Link, { to: "/loyalty-history", className: "bg-white text-[#F97316] font-bold text-[10px] px-3.5 py-2 rounded-full whitespace-nowrap active:scale-95 transition-transform flex items-center justify-center" }, "View Rewards")
       )
 
       /* D. Account Details section */

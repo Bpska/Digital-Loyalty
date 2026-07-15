@@ -38,8 +38,8 @@ const DialogContent = React.forwardRef
       ...props, __self: this, __source: {fileName: _jsxFileName, lineNumber: 32}}
 
       , children
-      , React.createElement(DialogPrimitive.Close, { className: "absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"              , __self: this, __source: {fileName: _jsxFileName, lineNumber: 41}}
-        , React.createElement(X, { className: "h-4 w-4" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 42}} )
+      , React.createElement(DialogPrimitive.Close, { className: "absolute right-4 top-4 rounded-full p-1.5 bg-slate-900/60 hover:bg-slate-900/80 text-white transition-all shadow-md focus:outline-none disabled:pointer-events-none flex items-center justify-center border border-white/20"              , __self: this, __source: {fileName: _jsxFileName, lineNumber: 41}}
+        , React.createElement(X, { className: "h-3.5 w-3.5" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 42}} )
         , React.createElement('span', { className: "sr-only", __self: this, __source: {fileName: _jsxFileName, lineNumber: 43}}, "Close")
       )
     )

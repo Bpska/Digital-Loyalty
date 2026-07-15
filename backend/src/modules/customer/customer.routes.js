@@ -5,6 +5,11 @@ import { validate } from '../../middlewares/validate.middleware.js';
 import { sendSuccess } from '../../utils/response.js';
 import prisma from '../../config/prisma.js';
 import { z } from 'zod';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { env } from '../../config/env.js';
+import { AppError } from '../../middlewares/error.middleware.js';
 
 const router = Router();
 
@@ -393,12 +398,36 @@ router.get('/nearby-branches', authenticate, authorize(Role.CUSTOMER), async (re
   }
 });
 
+const avatarStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    const dir = path.resolve(env.UPLOAD_DIR, 'avatars');
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `avatar-${Date.now()}${ext}`);
+  },
+});
+
+const uploadAvatar = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
+  fileFilter: (_req, file, cb) => {
+    if (['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new AppError('Only JPEG, PNG, and WebP images are allowed', 400));
+    }
+  },
+});
+
 // GET /customer/profile — retrieve customer details
 router.get('/profile', authenticate, authorize(Role.CUSTOMER), async (req, res, next) => {
   try {
     const user = await prisma.user.findUniqueOrThrow({
       where: { id: req.user.sub },
-      select: { id: true, name: true, phone: true, email: true, createdAt: true },
+      select: { id: true, name: true, phone: true, email: true, createdAt: true, avatarUrl: true },
     });
     sendSuccess(res, user);
   } catch (err) { next(err); }
@@ -410,10 +439,31 @@ router.patch('/profile', authenticate, authorize(Role.CUSTOMER), validate(profil
     const user = await prisma.user.update({
       where: { id: req.user.sub },
       data: { name: req.body.name, email: req.body.email },
-      select: { id: true, name: true, phone: true, email: true },
+      select: { id: true, name: true, phone: true, email: true, avatarUrl: true },
     });
     sendSuccess(res, user, 'Profile updated');
   } catch (err) { next(err); }
+});
+
+// POST /customer/profile/avatar — upload avatar image
+router.post('/profile/avatar', authenticate, authorize(Role.CUSTOMER), uploadAvatar.single('avatar'), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      throw new AppError('No file uploaded', 400);
+    }
+    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+    const user = await prisma.user.update({
+      where: { id: req.user.sub },
+      data: { avatarUrl },
+      select: { id: true, name: true, phone: true, email: true, avatarUrl: true },
+    });
+    sendSuccess(res, user, 'Avatar uploaded successfully');
+  } catch (err) {
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      return next(new AppError('Image size must be less than 2MB', 400));
+    }
+    next(err);
+  }
 });
 
 // Delete account (GDPR)

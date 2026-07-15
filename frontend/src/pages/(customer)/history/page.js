@@ -140,9 +140,9 @@ export default function HistoryPage() {
   const progressPercent = (currentStamps / requiredStamps) * 100;
 
   // Stats
-  const statCheckinsCount = checkins.length || 12;
-  const statPointsEarned = totalPointsEarned || 320;
-  const statRewardsEarned = rewards.length || 2;
+  const statCheckinsCount = checkins.length;
+  const statPointsEarned = totalPointsEarned;
+  const statRewardsEarned = rewards.length;
 
   return (
     React.createElement('div', { className: "space-y-6" }

@@ -171,6 +171,22 @@ export default function CustomerDashboard() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Fetch promotional banners (ads) controlled by super admin
+  const { data: adsData } = useQuery({
+    queryKey: ["adBanners"],
+    queryFn: () => api.get("/admin/ads").then((res) => res.data),
+  });
+  const promoBanners = adsData?.banners || [];
+  const [currentAdIndex, setCurrentAdIndex] = useState(0);
+
+  useEffect(() => {
+    if (promoBanners.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentAdIndex((prev) => (prev + 1) % promoBanners.length);
+    }, 4000); // fixed time interval (4 seconds)
+    return () => clearInterval(interval);
+  }, [promoBanners]);
+
   // Map Modal States
   const [showMapModal, setShowMapModal] = useState(false);
   const [userCoords, setUserCoords] = useState(null);
@@ -368,42 +384,71 @@ export default function CustomerDashboard() {
         )
       )
 
-      /* C. Dark promo hero card */
-      , React.createElement('div', { className: "bg-[#0F172A] rounded-3xl p-6 text-white shadow-sm relative overflow-hidden flex justify-between items-center" }
-        , React.createElement('div', { className: "space-y-4 z-10 w-3/5" }
-          , React.createElement('div', { className: "space-y-1" }
-            , React.createElement('h3', { className: "text-xl font-bold text-white tracking-tight" }, "Scan. Earn. Enjoy!")
-            , React.createElement('p', { className: "text-xs text-white/95 leading-relaxed" }
-              , "Keep loyalty points at your "
-              , React.createElement('span', { className: "text-[#F97316] font-bold" }, "favourite places")
+      /* C. Promotional Banner Carousel / Hero card */
+      , promoBanners.length > 0 ? (
+          React.createElement('div', { className: "relative w-full aspect-[2.3/1] rounded-3xl overflow-hidden shadow-sm bg-[#0F172A]" }
+            , promoBanners.map((banner, index) => 
+                React.createElement('img', {
+                  key: index,
+                  src: banner,
+                  alt: `Promo Banner ${index + 1}`,
+                  className: cn(
+                    "absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out",
+                    index === currentAdIndex ? "opacity-100 z-10" : "opacity-0 z-0"
+                  )
+                })
+              )
+            /* Carousel indicator dots */
+            , promoBanners.length > 1 && React.createElement('div', { className: "absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-20" }
+                , promoBanners.map((_, index) => 
+                    React.createElement('div', {
+                      key: index,
+                      className: cn(
+                        "h-1 rounded-full transition-all duration-300",
+                        index === currentAdIndex ? "w-3.5 bg-white" : "w-1 bg-white/50"
+                      )
+                    })
+                  )
+              )
+          )
+        ) : (
+          /* Default Fallback Promo Card when no banners are uploaded */
+          React.createElement('div', { className: "bg-[#0F172A] rounded-3xl p-6 text-white shadow-sm relative overflow-hidden flex justify-between items-center" }
+            , React.createElement('div', { className: "space-y-4 z-10 w-3/5" }
+              , React.createElement('div', { className: "space-y-1" }
+                , React.createElement('h3', { className: "text-xl font-bold text-white tracking-tight" }, "Scan. Earn. Enjoy!")
+                , React.createElement('p', { className: "text-xs text-white/95 leading-relaxed" }
+                  , "Keep loyalty points at your "
+                  , React.createElement('span', { className: "text-[#F97316] font-bold" }, "favourite places")
+                )
+              )
+              , React.createElement(Link, { to: "/checkin", className: "inline-flex items-center gap-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white font-bold text-xs px-4 py-2.5 rounded-full shadow-sm transition-transform active:scale-95" }
+                , React.createElement(MapPin, { className: "h-3.5 w-3.5" })
+                , "Find Nearby Places"
+              )
+            )
+            , React.createElement('div', { className: "absolute right-0 top-0 h-full w-2/5 pointer-events-none select-none flex items-center justify-end pr-4" }
+              , React.createElement("svg", { viewBox: "0 0 120 120", className: "h-24 w-24 opacity-95", fill: "none" }
+                /* Store building */
+                , React.createElement("rect", { x: 30, y: 55, width: 60, height: 45, rx: 6, fill: "#F8FAFC" })
+                /* Awning stripes */
+                , React.createElement("path", { d: "M 26 55 L 94 55 L 86 42 L 34 42 Z", fill: "#F97316" })
+                , React.createElement("path", { d: "M 34 42 L 44 42 L 38 55 L 28 55 Z", fill: "#FFFFFF" })
+                , React.createElement("path", { d: "M 54 42 L 64 42 L 58 55 L 48 55 Z", fill: "#FFFFFF" })
+                , React.createElement("path", { d: "M 74 42 L 84 42 L 78 55 L 68 55 Z", fill: "#FFFFFF" })
+                /* Floating Map Pin */
+                , React.createElement("path", { d: "M 60 10 C 50 10 42 18 42 28 C 42 40 60 52 60 52 C 60 52 78 40 78 28 C 78 18 70 10 60 10 Z", fill: "#F97316" })
+                , React.createElement("circle", { cx: 60, cy: 26, r: 6, fill: "#FFFFFF" })
+                /* Overlapping QR code card */
+                , React.createElement("rect", { x: 70, y: 75, width: 35, height: 35, rx: 6, fill: "#FFFFFF", stroke: "#E2E8F0", strokeWidth: "1.5" })
+                , React.createElement("rect", { x: 76, y: 81, width: 8, height: 8, fill: "#0F172A" })
+                , React.createElement("rect", { x: 91, y: 81, width: 8, height: 8, fill: "#0F172A" })
+                , React.createElement("rect", { x: 76, y: 96, width: 8, height: 8, fill: "#0F172A" })
+                , React.createElement("rect", { x: 88, y: 92, width: 11, height: 11, fill: "#F97316", rx: 1 })
+              )
             )
           )
-          , React.createElement(Link, { to: "/checkin", className: "inline-flex items-center gap-1.5 bg-[#F97316] hover:bg-[#EA580C] text-white font-bold text-xs px-4 py-2.5 rounded-full shadow-sm transition-transform active:scale-95" }
-            , React.createElement(MapPin, { className: "h-3.5 w-3.5" })
-            , "Find Nearby Places"
-          )
         )
-        , React.createElement('div', { className: "absolute right-0 top-0 h-full w-2/5 pointer-events-none select-none flex items-center justify-end pr-4" }
-          , React.createElement("svg", { viewBox: "0 0 120 120", className: "h-24 w-24 opacity-95", fill: "none" }
-            /* Store building */
-            , React.createElement("rect", { x: 30, y: 55, width: 60, height: 45, rx: 6, fill: "#F8FAFC" })
-            /* Awning stripes */
-            , React.createElement("path", { d: "M 26 55 L 94 55 L 86 42 L 34 42 Z", fill: "#F97316" })
-            , React.createElement("path", { d: "M 34 42 L 44 42 L 38 55 L 28 55 Z", fill: "#FFFFFF" })
-            , React.createElement("path", { d: "M 54 42 L 64 42 L 58 55 L 48 55 Z", fill: "#FFFFFF" })
-            , React.createElement("path", { d: "M 74 42 L 84 42 L 78 55 L 68 55 Z", fill: "#FFFFFF" })
-            /* Floating Map Pin */
-            , React.createElement("path", { d: "M 60 10 C 50 10 42 18 42 28 C 42 40 60 52 60 52 C 60 52 78 40 78 28 C 78 18 70 10 60 10 Z", fill: "#F97316" })
-            , React.createElement("circle", { cx: 60, cy: 26, r: 6, fill: "#FFFFFF" })
-            /* Overlapping QR code card */
-            , React.createElement("rect", { x: 70, y: 75, width: 35, height: 35, rx: 6, fill: "#FFFFFF", stroke: "#E2E8F0", strokeWidth: "1.5" })
-            , React.createElement("rect", { x: 76, y: 81, width: 8, height: 8, fill: "#0F172A" })
-            , React.createElement("rect", { x: 91, y: 81, width: 8, height: 8, fill: "#0F172A" })
-            , React.createElement("rect", { x: 76, y: 96, width: 8, height: 8, fill: "#0F172A" })
-            , React.createElement("rect", { x: 88, y: 92, width: 11, height: 11, fill: "#F97316", rx: 1 })
-          )
-        )
-      )
 
       /* Vouchers Ready to Redeem (Unlocked Rewards / Claimed Coupons) */
       , (unlockedRewards.length > 0 || claimedCoupons.length > 0) && React.createElement('div', { className: "space-y-3" }
@@ -516,13 +561,16 @@ export default function CustomerDashboard() {
                       /* Top row */
                       , React.createElement('div', { className: cn("flex items-start justify-between gap-3", business.coverUrl && "mt-1") }
                         , React.createElement('div', { className: "flex items-center gap-3" }
-                          , React.createElement('div', { className: "w-11 h-11 bg-[#F97316] rounded-2xl flex items-center justify-center shrink-0 shadow-sm" }
-                            , React.createElement(BrandIcon, {
-                                iconName: business.brandAsset?.loyaltyIcon,
-                                customUrl: business.brandAsset?.logoUrl || business.logoUrl,
-                                defaultIcon: getCategoryIcon(business.category),
-                                className: "h-5 w-5 text-white"
-                              })
+                          , React.createElement('div', { className: "w-11 h-11 bg-[#F97316] rounded-2xl flex items-center justify-center shrink-0 shadow-sm overflow-hidden" }
+                            , (business.brandAsset?.logoUrl || business.logoUrl) ? (
+                                React.createElement('img', { src: getImageUrl(business.brandAsset?.logoUrl || business.logoUrl), alt: business.name, className: "w-full h-full object-cover" })
+                              ) : (
+                                React.createElement(BrandIcon, {
+                                  iconName: business.brandAsset?.loyaltyIcon,
+                                  defaultIcon: getCategoryIcon(business.category),
+                                  className: "h-5 w-5 text-white"
+                                })
+                              )
                           )
                           , React.createElement('div', { className: "space-y-0.5" }
                             , React.createElement('h4', { className: "font-black text-sm text-[#0F172A] truncate max-w-[140px]" }, business.name)

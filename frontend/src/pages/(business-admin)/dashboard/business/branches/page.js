@@ -155,9 +155,23 @@ export default function BranchesPage() {
             setLongitude(position.coords.longitude.toFixed(6));
           },
           (err) => {
-            alert("Could not fetch location: " + err.message);
+            if (err.code === err.PERMISSION_DENIED) {
+              alert("Could not fetch location: Permission denied. Please allow location access.");
+              return;
+            }
+            console.warn("High accuracy geolocation failed, trying low accuracy...", err);
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                setLatitude(position.coords.latitude.toFixed(6));
+                setLongitude(position.coords.longitude.toFixed(6));
+              },
+              (fallbackErr) => {
+                alert("Could not fetch location: " + fallbackErr.message);
+              },
+              { enableHighAccuracy: false, timeout: 10000 }
+            );
           },
-          { enableHighAccuracy: true }
+          { enableHighAccuracy: true, timeout: 5000 }
         );
       }
     } catch (err) {

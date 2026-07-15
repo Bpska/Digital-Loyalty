@@ -169,10 +169,26 @@ export default function BusinessProfilePage() {
         setGeoLoading(false);
       },
       (error) => {
-        alert("Error fetching GPS location: " + error.message);
-        setGeoLoading(false);
+        if (error.code === error.PERMISSION_DENIED) {
+          alert("Error fetching GPS location: Permission denied. Please allow location access.");
+          setGeoLoading(false);
+          return;
+        }
+        console.warn("High accuracy geolocation failed, trying low accuracy...", error);
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setBranchLat(position.coords.latitude.toFixed(6));
+            setBranchLng(position.coords.longitude.toFixed(6));
+            setGeoLoading(false);
+          },
+          (fallbackError) => {
+            alert("Error fetching GPS location: " + fallbackError.message);
+            setGeoLoading(false);
+          },
+          { enableHighAccuracy: false, timeout: 10000 }
+        );
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 5000 }
     );
   };
 

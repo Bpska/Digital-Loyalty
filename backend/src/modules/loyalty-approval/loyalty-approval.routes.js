@@ -298,7 +298,7 @@ router.get(
           take,
           skip,
           include: {
-            customer: { select: { id: true, name: true, phone: true } },
+            customer: { select: { id: true, name: true, phone: true, avatarUrl: true } },
             level: { select: { id: true, name: true, points: true } },
             loyaltyTransaction: { select: { points: true } },
           },
