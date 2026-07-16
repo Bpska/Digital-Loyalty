@@ -929,6 +929,43 @@ export default function BusinessProfilePage() {
               </div>
             )}
 
+            {/* Shortcuts Section */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-xs font-black text-[#0F172A] uppercase tracking-wider pl-1">
+                <ArrowUpRight className="h-4 w-4 text-[#F97316]" />
+                <span>Shortcuts</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {/* Loyalty Program Setup */}
+                <button
+                  onClick={() => navigate("/dashboard/business/loyalty-config")}
+                  className="bg-white rounded-3xl border border-[#F1F5F9] p-4 shadow-sm text-left flex flex-col justify-between h-28 hover:bg-slate-50 transition-all active:scale-95"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-[#FFF0E6] text-[#F97316] flex items-center justify-center">
+                    <Coffee className="h-4.5 w-4.5" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-xs text-[#0F172A] leading-tight">Loyalty Setup</h4>
+                    <p className="text-[9px] text-[#64748B] mt-0.5">Setup stamp programs</p>
+                  </div>
+                </button>
+
+                {/* Branches */}
+                <button
+                  onClick={() => navigate("/dashboard/business/branches")}
+                  className="bg-white rounded-3xl border border-[#F1F5F9] p-4 shadow-sm text-left flex flex-col justify-between h-28 hover:bg-slate-50 transition-all active:scale-95"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center">
+                    <MapPin className="h-4.5 w-4.5" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-xs text-[#0F172A] leading-tight">Branches</h4>
+                    <p className="text-[9px] text-[#64748B] mt-0.5">Manage locations</p>
+                  </div>
+                </button>
+              </div>
+            </div>
+
             {/* Preferences Section */}
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-xs font-black text-[#0F172A] uppercase tracking-wider pl-1">
@@ -950,8 +987,7 @@ export default function BusinessProfilePage() {
                 <div className="flex gap-1.5 bg-slate-100 rounded-xl p-1">
                   {[
                     { id: "light", icon: Sun, label: "Light" },
-                    { id: "dark", icon: Moon, label: "Dark" },
-                    { id: "system", icon: Monitor, label: "System" }
+                    { id: "dark", icon: Moon, label: "Dark" }
                   ].map((item) => {
                     const active = theme === item.id;
                     const ItemIcon = item.icon;
@@ -1389,8 +1425,7 @@ export default function BusinessProfilePage() {
                   <div className="flex gap-1.5 bg-slate-100 rounded-xl p-1">
                     {[
                       { id: "light", icon: Sun, label: "Light" },
-                      { id: "dark", icon: Moon, label: "Dark" },
-                      { id: "system", icon: Monitor, label: "System" }
+                      { id: "dark", icon: Moon, label: "Dark" }
                     ].map((item) => {
                       const active = theme === item.id;
                       const ItemIcon = item.icon;

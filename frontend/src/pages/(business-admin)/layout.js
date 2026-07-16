@@ -351,6 +351,7 @@ export default function BusinessAdminLayout({
         setRedeemCode("");
         queryClient.invalidateQueries(["couponUsageHistory", businessId]);
         queryClient.invalidateQueries(["businessCoupons", businessId]);
+        alert("Your coupon code is applied successfully!");
       } catch (couponErr) {
         // Show original error or coupon error
         const errMsg = couponErr.response?.data?.message || err.response?.data?.message || "Failed to process code. Not a valid reward or coupon.";

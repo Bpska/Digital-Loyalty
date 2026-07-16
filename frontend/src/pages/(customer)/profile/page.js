@@ -274,12 +274,6 @@ export default function ProfilePage() {
                 , React.createElement('span', { className: "text-xs font-bold text-[#0F172A] truncate block" }, profile?.phone || "+91 80186 40398")
               )
             )
-            , React.createElement('button', {
-                onClick: () => { setIsEditing(true); setEditingField("phone"); },
-                className: "bg-[#FFF1E6] hover:bg-[#FFEDD5] text-[#F97316] font-extrabold text-[10px] px-3 py-1.5 rounded-full flex items-center gap-1 transition-colors"
-              }
-              , "Edit"
-            )
           )
           , React.createElement('div', { className: "h-px bg-slate-100" })
           /* Email Row */
@@ -292,12 +286,6 @@ export default function ProfilePage() {
                 , React.createElement('span', { className: "block text-[10px] text-[#64748B] font-semibold" }, "Email Address")
                 , React.createElement('span', { className: "text-xs font-bold text-[#0F172A] truncate block" }, profile?.email || "bpskar2@gmail.com")
               )
-            )
-            , React.createElement('button', {
-                onClick: () => { setIsEditing(true); setEditingField("email"); },
-                className: "bg-[#FFF1E6] hover:bg-[#FFEDD5] text-[#F97316] font-extrabold text-[10px] px-3 py-1.5 rounded-full flex items-center gap-1 transition-colors"
-              }
-              , "Edit"
             )
           )
         )
@@ -324,8 +312,7 @@ export default function ProfilePage() {
           , React.createElement('div', { className: "flex gap-1.5 bg-slate-100 rounded-xl p-1" }
             , [
                 { id: "light", icon: Sun, label: "Light" },
-                { id: "dark", icon: Moon, label: "Dark" },
-                { id: "system", icon: Monitor, label: "System" }
+                { id: "dark", icon: Moon, label: "Dark" }
               ].map((item) => {
                 const active = theme === item.id;
                 const ItemIcon = item.icon;
@@ -339,7 +326,6 @@ export default function ProfilePage() {
                 }
                   , React.createElement(ItemIcon, { className: "h-3.5 w-3.5" })
                   , item.label
-                  , active && item.id === "system" && React.createElement('span', { className: "w-1.5 h-1.5 rounded-full bg-purple-600 ml-0.5" })
                 );
               })
           )

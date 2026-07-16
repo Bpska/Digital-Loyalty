@@ -243,7 +243,7 @@ export default function CustomerLayout({
         , showNotifications && (
             React.createElement(Dialog, { open: showNotifications, onOpenChange: (open) => !open && setShowNotifications(false) }
               , React.createElement(DialogContent, { className: "max-w-[360px] bg-white border border-border" }
-                , React.createElement(DialogHeader, { className: "flex flex-row justify-between items-center pb-2 border-b border-border/60" }
+                , React.createElement(DialogHeader, { className: "flex flex-row justify-between items-center pb-2 border-b border-border/60 pr-8" }
                   , React.createElement('div', null
                     , React.createElement(DialogTitle, { className: "text-base font-bold text-foreground" }, "Notifications")
                     , React.createElement(DialogDescription, { className: "text-[10px] text-muted-foreground mt-0.5" }, "Alerts and updates from the platform")

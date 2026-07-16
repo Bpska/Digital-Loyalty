@@ -265,6 +265,9 @@ router.get('/dashboard', authenticate, authorize(Role.CUSTOMER), async (req, res
           validFrom: { lte: nowForStart },
           validTo: { gte: nowForEnd },
           business: { status: 'ACTIVE', deletedAt: null },
+          usages: {
+            none: { customerId: req.user.sub }
+          }
         },
         include: {
           business: {

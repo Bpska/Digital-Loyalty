@@ -368,7 +368,7 @@ export default function CustomerDashboard() {
 
       /* C. Promotional Banner Carousel / Hero card */
       , promoBanners.length > 0 ? (
-          React.createElement('div', { className: "relative w-full aspect-[2.3/1] rounded-3xl overflow-hidden shadow-sm bg-[#0F172A]" }
+          React.createElement('div', { className: "relative w-full aspect-[2.3/1] rounded-3xl overflow-hidden shadow-sm bg-[#0F172A] border-2 border-[#F97316]" }
             , promoBanners.map((banner, index) => 
                 React.createElement('img', {
                   key: index,

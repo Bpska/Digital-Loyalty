@@ -5,6 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { 
   Award, Star, Loader2, History, Building2, ChevronDown, ChevronRight, 
   QrCode, Hourglass, Gift, Check, ArrowRight, BookOpen, User, ArrowUpRight
@@ -55,11 +57,18 @@ function formatTime(dateStr) {
 
 export default function CustomerLoyaltyHistoryPage() {
   const [timeRange, setTimeRange] = useState("This Month");
+  const [selectedTx, setSelectedTx] = useState(null);
+  const [showAllShopsLoyaltyModal, setShowAllShopsLoyaltyModal] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["loyaltyHistory"],
     queryFn: () => api.get("/loyalty-approval/history?limit=100").then(r => r),
     refetchInterval: 60000,
+  });
+
+  const { data: dashboardData } = useQuery({
+    queryKey: ["customerDashboard"],
+    queryFn: () => api.get("/customer/dashboard").then((res) => res.data),
   });
 
   const transactions = data?.data || [];
@@ -79,8 +88,24 @@ export default function CustomerLoyaltyHistoryPage() {
     return true;
   });
 
-  const totalPoints = filteredTransactions.reduce((sum, tx) => sum + tx.points, 0);
+  const totalPoints = filteredTransactions.reduce((sum, tx) => sum + (tx.extraPoints || 0), 0);
   const totalExtraPoints = filteredTransactions.reduce((sum, tx) => sum + (tx.extraPoints || 0), 0);
+
+  // Compute nearest reward progress
+  const activeCards = dashboardData?.loyaltyCards || [];
+  const nearestCard = activeCards.length > 0
+    ? [...activeCards].sort((a, b) => {
+        const stampsA = a.visitCard?.wallet?.currentStamps || a.wallet?.currentStamps || 0;
+        const stampsB = b.visitCard?.wallet?.currentStamps || b.wallet?.currentStamps || 0;
+        return stampsB - stampsA;
+      })[0]
+    : null;
+
+  const currentStamps = nearestCard ? (nearestCard.visitCard?.wallet?.currentStamps || nearestCard.wallet?.currentStamps || 0) : 0;
+  const requiredStamps = nearestCard ? (nearestCard.visitCard?.settings?.requiredStamps || nearestCard.settings?.requiredStamps || 7) : 7;
+  const rewardName = nearestCard ? (nearestCard.visitCard?.settings?.rewardName || nearestCard.settings?.rewardName || "Free Reward") : "";
+  const stampsRemaining = requiredStamps - currentStamps;
+  const progressPercent = requiredStamps > 0 ? (currentStamps / requiredStamps) * 100 : 0;
 
   // Group transactions by date label
   const groupTransactionsByDate = (items) => {
@@ -211,7 +236,10 @@ export default function CustomerLoyaltyHistoryPage() {
                         , React.createElement('div', { className: cn("w-1.5 h-1.5 rounded-full", isRecent ? "bg-[#F97316]" : "bg-slate-300") })
                       )
 
-                      , React.createElement('div', { className: "flex-1 bg-white rounded-3xl border border-slate-100 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center justify-between gap-3 ml-4" }
+                      , React.createElement('div', {
+                          onClick: () => setSelectedTx(tx),
+                          className: "flex-1 bg-white rounded-3xl border border-slate-100 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center justify-between gap-3 ml-4 cursor-pointer hover:scale-[1.01] transition-all active:scale-[0.99]"
+                        }
                           , React.createElement('div', { className: "flex items-center gap-3 min-w-0" }
                             , React.createElement('div', { className: cn("w-10 h-10 rounded-2xl flex items-center justify-center shrink-0", styles.bg, styles.text) }
                               , React.createElement(CategoryIcon, { className: "h-5 w-5" })
@@ -226,8 +254,8 @@ export default function CustomerLoyaltyHistoryPage() {
                           )
                           , React.createElement('div', { className: "flex items-center gap-2 shrink-0 text-right" }
                             , React.createElement('div', { className: "space-y-0.5" }
-                              , React.createElement('p', { className: "font-black text-xs text-[#F97316]" }, `+${tx.points} Points`)
-                              , tx.extraPoints > 0 && React.createElement('p', { className: "text-[9px] font-bold text-amber-500" }, `+${tx.extraPoints} extra`)
+                              , React.createElement('p', { className: "font-black text-xs text-[#F97316]" }, `+${tx.extraPoints ?? 0} Points`)
+                              , (tx.points - (tx.extraPoints ?? 0)) > 0 && React.createElement('p', { className: "text-[9px] font-bold text-amber-500" }, `+${tx.points - (tx.extraPoints ?? 0)} stamp points`)
                             )
                             , React.createElement(ChevronRight, { className: "h-4 w-4 text-slate-300" })
                           )
@@ -276,6 +304,160 @@ export default function CustomerLoyaltyHistoryPage() {
           , React.createElement(ArrowRight, { className: "h-4 w-4" })
         )
       )
+      /* G. Reward-progress callout */
+      , React.createElement('div', {
+          onClick: () => setShowAllShopsLoyaltyModal(true),
+          className: "bg-[#FFF1E6] rounded-3xl p-4 flex items-center justify-between gap-3 border border-[#FFF1E6] cursor-pointer hover:scale-[1.01] active:scale-[0.99] transition-all"
+        }
+        , !nearestCard ? (
+            React.createElement('div', { className: "flex items-center gap-2.5" }
+              , React.createElement('span', { className: "text-lg shrink-0" }, "🎁")
+              , React.createElement('div', null
+                , React.createElement('p', { className: "text-xs font-black text-[#F97316] leading-tight" }, "Scan QR at shops to earn stamps!")
+                , React.createElement('p', { className: "text-[9px] text-[#64748B] font-semibold mt-0.5" }, "Track all your active rewards shop-wise")
+              )
+            )
+          ) : (
+            React.createElement('div', { className: "flex items-start gap-2.5" }
+              , React.createElement('span', { className: "text-lg shrink-0 mt-0.5" }, "🎁")
+              , React.createElement('div', null
+                , React.createElement('p', { className: "text-[10px] text-[#64748B] font-semibold" }, `You're ${stampsRemaining} stamp${stampsRemaining > 1 ? "s" : ""} away from:`)
+                , React.createElement('p', { className: "text-xs font-black text-[#F97316] leading-tight" }, `${rewardName} ☕`)
+              )
+            )
+          )
+        , nearestCard ? (
+            React.createElement('div', { className: "flex items-center gap-1.5 shrink-0" }
+              , React.createElement('div', { className: "relative w-10 h-10 flex items-center justify-center" }
+                /* Simple SVG Progress Ring */
+                , React.createElement('svg', { className: "absolute inset-0 w-full h-full transform -rotate-95" }
+                  , React.createElement('circle', { cx: 20, cy: 20, r: 16, stroke: "#FFF", strokeWidth: "3.5", fill: "transparent" })
+                  , React.createElement('circle', {
+                      cx: 20, cy: 20, r: 16,
+                      stroke: "#F97316", strokeWidth: "3.5",
+                      strokeDasharray: 2 * Math.PI * 16,
+                      strokeDashoffset: 2 * Math.PI * 16 * (1 - progressPercent / 100),
+                      strokeLinecap: "round",
+                      fill: "transparent"
+                    })
+                )
+                , React.createElement('span', { className: "text-[9px] font-black text-[#F97316] z-10" }, `${currentStamps}/${requiredStamps}`)
+              )
+              , React.createElement(ChevronRight, { className: "h-4 w-4 text-[#F97316] ml-0.5" })
+            )
+          ) : (
+            React.createElement(ChevronRight, { className: "h-4 w-4 text-[#F97316]" })
+          )
+      )
+
+      /* All Shops Loyalty Modal */
+      , showAllShopsLoyaltyModal && React.createElement(
+          Dialog, { open: showAllShopsLoyaltyModal, onOpenChange: (open) => !open && setShowAllShopsLoyaltyModal(false) },
+          React.createElement(DialogContent, { className: "max-w-[400px] w-[95vw] bg-white border border-border p-6 rounded-3xl shadow-xl max-h-[85vh] flex flex-col" },
+            React.createElement('div', { className: "space-y-4 w-full flex-1 flex flex-col min-h-0" }
+              , React.createElement(DialogHeader, { className: "flex flex-col items-center shrink-0" }
+                , React.createElement('div', { className: "h-12 w-12 rounded-full bg-[#FFF1E6] flex items-center justify-center mb-2" }
+                  , React.createElement(Gift, { className: "h-6 w-6 text-[#F97316]" })
+                )
+                , React.createElement(DialogTitle, { className: "text-base font-black text-foreground text-center" }, "My Shop Loyalty Programs")
+                , React.createElement(DialogDescription, { className: "text-xs text-muted-foreground text-center" }, "Your active stamps and points across all visited shops")
+              )
+              , React.createElement('div', { className: "flex-1 overflow-y-auto space-y-3.5 py-4 scrollbar-none" }
+                , activeCards.length === 0 ? (
+                    React.createElement('div', { className: "text-center py-6 text-slate-400 space-y-2" }
+                      , React.createElement('p', { className: "text-xs font-bold" }, "No shops visited yet")
+                      , React.createElement('p', { className: "text-[10px]" }, "Scan a shop's QR code to join their loyalty program.")
+                    )
+                  ) : (
+                    activeCards.map((card) => {
+                      const hasStampProgram = !!card.visitCard;
+                      const stamps = card.visitCard?.wallet?.currentStamps ?? card.wallet?.currentStamps ?? 0;
+                      const required = card.visitCard?.settings?.requiredStamps ?? card.settings?.requiredStamps ?? 7;
+                      const reward = card.visitCard?.settings?.rewardName ?? card.settings?.rewardName ?? "Free Reward";
+                      const points = card.wallet?.currentPoints ?? 0;
+                      const style = getCategoryStyle(card.business?.category);
+                      const IconComponent = style.icon;
+
+                      return React.createElement('div', {
+                        key: card.id,
+                        className: "bg-slate-50 border border-slate-100 rounded-2xl p-4 space-y-3"
+                      }
+                        , React.createElement('div', { className: "flex items-center justify-between" }
+                          , React.createElement('div', { className: "flex items-center gap-2.5 min-w-0" }
+                            , React.createElement('div', { className: cn("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", style.bg, style.text) }
+                              , React.createElement(IconComponent, { className: "h-4 w-4" })
+                            )
+                            , React.createElement('div', { className: "min-w-0" }
+                              , React.createElement('h4', { className: "font-black text-xs text-[#0F172A] truncate" }, card.business?.name)
+                              , React.createElement('span', { className: "text-[8px] bg-slate-200/60 text-slate-500 font-extrabold px-1.5 py-0.5 rounded-full uppercase" }, card.business?.category || "Store")
+                            )
+                          )
+                          , React.createElement('div', { className: "text-right shrink-0" }
+                            , React.createElement('p', { className: "text-xs font-black text-[#F97316]" }, `+${points} pts`)
+                            , React.createElement('p', { className: "text-[7px] text-[#64748B] font-bold" }, "balance")
+                          )
+                        )
+                        , (hasStampProgram || stamps > 0) && (
+                          React.createElement('div', { className: "bg-white border border-slate-100/80 rounded-xl p-2.5 flex items-center justify-between gap-2" }
+                            , React.createElement('div', { className: "flex items-center gap-2" }
+                              , React.createElement('span', { className: "text-xs" }, "🎁")
+                              , React.createElement('div', null
+                                , React.createElement('p', { className: "text-[9px] text-slate-800 font-black leading-tight" }, reward)
+                                , React.createElement('p', { className: "text-[8px] text-slate-400 font-semibold" }, `${required - stamps} stamps remaining`)
+                              )
+                            )
+                            , React.createElement('span', { className: "text-[9px] font-black bg-orange-50 text-[#F97316] border border-orange-100 px-2 py-0.5 rounded-full" }, `${stamps}/${required} Stamps`)
+                          )
+                        )
+                      );
+                    })
+                  )
+              )
+              , React.createElement('div', { className: "pt-2 shrink-0" }
+                , React.createElement(Button, {
+                    type: "button",
+                    onClick: () => setShowAllShopsLoyaltyModal(false),
+                    className: "w-full rounded-xl text-xs font-bold bg-[#F97316] text-white hover:bg-orange-600 h-9"
+                  }, "Close")
+              )
+            )
+          )
+        )
+      , selectedTx && React.createElement(Dialog, {
+          open: !!selectedTx,
+          onOpenChange: (open) => { if (!open) setSelectedTx(null); }
+        }
+          , React.createElement(DialogContent, { className: "bg-white rounded-3xl max-w-sm p-6 space-y-4" }
+            , React.createElement(DialogHeader, { className: "space-y-1.5" }
+              , React.createElement(DialogTitle, { className: "text-lg font-black text-slate-800" }, selectedTx.business?.name || "Visit Details")
+              , React.createElement(DialogDescription, { className: "text-[10px] text-slate-500 font-semibold" }
+                , `Logged at: ${new Date(selectedTx.createdAt).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true })}`
+              )
+            )
+            , React.createElement('div', { className: "space-y-3 pt-2" }
+              , React.createElement('div', { className: "flex justify-between items-center bg-slate-50 p-3 rounded-2xl border border-slate-100" }
+                , React.createElement('span', { className: "text-xs font-extrabold text-[#64748B]" }, "Purchasing Amount")
+                , React.createElement('span', { className: "text-sm font-black text-[#0F172A]" }
+                  , selectedTx.spendAmount ? `₹${Number(selectedTx.spendAmount)}` : "—"
+                )
+              )
+              , React.createElement('div', { className: "flex justify-between items-center bg-orange-50/40 p-3 rounded-2xl border border-orange-100/50" }
+                , React.createElement('span', { className: "text-xs font-extrabold text-[#F97316]" }, "Total Points")
+                , React.createElement('span', { className: "text-sm font-black text-[#F97316]" }, `+${selectedTx.points} pts`)
+              )
+              , React.createElement('div', { className: "flex justify-between items-center bg-purple-50/40 p-3 rounded-2xl border border-purple-100/50" }
+                , React.createElement('span', { className: "text-xs font-extrabold text-purple-600" }, "Extra Points")
+                , React.createElement('span', { className: "text-sm font-black text-purple-600" }, `+${selectedTx.extraPoints || 0} pts`)
+              )
+            )
+            , React.createElement(Button, {
+                onClick: () => setSelectedTx(null),
+                className: "w-full bg-[#F97316] text-white font-bold rounded-2xl text-xs py-2.5 h-10 flex items-center justify-center active:scale-95 transition-transform mt-2"
+              }
+              , "Close"
+            )
+          )
+        )
     )
   );
 }

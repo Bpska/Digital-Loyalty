@@ -466,6 +466,14 @@ export default function BusinessApprovalsPage() {
                         , isApproving ? React.createElement(Loader2, { className: "h-3.5 w-3.5 animate-spin" }) : React.createElement(CheckCircle2, { className: "h-3.5 w-3.5" })
                         , isApproving ? "Processing..." : "Approve"
                       )
+                      , request.status === "PENDING" && React.createElement("button", {
+                          onClick: () => handleReject(request.id),
+                          disabled: isRejecting,
+                          className: "px-4 bg-red-500 text-white font-bold rounded-xl text-xs py-2.5 h-10 flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+                        }
+                        , isRejecting ? React.createElement(Loader2, { className: "h-3.5 w-3.5 animate-spin" }) : React.createElement(XCircle, { className: "h-3.5 w-3.5" })
+                        , "Reject"
+                      )
                       , editingRequestId === request.id && React.createElement("button", {
                           onClick: () => setEditingRequestId(null),
                           className: "px-4 bg-slate-100 text-[#0F172A] font-bold rounded-xl text-xs py-2.5 h-10 flex items-center justify-center active:scale-95 transition-transform"
@@ -473,7 +481,7 @@ export default function BusinessApprovalsPage() {
                         , "Cancel"
                       )
                     )
-                  : React.createElement(React.Fragment, null
+                  : React.createElement("div", { className: "flex gap-2 w-full" }
                       , React.createElement("button", {
                           onClick: () => {
                             if (isExpanded) {
@@ -494,9 +502,23 @@ export default function BusinessApprovalsPage() {
                             setCustomAmounts(prev => ({ ...prev, [request.id]: request.spendAmount || "" }));
                           },
                           disabled: deletingRequestId === request.id,
-                          className: "px-4 bg-slate-100 hover:bg-slate-200 text-[#0F172A] font-bold rounded-xl text-xs py-2.5 h-10 active:scale-95 transition-transform"
+                          className: "px-3 bg-slate-100 hover:bg-slate-200 text-[#0F172A] font-bold rounded-xl text-xs py-2.5 h-10 active:scale-95 transition-transform"
                         }
                         , "Edit"
+                      )
+                      , request.status === "APPROVED" && React.createElement("button", {
+                          onClick: () => handleReject(request.id),
+                          disabled: isRejecting,
+                          className: "px-3 bg-red-500 text-white font-bold rounded-xl text-xs py-2.5 h-10 flex items-center justify-center gap-1 active:scale-95 transition-transform"
+                        }
+                        , isRejecting ? React.createElement(Loader2, { className: "h-3.5 w-3.5 animate-spin" }) : "Reject"
+                      )
+                      , request.status === "APPROVED" && React.createElement("button", {
+                          onClick: () => handleDeleteApproval(request.id),
+                          disabled: deletingRequestId === request.id,
+                          className: "px-3 bg-red-700 text-white font-bold rounded-xl text-xs py-2.5 h-10 flex items-center justify-center gap-1 active:scale-95 transition-transform"
+                        }
+                        , deletingRequestId === request.id ? React.createElement(Loader2, { className: "h-3.5 w-3.5 animate-spin" }) : "Delete"
                       )
                     )
               )
@@ -657,17 +679,33 @@ export default function BusinessApprovalsPage() {
                             )
                           )
                       )
-                      , request.status === "APPROVED" && editingRequestId !== request.id && React.createElement(Button, {
-                          variant: "outline",
-                          size: "sm",
-                          className: "h-8 bg-white border-border shrink-0",
-                          onClick: () => {
-                            setEditingRequestId(request.id);
-                            selectCustom(request.id);
-                            setCustomAmounts(prev => ({ ...prev, [request.id]: request.spendAmount || "" }));
-                          },
-                          disabled: deletingRequestId === request.id
-                        }, "Edit")
+                      , request.status === "APPROVED" && editingRequestId !== request.id && React.createElement("div", { className: "flex gap-2 shrink-0" }
+                          , React.createElement(Button, {
+                              variant: "outline",
+                              size: "sm",
+                              className: "h-8 bg-white border-border",
+                              onClick: () => {
+                                setEditingRequestId(request.id);
+                                selectCustom(request.id);
+                                setCustomAmounts(prev => ({ ...prev, [request.id]: request.spendAmount || "" }));
+                              },
+                              disabled: deletingRequestId === request.id
+                            }, "Edit")
+                          , React.createElement(Button, {
+                              variant: "destructive",
+                              size: "sm",
+                              className: "h-8 bg-red-500 hover:bg-red-600 text-white font-semibold text-xs",
+                              onClick: () => handleReject(request.id),
+                              disabled: rejectingId === request.id
+                            }, "Reject")
+                          , React.createElement(Button, {
+                              variant: "destructive",
+                              size: "sm",
+                              className: "h-8 bg-red-700 hover:bg-red-800 text-white font-semibold text-xs",
+                              onClick: () => handleDeleteApproval(request.id),
+                              disabled: deletingRequestId === request.id
+                            }, "Delete")
+                        )
                     )
 
                     , (request.status === "PENDING" || editingRequestId === request.id) && React.createElement("div", { className: "space-y-3 pt-2 border-t border-border/50 mt-2" }
@@ -700,13 +738,21 @@ export default function BusinessApprovalsPage() {
                                 className: "max-w-[200px] h-9 text-xs border-border bg-white"
                               })
                           )
-                        , React.createElement("div", { className: "flex items-center gap-3 pt-1" }
+                        , React.createElement("div", { className: "flex items-center gap-3 pt-1 w-full" }
                           , React.createElement(Button, {
                               className: "flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-9 text-xs rounded-xl",
                               onClick: () => editingRequestId === request.id ? handleUpdateApproval(request.id, request.status) : handleApproveWallet(request.id),
                               disabled: !(showCustomInput[request.id] ? parseFloat(customAmounts[request.id]) : selectedAmounts[request.id]) || isApproving
                             }
                             , isApproving ? "Processing..." : "Approve"
+                          )
+                          , request.status === "PENDING" && React.createElement(Button, {
+                              variant: "destructive",
+                              className: "bg-red-500 hover:bg-red-600 text-white font-bold h-9 text-xs rounded-xl px-4",
+                              onClick: () => handleReject(request.id),
+                              disabled: rejectingId === request.id
+                            }
+                            , "Reject"
                           )
                           , editingRequestId === request.id && React.createElement(Button, {
                               variant: "outline",

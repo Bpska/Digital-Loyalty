@@ -156,7 +156,20 @@ router.get(
         prisma.checkIn.count({ where: { customerId: req.user.sub, status: 'VALID' } }),
       ]);
 
-      sendSuccess(res, checkIns, 'Check-in history', 200, buildPaginationMeta(page, limit, total));
+      const checkinsWithPoints = await Promise.all(checkIns.map(async (ci) => {
+        const lr = await prisma.loyaltyRequest.findFirst({
+          where: { checkInId: ci.id },
+          include: { loyaltyTransaction: true }
+        });
+        return {
+          ...ci,
+          points: lr?.loyaltyTransaction?.points ?? 0,
+          extraPoints: lr?.loyaltyTransaction?.extraPoints ?? 0,
+          spendAmount: lr?.spendAmount ?? null,
+        };
+      }));
+
+      sendSuccess(res, checkinsWithPoints, 'Check-in history', 200, buildPaginationMeta(page, limit, total));
     } catch (err) {
       next(err);
     }

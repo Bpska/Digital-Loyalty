@@ -55,6 +55,7 @@ export default function BusinessLoyaltyConfigPage() {
   const [saved, setSaved] = useState(false);
   const [stampCost, setStampCost] = useState("500");
   const [isEditing, setIsEditing] = useState(false);
+  const [validityType, setValidityType] = useState("custom");
 
   // Settings form state
   const [settingsForm, setSettingsForm] = useState({
@@ -89,6 +90,12 @@ export default function BusinessLoyaltyConfigPage() {
         bonusThresholdAmount: String(settings.bonusThresholdAmount ?? 500),
         pointsPerRupeeAboveThreshold: String(settings.pointsPerRupeeAboveThreshold ?? 0.1),
       });
+      const vd = settings.validityDays ?? 30;
+      if ([90, 180, 270, 365].includes(vd)) {
+        setValidityType(String(vd));
+      } else {
+        setValidityType("custom");
+      }
       const ppr = settings.pointsPerRupee || 0.1;
       const pps = settings.pointsPerStamp ?? 50;
       setStampCost(String(Math.round(pps / ppr)));
@@ -492,20 +499,38 @@ export default function BusinessLoyaltyConfigPage() {
               React.createElement(
                 "div",
                 { className: "space-y-1.5" },
-                React.createElement(Label, { htmlFor: "validity-days" }, "Validity (Days)"),
-                React.createElement(Input, {
+                React.createElement(Label, { htmlFor: "validity-select" }, "Validity"),
+                React.createElement("select", {
+                  id: "validity-select",
+                  value: validityType,
+                  onChange: (e) => {
+                    const val = e.target.value;
+                    setValidityType(val);
+                    if (val !== "custom") {
+                      setSettingsForm(f => ({ ...f, validityDays: val }));
+                    }
+                  },
+                  className: "w-full h-10 border border-slate-200 rounded-xl bg-white text-xs px-2.5 outline-none text-slate-800 border-border"
+                }
+                  , React.createElement("option", { value: "90" }, "3 Month")
+                  , React.createElement("option", { value: "180" }, "6 Month")
+                  , React.createElement("option", { value: "270" }, "9 Month")
+                  , React.createElement("option", { value: "365" }, "1 Year")
+                  , React.createElement("option", { value: "custom" }, "Custom Days")
+                ),
+                validityType === "custom" && React.createElement(Input, {
                   id: "validity-days",
                   type: "number",
                   placeholder: "e.g. 30",
                   min: "1",
                   value: settingsForm.validityDays,
                   onChange: (e) => setSettingsForm((f) => ({ ...f, validityDays: e.target.value })),
-                  className: "border-border",
+                  className: "border-border mt-1.5",
                 }),
                 React.createElement(
                   "p",
                   { className: "text-[10px] text-muted-foreground" },
-                  "Days stamps stay active"
+                  "Validity period for stamps"
                 )
               )
             ),
