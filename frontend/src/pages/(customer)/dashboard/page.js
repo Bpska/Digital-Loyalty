@@ -99,53 +99,7 @@ function getCategoryStampIcon(category) {
 }
 
 // ─── Nearby places data ───────────────────────────────────────────────────────
-const NEARBY_PLACES = [
-  {
-    id: "nearby-1",
-    name: "Brew Club Cafe",
-    category: "Cafes",
-    rating: "4.5",
-    distance: "0.8 km",
-    isOpen: true,
-    image: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=150&auto=format&fit=crop&q=60"
-  },
-  {
-    id: "nearby-2",
-    name: "Hotel Vinayak Residency",
-    category: "Hotels",
-    rating: "4.2",
-    distance: "1.2 km",
-    isOpen: true,
-    image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=150&auto=format&fit=crop&q=60"
-  },
-  {
-    id: "nearby-3",
-    name: "Royal Tandoor Restaurant",
-    category: "Restaurants",
-    rating: "4.7",
-    distance: "0.5 km",
-    isOpen: true,
-    image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=150&auto=format&fit=crop&q=60"
-  },
-  {
-    id: "nearby-4",
-    name: "Styliss Salon & Spa",
-    category: "Salons",
-    rating: "4.6",
-    distance: "1.5 km",
-    isOpen: true,
-    image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=150&auto=format&fit=crop&q=60"
-  },
-  {
-    id: "nearby-5",
-    name: "The Daily Roast Cafe",
-    category: "Cafes",
-    rating: "4.4",
-    distance: "1.1 km",
-    isOpen: false,
-    image: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=150&auto=format&fit=crop&q=60"
-  }
-];
+const NEARBY_PLACES = [];
 
 export default function CustomerDashboard() {
   const navigate = useNavigate();
@@ -301,10 +255,38 @@ export default function CustomerDashboard() {
     card.business?.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Filter nearby places
+  // Map backend branches data to places dynamically
+  const mappedPlaces = (branches || []).map((b) => {
+    let distanceStr = "Near you";
+    if (userCoords && b.latitude && b.longitude) {
+      const dist = getDistance(userCoords.lat, userCoords.lng, parseFloat(b.latitude), parseFloat(b.longitude));
+      distanceStr = `${dist.toFixed(1)} km`;
+    }
+    const defaultImages = {
+      Cafes: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=150&auto=format&fit=crop&q=60",
+      Hotels: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=150&auto=format&fit=crop&q=60",
+      Restaurants: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=150&auto=format&fit=crop&q=60",
+      Salons: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=150&auto=format&fit=crop&q=60",
+    };
+    const cat = b.business?.category || "Cafes";
+    return {
+      id: b.id,
+      businessId: b.business?.id,
+      name: b.business?.name || b.name,
+      category: cat,
+      rating: "4.5",
+      distance: distanceStr,
+      isOpen: true,
+      image: (b.business?.logoUrl || b.business?.brandAsset?.logoUrl)
+        ? getImageUrl(b.business?.logoUrl || b.business?.brandAsset?.logoUrl)
+        : (defaultImages[cat] || defaultImages.Cafes)
+    };
+  });
+
+  // Filter nearby places using mapped backend branches
   const filteredPlaces = (activeFilter === "All"
-    ? NEARBY_PLACES
-    : NEARBY_PLACES.filter(p => p.category === activeFilter)
+    ? mappedPlaces
+    : mappedPlaces.filter(p => p.category === activeFilter)
   ).filter(place => 
     place.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -357,7 +339,7 @@ export default function CustomerDashboard() {
       /* B. Greeting row */
       , React.createElement('div', { className: "flex items-center justify-between gap-3" }
         , React.createElement('div', null
-          , React.createElement('h2', { className: "text-[22px] font-black text-[#0F172A] leading-tight" }, `Namaste ${user?.name?.split(" ")?.[0] || ""}! 👋`)
+          , React.createElement('h2', { className: "text-[22px] font-black text-[#0F172A] leading-tight" }, `Namaste ${user?.name?.split(" ")?.[0] || ""}!`)
           , React.createElement('p', { className: "text-xs text-[#64748B] mt-0.5" }, "Keep exploring, keep earning")
         )
         , React.createElement(Link, { to: "/loyalty-history", className: "bg-white border border-slate-200 rounded-full px-3.5 py-1.5 flex items-center gap-2 shadow-sm hover:bg-slate-50 transition-colors shrink-0" }

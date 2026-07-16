@@ -31,9 +31,9 @@ export default function ClientProviders({
     if (!mounted) return;
     
     const applyTheme = () => {
-      const currentTheme = localStorage.getItem("theme");
+      const currentTheme = localStorage.getItem("theme") || "light";
       const isDark = currentTheme === "dark" || 
-        ((!currentTheme || currentTheme === "system") && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        (currentTheme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
       if (isDark) {
         document.documentElement.classList.add("dark");
       } else {

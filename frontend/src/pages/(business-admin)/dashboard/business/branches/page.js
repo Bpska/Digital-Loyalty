@@ -696,15 +696,7 @@ export default function BranchesPage() {
                   )
                 )
               )
-              , React.createElement('p', { className: "text-[10px] text-zinc-500 text-center max-w-xs", __self: this, __source: { fileName: _jsxFileName, lineNumber: 437 } }, "Stick this permanent QR code inside your shop (Reception Desk, Cafe Table, Salon Entrance, etc.). Customers scan this to verify their location and check in."
-
-              )
-              , selectedQrPayload && (
-                React.createElement('div', { className: "w-full space-y-1 text-center bg-slate-50 border border-border/60 rounded-lg p-2.5" },
-                  React.createElement('span', { className: "text-[9px] font-bold text-muted-foreground uppercase tracking-wider block" }, "Testing QR Link (Copy & Paste):"),
-                  React.createElement('a', { href: selectedQrPayload, target: "_blank", rel: "noreferrer", className: "text-[10px] text-primary hover:underline break-all block font-mono select-all" }, selectedQrPayload)
-                )
-              )
+              , React.createElement('p', { className: "text-[10px] text-zinc-500 text-center max-w-xs", __self: this, __source: { fileName: _jsxFileName, lineNumber: 437 } }, "Stick this permanent QR code inside your shop (Reception Desk, Cafe Table, Salon Entrance, etc.). Customers scan this to verify their location and check in.")
             )
 
             , React.createElement(DialogFooter, { className: "flex gap-2", __self: this, __source: { fileName: _jsxFileName, lineNumber: 442 } }

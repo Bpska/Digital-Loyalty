@@ -15,7 +15,7 @@ import {
   Palette, Upload, RotateCcw, Check, Coffee, Gift, 
   Percent, Star, Wallet, Utensils, Store, Scissors, Hotel, 
   Award, Tag, Share2, Users, Bell, LayoutDashboard, CheckSquare,
-  ChevronRight, Camera, KeyRound, ChevronLeft
+  ChevronRight, Camera, KeyRound, ChevronLeft, Sun, Moon, Monitor, Settings, Paintbrush
 } from "lucide-react";
 import { formatDate, cn } from "@/lib/utils";
 import BusinessBottomNav from "@/components/BusinessBottomNav";
@@ -64,6 +64,13 @@ export default function BusinessProfilePage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const fileInputRefs = useRef({});
+
+  const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "light");
+
+  useEffect(() => {
+    localStorage.setItem("theme", theme);
+    window.dispatchEvent(new Event("theme-changed"));
+  }, [theme]);
 
   // Unified Page main tab system: "profile" or "branding"
   const [activeSettingsTab, setActiveSettingsTab] = useState("profile");
@@ -333,6 +340,15 @@ export default function BusinessProfilePage() {
         setCustomUrls((prev) => ({ ...prev, [field]: uploadedUrl }));
         await refetchProfile();
         queryClient.invalidateQueries({ queryKey: ["businessProfile", businessId] });
+      } else if (field === "coverUrl") {
+        formData.append("cover", file);
+        const res = await api.post(`/businesses/${businessId}/cover`, formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
+        const uploadedUrl = res.data.coverUrl;
+        setCustomUrls((prev) => ({ ...prev, [field]: uploadedUrl }));
+        await refetchProfile();
+        queryClient.invalidateQueries({ queryKey: ["businessProfile", businessId] });
       } else {
         formData.append("icon", file);
         const res = await api.post(`/businesses/${businessId}/brand/upload`, formData, {
@@ -422,6 +438,14 @@ export default function BusinessProfilePage() {
         accept="image/*"
         className="hidden"
       />
+      {/* Hidden file input for mobile cover photo upload */}
+      <input
+        type="file"
+        ref={(el) => (fileInputRefs.current["coverUrl"] = el)}
+        onChange={(e) => handleFileUpload("coverUrl", e)}
+        accept="image/*"
+        className="hidden"
+      />
 
       {/* ── MOBILE VIEW LAYOUT (hidden on desktop) ── */}
       <div className="md:hidden space-y-6">
@@ -477,57 +501,78 @@ export default function BusinessProfilePage() {
 
         {/* B. Profile Summary Card (Overlaps Header) */}
         <div className="px-4 -mt-14 relative z-20">
-          <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#F1F5F9] space-y-4">
+          <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-[#F1F5F9]">
             
-            <div className="flex justify-between items-start">
-              <div className="flex gap-4">
-                {/* Large circular avatar with camera upload badge */}
-                <div className="relative shrink-0">
-                  <div className="w-20 h-20 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden shadow-inner">
-                    {business?.logoUrl || customUrls["logoUrl"] ? (
-                      <img
-                        src={getImageUrl(customUrls["logoUrl"] || business.logoUrl)}
-                        alt={business.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-2xl font-black text-[#F97316]">
-                        {initials}
-                      </span>
-                    )}
+            {/* Banner/Cover image if present */}
+            {(business.coverUrl || customUrls["coverUrl"]) && (
+              <div className="h-24 w-full relative overflow-hidden border-b border-slate-100">
+                <img
+                  src={getImageUrl(customUrls["coverUrl"] || business.coverUrl)}
+                  alt="Cover Banner"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+
+            <div className="p-5 space-y-4">
+              <div className="flex justify-between items-start">
+                <div className="flex gap-4">
+                  {/* Large circular avatar with camera upload badge */}
+                  <div className="relative shrink-0">
+                    <div className="w-20 h-20 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden shadow-inner">
+                      {business?.logoUrl || customUrls["logoUrl"] ? (
+                        <img
+                          src={getImageUrl(customUrls["logoUrl"] || business.logoUrl)}
+                          alt={business.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-2xl font-black text-[#F97316]">
+                          {initials}
+                        </span>
+                      )}
+                    </div>
+                    <button 
+                      onClick={() => fileInputRefs.current["logoUrl"]?.click()}
+                      className="absolute -bottom-1 -right-1 bg-[#F97316] text-white shadow-md active:scale-90 transition-transform border-2 border-white"
+                      style={{ borderRadius: "50%", width: "28px", height: "28px", minWidth: "28px", minHeight: "28px", padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                    >
+                      <Camera className="h-3.5 w-3.5" />
+                    </button>
                   </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-lg font-black text-[#0F172A]">{business?.name || "My Business"}</h2>
+                      <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-black bg-[#DCFCE7] text-[#22C55E] border border-emerald-100 uppercase tracking-wider">
+                        ACTIVE
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-[10px] text-[#64748B] font-bold">
+                      <Coffee className="h-3.5 w-3.5 text-[#F97316]" />
+                      <span>{business?.category || "Cafe"}</span>
+                      <span className="text-slate-300 mx-0.5">•</span>
+                      <span>since {business?.createdAt ? formatDate(business.createdAt) : "N/A"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-end gap-2 shrink-0">
                   <button 
-                    onClick={() => fileInputRefs.current["logoUrl"]?.click()}
-                    className="absolute -bottom-1 -right-1 bg-[#F97316] text-white shadow-md active:scale-90 transition-transform border-2 border-white"
-                    style={{ borderRadius: "50%", width: "28px", height: "28px", minWidth: "28px", minHeight: "28px", padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                    onClick={() => setIsEditing(true)}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-[#F97316] border border-[#FFD8C2] bg-orange-50/30 px-3 py-1.5 rounded-full hover:bg-orange-50 active:scale-95 transition-transform"
                   >
-                    <Camera className="h-3.5 w-3.5" />
+                    <Palette className="h-3 w-3" /> Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRefs.current["coverUrl"]?.click()}
+                    className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 border border-slate-200 bg-slate-50/50 px-2.5 py-1 rounded-full hover:bg-slate-100 active:scale-95 transition-transform"
+                  >
+                    <Upload className="h-3 w-3" /> Banner
                   </button>
                 </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-lg font-black text-[#0F172A]">{business?.name || "My Business"}</h2>
-                    <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-black bg-[#DCFCE7] text-[#22C55E] border border-emerald-100 uppercase tracking-wider">
-                      ACTIVE
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1 text-[10px] text-[#64748B] font-bold">
-                    <Coffee className="h-3.5 w-3.5 text-[#F97316]" />
-                    <span>{business?.category || "Cafe"}</span>
-                    <span className="text-slate-300 mx-0.5">•</span>
-                    <span>since {business?.createdAt ? formatDate(business.createdAt) : "N/A"}</span>
-                  </div>
-                </div>
               </div>
-
-              <button 
-                onClick={() => setIsEditing(true)}
-                className="inline-flex items-center gap-1 text-xs font-bold text-[#F97316] border border-[#FFD8C2] bg-orange-50/30 px-3 py-1.5 rounded-full hover:bg-orange-50 active:scale-95 transition-transform"
-              >
-                <Palette className="h-3 w-3" /> Edit
-              </button>
-            </div>
 
             {/* Sub-row tag pills */}
             <div className="flex flex-wrap gap-2 pt-1 border-t border-[#F8FAFC]">
@@ -540,7 +585,7 @@ export default function BusinessProfilePage() {
                 <span>{business?.phone || "—"}</span>
               </div>
             </div>
-
+            </div>
           </div>
         </div>
 
@@ -883,6 +928,52 @@ export default function BusinessProfilePage() {
                 </div>
               </div>
             )}
+
+            {/* Preferences Section */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-xs font-black text-[#0F172A] uppercase tracking-wider pl-1">
+                <Settings className="h-4 w-4 text-[#F97316]" />
+                <span>Preferences</span>
+              </div>
+              <div className="bg-white rounded-3xl border border-[#F1F5F9] p-5 shadow-sm space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-[#FFF0E6] text-[#F97316] flex items-center justify-center shrink-0">
+                    <Paintbrush className="h-4.5 w-4.5" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-sm text-[#0F172A]">Appearance</h4>
+                    <p className="text-[10px] text-[#64748B]">Choose how you want the app to look</p>
+                  </div>
+                </div>
+
+                {/* 3-segment toggle row */}
+                <div className="flex gap-1.5 bg-slate-100 rounded-xl p-1">
+                  {[
+                    { id: "light", icon: Sun, label: "Light" },
+                    { id: "dark", icon: Moon, label: "Dark" },
+                    { id: "system", icon: Monitor, label: "System" }
+                  ].map((item) => {
+                    const active = theme === item.id;
+                    const ItemIcon = item.icon;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setTheme(item.id)}
+                        className={cn(
+                          "flex-1 py-2 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5"
+                          , active ? "bg-white text-[#F97316] shadow-sm border border-orange-100" : "text-[#64748B] hover:text-[#0F172A]"
+                        )}
+                      >
+                        <ItemIcon className="h-3.5 w-3.5" />
+                        <span>{item.label}</span>
+                        {active && item.id === "system" && <span className="w-1.5 h-1.5 rounded-full bg-[#F97316] ml-0.5" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
 
             {/* G. Sign Out Row */}
             <button 
@@ -1271,6 +1362,54 @@ export default function BusinessProfilePage() {
                       <span className="text-muted-foreground">Subscription Status</span>
                       <span className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">ACTIVE</span>
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Desktop Preferences/Appearance Card */}
+              <Card className="glass border-primary/20" glass>
+                <CardHeader>
+                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <Settings className="h-4 w-4 text-primary" />
+                    Preferences
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-orange-100/50 text-primary flex items-center justify-center shrink-0">
+                      <Paintbrush className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs text-foreground">Appearance</h4>
+                      <p className="text-[10px] text-muted-foreground">Choose how you want the app to look</p>
+                    </div>
+                  </div>
+
+                  {/* 3-segment toggle row */}
+                  <div className="flex gap-1.5 bg-slate-100 rounded-xl p-1">
+                    {[
+                      { id: "light", icon: Sun, label: "Light" },
+                      { id: "dark", icon: Moon, label: "Dark" },
+                      { id: "system", icon: Monitor, label: "System" }
+                    ].map((item) => {
+                      const active = theme === item.id;
+                      const ItemIcon = item.icon;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setTheme(item.id)}
+                          className={cn(
+                            "flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5"
+                            , active ? "bg-white text-primary shadow-sm border border-orange-100" : "text-[#64748B] hover:text-[#0F172A]"
+                          )}
+                        >
+                          <ItemIcon className="h-3.5 w-3.5" />
+                          <span>{item.label}</span>
+                          {active && item.id === "system" && <span className="w-1.5 h-1.5 rounded-full bg-primary ml-0.5" />}
+                        </button>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>

@@ -1,6 +1,7 @@
 const _jsxFileName = "src\\pages\\(business-admin)\\dashboard\\business\\coupons\\page.tsx"; function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }"use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { Link, useOutletContext } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
@@ -140,6 +141,7 @@ export default function CouponsPage() {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const businessId = _optionalChain([user, 'optionalAccess', _ => _.businessId]);
+  const { setShowNotifications, unreadCount, fetchNotifications } = useOutletContext() || {};
 
   // UI tabs for approval panel
   const [approvalTab, setApprovalTab] = useState("apply"); // "apply" | "history"
@@ -418,9 +420,15 @@ export default function CouponsPage() {
         , React.createElement('div', { className: "flex items-center justify-between px-5 pt-4 pb-2 bg-white" }
           , React.createElement('h2', { className: "text-lg font-bold text-[#0F172A]" }, "Business Portal")
           , React.createElement('div', { className: "flex items-center gap-3" }
-            , React.createElement('button', { className: "relative w-9 h-9 rounded-full bg-[#F8FAFC] flex items-center justify-center text-[#64748B]" }
+            , React.createElement('button', {
+                onClick: () => {
+                  if (setShowNotifications) setShowNotifications(true);
+                  if (fetchNotifications) fetchNotifications();
+                },
+                className: "relative w-9 h-9 rounded-full bg-[#F8FAFC] flex items-center justify-center text-[#64748B]"
+              }
               , React.createElement(Bell, { className: "h-4.5 w-4.5" })
-              , React.createElement('span', { className: "absolute top-0.5 right-0.5 w-4 h-4 bg-[#F97316] text-white text-[8px] font-black rounded-full flex items-center justify-center leading-none" }, "3")
+              , unreadCount > 0 && React.createElement('span', { className: "absolute top-0.5 right-0.5 w-4 h-4 bg-[#F97316] text-white text-[8px] font-black rounded-full flex items-center justify-center leading-none" }, String(unreadCount))
             )
             , React.createElement('div', { className: "w-9 h-9 rounded-full bg-[#FFEDD5] border border-[#FED7AA] flex items-center justify-center text-[#F97316] text-sm font-bold shadow-sm" }
               , (user?.name?.[0]?.toUpperCase() || "B")

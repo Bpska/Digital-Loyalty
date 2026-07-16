@@ -159,7 +159,7 @@ export default function CustomerLayout({
         /* Header Bar */
         , React.createElement('header', { className: "sticky top-0 z-30 flex items-center justify-between border-b border-border bg-white/80 p-4 backdrop-blur-md" }
           , React.createElement('div', { className: "flex items-center space-x-2.5" }
-            , React.createElement('div', { className: "w-10 h-10 bg-black rounded-2xl flex items-center justify-center font-bold text-white text-base tracking-tight shrink-0 shadow-sm" }, "SL")
+            , React.createElement('img', { src: "/new.png", alt: "Logo", className: "w-10 h-10 object-contain shrink-0" })
             , React.createElement('div', { className: "flex flex-col justify-center" }
               , React.createElement('div', { className: "flex items-baseline font-bold leading-none" }
                 , React.createElement('span', { className: "text-[#0F172A] text-sm font-black" }, "Scan")
@@ -248,8 +248,19 @@ export default function CustomerLayout({
                     , React.createElement(DialogTitle, { className: "text-base font-bold text-foreground" }, "Notifications")
                     , React.createElement(DialogDescription, { className: "text-[10px] text-muted-foreground mt-0.5" }, "Alerts and updates from the platform")
                   )
-                  , unreadCount > 0 && (
-                      React.createElement(Button, { size: "sm", variant: "ghost", className: "text-[10px] h-7 text-primary hover:text-primary/80 font-bold px-2", onClick: handleMarkAllRead }, "Mark all read")
+                  , notifications.length > 0 && (
+                      React.createElement(Button, {
+                        size: "sm",
+                        variant: "ghost",
+                        className: cn(
+                          "text-[10px] h-7 font-bold px-2 transition-all",
+                          unreadCount > 0
+                            ? "text-[#F97316] hover:text-[#EA580C] hover:bg-orange-50 active:scale-95"
+                            : "text-muted-foreground opacity-50 cursor-not-allowed"
+                        ),
+                        onClick: unreadCount > 0 ? handleMarkAllRead : undefined,
+                        disabled: unreadCount === 0
+                      }, "Mark all read")
                     )
                 )
                 , React.createElement('div', { className: "max-h-[320px] overflow-y-auto space-y-3 py-2 scrollbar-none" }

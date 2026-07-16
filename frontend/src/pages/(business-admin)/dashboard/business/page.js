@@ -1499,12 +1499,6 @@ export default function BusinessDashboard() {
                 )
               )
               , React.createElement('p', { className: "text-[10px] text-zinc-500 text-center max-w-xs" }, "Stick this permanent QR code inside your shop. Customers scan this to verify their location and check in.")
-              , primaryBranch.qrPayload && (
-                React.createElement('div', { className: "w-full space-y-1 text-center bg-slate-50 border border-border/60 rounded-lg p-2.5" }
-                  , React.createElement('span', { className: "text-[9px] font-bold text-muted-foreground uppercase tracking-wider block" }, "Testing QR Link (Copy & Paste):")
-                  , React.createElement('a', { href: primaryBranch.qrPayload, target: "_blank", rel: "noreferrer", className: "text-[10px] text-primary hover:underline break-all block font-mono select-all" }, primaryBranch.qrPayload)
-                )
-              )
             )
             , React.createElement(DialogFooter, { className: "flex gap-2" }
               , React.createElement(Button, {
