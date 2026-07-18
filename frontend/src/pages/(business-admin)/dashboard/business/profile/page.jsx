@@ -963,6 +963,22 @@ export default function BusinessProfilePage() {
                     <p className="text-[9px] text-[#64748B] mt-0.5">Manage locations</p>
                   </div>
                 </button>
+
+                {/* QR Poster Designer Shortcut */}
+                <button
+                  onClick={() => navigate("/dashboard/business/posters")}
+                  className="col-span-2 bg-gradient-to-r from-orange-50 to-orange-100/30 rounded-3xl border border-orange-100/70 p-4 shadow-sm text-left flex items-start gap-3 hover:from-orange-100/50 hover:to-orange-150/30 transition-all active:scale-[0.98]"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-[#FFF0E6] text-primary flex items-center justify-center shrink-0">
+                    <Palette className="h-4.5 w-4.5" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <h4 className="font-black text-xs text-[#0F172A] leading-tight">QR Poster Designer</h4>
+                    <p className="text-[10px] text-[#64748B] leading-tight">
+                      Pick a layout, select a store branch, and download your printable counter checkout QR poster instantly.
+                    </p>
+                  </div>
+                </button>
               </div>
             </div>
 
@@ -1127,21 +1143,41 @@ export default function BusinessProfilePage() {
 
       {/* ── DESKTOP VIEW LAYOUT (hidden on mobile) ── */}
       <div className="hidden md:block space-y-8 animate-fade-in max-w-7xl mx-auto px-6 py-6">
+        {/* Banner/Cover image if present */}
+        {(business.coverUrl || customUrls["coverUrl"]) && (
+          <div className="h-40 w-full relative overflow-hidden rounded-3xl border border-slate-100 shadow-sm">
+            <img
+              src={getImageUrl(customUrls["coverUrl"] || business.coverUrl)}
+              alt="Cover Banner"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+
         {/* Profile Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-border">
           <div className="flex items-center gap-4">
-            <div className="relative group w-20 h-20 shrink-0 rounded-full border-2 border-border shadow-md overflow-hidden bg-slate-50 flex items-center justify-center">
-              {business?.logoUrl ? (
-                <img
-                  src={getImageUrl(business.logoUrl)}
-                  alt={business.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span className="text-2xl font-black bg-gradient-to-tr from-primary to-orange-600 bg-clip-text text-transparent">
-                  {initials}
-                </span>
-              )}
+            <div className="relative shrink-0">
+              <div className="relative group w-20 h-20 rounded-full border-2 border-border shadow-md overflow-hidden bg-slate-50 flex items-center justify-center">
+                {business?.logoUrl || customUrls["logoUrl"] ? (
+                  <img
+                    src={getImageUrl(customUrls["logoUrl"] || business.logoUrl)}
+                    alt={business.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-2xl font-black bg-gradient-to-tr from-primary to-orange-600 bg-clip-text text-transparent">
+                    {initials}
+                  </span>
+                )}
+              </div>
+              <button 
+                onClick={() => fileInputRefs.current["logoUrl"]?.click()}
+                className="absolute -bottom-1 -right-1 bg-[#F97316] text-white shadow-md active:scale-90 transition-transform border-2 border-white z-10"
+                style={{ borderRadius: "50%", width: "28px", height: "28px", minWidth: "28px", minHeight: "28px", padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                <Camera className="h-3.5 w-3.5" />
+              </button>
             </div>
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
@@ -1161,7 +1197,16 @@ export default function BusinessProfilePage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button onClick={logout} variant="outline" size="sm" className="text-red-500 hover:bg-red-50 hover:text-red-600 border-red-200 font-bold rounded-xl">
+            <Button
+              type="button"
+              onClick={() => fileInputRefs.current["coverUrl"]?.click()}
+              variant="outline"
+              size="sm"
+              className="text-slate-600 border-slate-200 hover:bg-slate-50 font-bold rounded-xl h-9"
+            >
+              <Upload className="h-4 w-4 mr-2" /> Upload Banner
+            </Button>
+            <Button onClick={logout} variant="outline" size="sm" className="text-red-500 hover:bg-red-50 hover:text-red-600 border-red-200 font-bold rounded-xl h-9">
               <LogOut className="h-4 w-4 mr-2" /> Sign Out
             </Button>
           </div>

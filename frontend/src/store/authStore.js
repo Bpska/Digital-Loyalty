@@ -2,10 +2,20 @@
 import { api } from "@/lib/api";
 
 const getErrorMessage = (err, defaultMessage) => {
-  if (_optionalChain([err, 'optionalAccess', _ => _.errors]) && Array.isArray(err.errors) && err.errors.length > 0) {
+  const is401 = 
+    _optionalChain([err, 'optionalAccess', _ => _.status]) === 401 || 
+    _optionalChain([err, 'optionalAccess', _2 => _2.statusCode]) === 401 || 
+    _optionalChain([err, 'optionalAccess', _3 => _3.response, 'optionalAccess', _4 => _4.status]) === 401 ||
+    (_optionalChain([err, 'optionalAccess', _5 => _5.message]) && typeof err.message === 'string' && err.message.includes("401"));
+
+  if (is401) {
+    return "Incorrect email/phone or password. Please try again.";
+  }
+
+  if (_optionalChain([err, 'optionalAccess', _6 => _6.errors]) && Array.isArray(err.errors) && err.errors.length > 0) {
     return err.errors.join(", ");
   }
-  return _optionalChain([err, 'optionalAccess', _2 => _2.message]) || defaultMessage;
+  return _optionalChain([err, 'optionalAccess', _7 => _7.message]) || defaultMessage;
 };
 
 

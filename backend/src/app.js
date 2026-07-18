@@ -28,6 +28,7 @@ import analyticsRoutes from './modules/analytics/analytics.routes.js';
 import notificationRoutes from './modules/notification/notification.routes.js';
 import loyaltyApprovalRoutes from './modules/loyalty-approval/loyalty-approval.routes.js';
 import reviewRoutes from './modules/reviews/review.routes.js';
+import posterRoutes from './modules/poster/poster.routes.js';
 
 export function createApp() {
   const app = express();
@@ -135,6 +136,7 @@ export function createApp() {
   api.use('/notifications', notificationRoutes);
   api.use('/loyalty-approval', loyaltyApprovalRoutes);
   api.use('/reviews', reviewRoutes);
+  api.use('/posters', posterRoutes);
 
   app.use('/api/v1', api);
 

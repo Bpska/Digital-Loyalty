@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { 
   Award, Star, Loader2, History, Building2, ChevronDown, ChevronRight, 
-  QrCode, Hourglass, Gift, Check, ArrowRight, BookOpen, User, ArrowUpRight
+  QrCode, Hourglass, Gift, Check, ArrowRight, BookOpen, User, ArrowUpRight, Store
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -59,6 +59,7 @@ export default function CustomerLoyaltyHistoryPage() {
   const [timeRange, setTimeRange] = useState("This Month");
   const [selectedTx, setSelectedTx] = useState(null);
   const [showAllShopsLoyaltyModal, setShowAllShopsLoyaltyModal] = useState(false);
+  const [showBreakdownModal, setShowBreakdownModal] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["loyaltyHistory"],
@@ -106,6 +107,22 @@ export default function CustomerLoyaltyHistoryPage() {
   const rewardName = nearestCard ? (nearestCard.visitCard?.settings?.rewardName || nearestCard.settings?.rewardName || "Free Reward") : "";
   const stampsRemaining = requiredStamps - currentStamps;
   const progressPercent = requiredStamps > 0 ? (currentStamps / requiredStamps) * 100 : 0;
+
+  // Calculate points breakdown per store
+  const pointsByStore = filteredTransactions.reduce((acc, tx) => {
+    const bizId = tx.businessId;
+    const bizName = tx.business?.name || "Unknown Store";
+    const bizCategory = tx.business?.category || "Store";
+    if (!acc[bizId]) {
+      acc[bizId] = { name: bizName, category: bizCategory, points: 0, extraPoints: 0 };
+    }
+    acc[bizId].points += tx.points;
+    acc[bizId].extraPoints += (tx.extraPoints || 0);
+    return acc;
+  }, {});
+
+  const pointsByStoreList = Object.values(pointsByStore);
+  const totalStoresVisited = pointsByStoreList.length;
 
   // Group transactions by date label
   const groupTransactionsByDate = (items) => {
@@ -163,7 +180,10 @@ export default function CustomerLoyaltyHistoryPage() {
       /* C. Points summary (2 cards side by side) */
       , React.createElement('div', { className: "grid grid-cols-2 gap-3" }
         /* Total Points Card */
-        , React.createElement('div', { className: "bg-[#F97316] text-white rounded-3xl p-4 relative overflow-hidden flex flex-col justify-between h-28 shadow-sm border border-[#F97316]" }
+        , React.createElement('div', {
+            onClick: () => setShowBreakdownModal(true),
+            className: "bg-[#F97316] text-white rounded-3xl p-4 relative overflow-hidden flex flex-col justify-between h-28 shadow-sm border border-[#F97316] cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all"
+          }
           , React.createElement('div', { className: "flex justify-between items-start" }
             , React.createElement('span', { className: "text-[9px] font-extrabold tracking-wider opacity-90 uppercase" }, "Total Points")
             , React.createElement('div', { className: "w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white shrink-0" }
@@ -266,30 +286,7 @@ export default function CustomerLoyaltyHistoryPage() {
           )
         )
 
-      /* E. "How It Works" panel */
-      , React.createElement('div', { className: "bg-[#F1F5F9] rounded-3xl p-5 space-y-4" }
-        , React.createElement('h3', { className: "font-black text-sm text-[#0F172A] tracking-tight" }, "How It Works")
-        , React.createElement('div', { className: "flex items-center justify-between gap-1.5" }
-          , [
-              { num: "1", title: "Scan QR", desc: "Scan the QR code at any business", icon: QrCode },
-              { num: "2", title: "Wait Approval", desc: "Business owner approves your visit", icon: Hourglass },
-              { num: "3", title: "Earn Points", desc: "Points added to your account", icon: Gift }
-            ].map((step, i) => React.createElement(React.Fragment, { key: step.num }
-              , React.createElement('div', { className: "flex-1 flex flex-col items-center text-center space-y-1.5 min-w-0" }
-                , React.createElement('div', { className: "relative w-10 h-10 rounded-full bg-[#FFEDD5] flex items-center justify-center text-[#F97316] shrink-0 shadow-sm border border-[#FFE4E6]/25" }
-                  , React.createElement(step.icon, { className: "h-4.5 w-4.5" })
-                  , React.createElement('span', {
-                      className: "absolute -top-1.5 -right-1.5 bg-[#F97316] text-white text-[9px] font-black flex items-center justify-center border border-white shadow-sm",
-                      style: { borderRadius: "50%", width: "16px", height: "16px", minWidth: "16px", minHeight: "16px", padding: 0 }
-                    }, step.num)
-                )
-                , React.createElement('p', { className: "text-[10px] font-black text-[#0F172A] truncate w-full" }, step.title)
-                , React.createElement('p', { className: "text-[8px] text-[#64748B] leading-normal line-clamp-2 w-full" }, step.desc)
-              )
-              , i < 2 && React.createElement('span', { className: "text-[#94A3B8] text-xs font-bold -translate-y-4" }, "→")
-            ))
-        )
-      )
+
 
       /* F. Promo callout card */
       , React.createElement('div', { className: "bg-[#FFEDD5]/60 rounded-3xl p-4 flex items-center justify-between gap-4 border border-[#FFEDD5]/20" }
@@ -453,6 +450,53 @@ export default function CustomerLoyaltyHistoryPage() {
             , React.createElement(Button, {
                 onClick: () => setSelectedTx(null),
                 className: "w-full bg-[#F97316] text-white font-bold rounded-2xl text-xs py-2.5 h-10 flex items-center justify-center active:scale-95 transition-transform mt-2"
+              }
+              , "Close"
+            )
+          )
+        )
+      , showBreakdownModal && React.createElement(Dialog, {
+          open: showBreakdownModal,
+          onOpenChange: (open) => !open && setShowBreakdownModal(false)
+        }
+          , React.createElement(DialogContent, { className: "max-w-[360px] bg-white border border-border p-6 rounded-3xl shadow-xl max-h-[80vh] flex flex-col" }
+            , React.createElement(DialogHeader, { className: "flex flex-col items-center shrink-0" }
+              , React.createElement('div', { className: "h-12 w-12 rounded-full bg-[#FFEDD5] flex items-center justify-center mb-2 text-[#F97316]" }
+                , React.createElement(Store, { className: "h-6 w-6" })
+              )
+              , React.createElement(DialogTitle, { className: "text-base font-black text-slate-800 text-center" }, "Points Breakdown")
+              , React.createElement(DialogDescription, { className: "text-xs text-muted-foreground text-center" }
+                , `You have visited ${totalStoresVisited} shop${totalStoresVisited !== 1 ? 's' : ''} overall.`
+              )
+            )
+            , React.createElement('div', { className: "flex-1 overflow-y-auto space-y-3 py-4 scrollbar-none" }
+              , pointsByStoreList.length === 0 ? (
+                  React.createElement('p', { className: "text-center text-xs text-slate-400 py-6" }, "No store visits logged yet.")
+                ) : (
+                  pointsByStoreList.map((item, idx) => {
+                    const style = getCategoryStyle(item.category);
+                    const IconComponent = style.icon;
+                    return React.createElement('div', { key: idx, className: "flex items-center justify-between bg-slate-50 border border-slate-100 rounded-2xl p-3.5" }
+                      , React.createElement('div', { className: "flex items-center gap-2.5 min-w-0" }
+                        , React.createElement('div', { className: cn("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", style.bg, style.text) }
+                          , React.createElement(IconComponent, { className: "h-4.5 w-4.5" })
+                        )
+                        , React.createElement('div', { className: "min-w-0" }
+                          , React.createElement('h4', { className: "font-black text-xs text-[#0F172A] truncate" }, item.name)
+                          , React.createElement('span', { className: "text-[8px] bg-slate-200/60 text-slate-500 font-extrabold px-1.5 py-0.5 rounded-full uppercase" }, item.category)
+                        )
+                      )
+                      , React.createElement('div', { className: "text-right shrink-0" }
+                        , React.createElement('p', { className: "text-xs font-black text-[#F97316]" }, `+${item.extraPoints} pts`)
+                        , React.createElement('p', { className: "text-[7px] text-[#64748B] font-bold" }, `+${item.points} total`)
+                      )
+                    );
+                  })
+                )
+            )
+            , React.createElement(Button, {
+                onClick: () => setShowBreakdownModal(false),
+                className: "w-full bg-[#F97316] text-white font-bold rounded-2xl text-xs py-2.5 h-10 flex items-center justify-center active:scale-95 transition-transform mt-2 shrink-0"
               }
               , "Close"
             )

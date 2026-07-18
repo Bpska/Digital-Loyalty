@@ -3,6 +3,7 @@ import { env } from './config/env.js';
 import { createApp } from './app.js';
 import { logger } from './utils/logger.js';
 import prisma from './config/prisma.js';
+import { seedPosterTemplates } from './modules/poster/poster.controller.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -96,6 +97,8 @@ async function bootstrap() {
     
     // Seed default settings
     await seedDefaultSettings();
+    // Seed default poster templates
+    await seedPosterTemplates();
   } catch (err) {
     logger.error('❌ Failed to connect to database', { err });
     process.exit(1);

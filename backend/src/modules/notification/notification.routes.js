@@ -50,34 +50,12 @@ router.post('/send', authenticate, authorize(Role.BUSINESS_ADMIN), validate(send
       throw new AppError('Business ID not found in profile', 400);
     }
 
-    // Collect all unique customers who joined, scanned, registered, or earned loyalty points
-    const customerIds = new Set();
-
-    const cp = await prisma.customerPoints.findMany({
-      where: { businessId },
-      select: { customerId: true },
+    // Collect all active customers registered in the system
+    const allCustomers = await prisma.user.findMany({
+      where: { role: Role.CUSTOMER, deletedAt: null },
+      select: { id: true },
     });
-    cp.forEach(r => customerIds.add(r.customerId));
-
-    const ci = await prisma.checkIn.findMany({
-      where: { businessId },
-      select: { customerId: true },
-    });
-    ci.forEach(r => customerIds.add(r.customerId));
-
-    const cc = await prisma.claimedCoupon.findMany({
-      where: { coupon: { businessId } },
-      select: { customerId: true },
-    });
-    cc.forEach(r => customerIds.add(r.customerId));
-
-    const cr = await prisma.customerReward.findMany({
-      where: { reward: { businessId } },
-      select: { customerId: true },
-    });
-    cr.forEach(r => customerIds.add(r.customerId));
-
-    const recipientList = Array.from(customerIds);
+    const recipientList = allCustomers.map(u => u.id);
     const campaignId = `camp_${Date.now()}`;
 
     if (recipientList.length > 0) {
@@ -170,6 +148,16 @@ router.post('/read-all', authenticate, async (req, res, next) => {
       data: { isRead: true },
     });
     sendSuccess(res, null, 'All notifications marked as read');
+  } catch (err) { next(err); }
+});
+
+// Delete all notifications for user
+router.delete('/clear-all', authenticate, async (req, res, next) => {
+  try {
+    await prisma.notification.deleteMany({
+      where: { userId: req.user.sub },
+    });
+    sendSuccess(res, null, 'All notifications deleted successfully');
   } catch (err) { next(err); }
 });
 

@@ -887,3 +887,31 @@ model ReviewTemplate {
   @@map("review_templates")
 }
 
+model PosterTemplate {
+  id                   String   @id @default(cuid())
+  name                 String
+  category             String
+  backgroundImage      String   @map("background_image")
+  logoPosition         Json     @map("logo_position")
+  qrPosition           Json     @map("qr_position")
+  businessNamePosition Json     @map("business_name_position")
+  phonePosition        Json     @map("phone_position")
+  addressPosition      Json     @map("address_position")
+  status               Boolean  @default(true)
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@map("poster_templates")
+}
+
+model BusinessPosterSetting {
+  id                 String   @id @default(cuid())
+  businessId         String   @unique @map("business_id")
+  selectedTemplateId String?  @map("selected_template_id")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@map("business_poster_settings")
+}
+
+

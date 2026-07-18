@@ -13,7 +13,8 @@ import {
   X, 
   Loader2,
   MessageSquare,
-  Megaphone
+  Megaphone,
+  Palette
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -51,6 +52,7 @@ export default function SuperAdminLayout({
   const menuItems = [
     { label: "Console Overview", icon: ShieldCheck, href: "/dashboard/super" },
     { label: "Businesses & Plans", icon: Building2, href: "/dashboard/super/businesses" },
+    { label: "Poster Templates", icon: Palette, href: "/dashboard/super/posters" },
     { label: "Fraud Monitor", icon: AlertTriangle, href: "/dashboard/super/fraud" },
     { label: "Support Messages", icon: MessageSquare, href: "/dashboard/super/support" },
     { label: "Ads Management", icon: Megaphone, href: "/dashboard/super/ads" },

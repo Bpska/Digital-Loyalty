@@ -104,6 +104,15 @@ export default function CustomerLayout({
     }
   };
 
+  const handleClearAll = async () => {
+    try {
+      await api.delete("/notifications/clear-all");
+      fetchNotifications();
+    } catch (err) {
+      console.error("Failed to clear notifications:", err);
+    }
+  };
+
   useEffect(() => {
     if (!loading) {
       if (!user || user.role !== "CUSTOMER") {
@@ -249,18 +258,28 @@ export default function CustomerLayout({
                     , React.createElement(DialogDescription, { className: "text-[10px] text-muted-foreground mt-0.5" }, "Alerts and updates from the platform")
                   )
                   , notifications.length > 0 && (
-                      React.createElement(Button, {
-                        size: "sm",
-                        variant: "ghost",
-                        className: cn(
-                          "text-[10px] h-7 font-bold px-2 transition-all",
-                          unreadCount > 0
-                            ? "text-[#F97316] hover:text-[#EA580C] hover:bg-orange-50 active:scale-95"
-                            : "text-muted-foreground opacity-50 cursor-not-allowed"
-                        ),
-                        onClick: unreadCount > 0 ? handleMarkAllRead : undefined,
-                        disabled: unreadCount === 0
-                      }, "Mark all read")
+                      React.createElement('div', { className: "flex items-center gap-1.5 shrink-0" }
+                        , React.createElement(Button, {
+                            size: "sm",
+                            variant: "ghost",
+                            className: cn(
+                              "text-[10px] h-7 font-bold px-2 transition-all text-red-500 hover:text-red-600 hover:bg-red-50 active:scale-95"
+                            ),
+                            onClick: handleClearAll
+                          }, "Clear")
+                        , React.createElement(Button, {
+                            size: "sm",
+                            variant: "ghost",
+                            className: cn(
+                              "text-[10px] h-7 font-bold px-2 transition-all",
+                              unreadCount > 0
+                                ? "text-[#F97316] hover:text-[#EA580C] hover:bg-orange-50 active:scale-95"
+                                : "text-muted-foreground opacity-50 cursor-not-allowed"
+                            ),
+                            onClick: unreadCount > 0 ? handleMarkAllRead : undefined,
+                            disabled: unreadCount === 0
+                          }, "Mark read")
+                      )
                     )
                 )
                 , React.createElement('div', { className: "max-h-[320px] overflow-y-auto space-y-3 py-2 scrollbar-none" }

@@ -1,52 +1,60 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
+import Loader from './components/Loader';
 
-// Layouts
+// ── Layouts (eagerly loaded — shared shell for all child pages) ───
 import RootLayout from './pages/layout.js';
-import CustomerLayout from './pages/(customer)/layout.js';
-import BusinessAdminLayout from './pages/(business-admin)/layout.js';
-import SuperAdminLayout from './pages/(super-admin)/layout.js';
 
-// Pages
-import PublicLanding from './pages/page.js';
-import Login from './pages/(auth)/login/page.js';
-import VerifyEmail from './pages/(auth)/verify-email/page.js';
-import ForgotPassword from './pages/(auth)/forgot-password/page.js';
-import PrivacyPolicy from './pages/privacy-policy.js';
-import TermsOfService from './pages/terms-of-service.js';
+// Lazy-load all layouts and pages to enable route-level code splitting.
+// Each lazy() call becomes a separate JS chunk only downloaded when visited.
 
-// Customer Pages
-import CustomerDashboard from './pages/(customer)/dashboard/page.js';
-import CustomerHistory from './pages/(customer)/history/page.js';
-import CustomerProfile from './pages/(customer)/profile/page.js';
-import CustomerCheckin from './pages/(customer)/checkin/page.js';
-import CustomerLoyaltyHistory from './pages/(customer)/loyalty-history/page.js';
-import CustomerReview from './pages/(customer)/review/page.js';
+// ── Auth & Public ────────────────────────────────────────────────
+const CustomerLayout     = React.lazy(() => import('./pages/(customer)/layout.js'));
+const BusinessAdminLayout = React.lazy(() => import('./pages/(business-admin)/layout.js'));
+const SuperAdminLayout   = React.lazy(() => import('./pages/(super-admin)/layout.js'));
 
-// Business Admin Pages
-import BusinessDashboard from './pages/(business-admin)/dashboard/business/page.js';
-import BusinessAnalytics from './pages/(business-admin)/dashboard/business/analytics/page.js';
-import BusinessBranches from './pages/(business-admin)/dashboard/business/branches/page.js';
-import BusinessCoupons from './pages/(business-admin)/dashboard/business/coupons/page.js';
-import BusinessLoyalty from './pages/(business-admin)/dashboard/business/loyalty/page.js';
-import BusinessRewards from './pages/(business-admin)/dashboard/business/rewards/page.js';
-import BusinessCheckins from './pages/(business-admin)/dashboard/business/checkins/page.js';
-import BusinessApprovals from './pages/(business-admin)/dashboard/business/approvals/page.js';
-import BusinessLoyaltyConfig from './pages/(business-admin)/dashboard/business/loyalty-config/page.js';
-import BusinessRedemptions from './pages/(business-admin)/dashboard/business/redemptions/page.js';
-import BrandCustomizationPage from './pages/(business-admin)/dashboard/business/branding/page.js';
-import BusinessProfile from './pages/(business-admin)/dashboard/business/profile/page.jsx';
-import BusinessCustomerNotifications from './pages/(business-admin)/dashboard/business/notifications/page.js';
+const PublicLanding      = React.lazy(() => import('./pages/page.js'));
+const Login              = React.lazy(() => import('./pages/(auth)/login/page.jsx'));
+const VerifyEmail        = React.lazy(() => import('./pages/(auth)/verify-email/page.js'));
+const ForgotPassword     = React.lazy(() => import('./pages/(auth)/forgot-password/page.js'));
+const RegisterBusiness   = React.lazy(() => import('./pages/(auth)/register-business/page.jsx'));
+const PrivacyPolicy      = React.lazy(() => import('./pages/privacy-policy.js'));
+const TermsOfService     = React.lazy(() => import('./pages/terms-of-service.js'));
 
-// Super Admin Pages
-import SuperDashboard from './pages/(super-admin)/dashboard/super/page.js';
-import SuperBusinesses from './pages/(super-admin)/dashboard/super/businesses/page.js';
-import SuperFraud from './pages/(super-admin)/dashboard/super/fraud/page.js';
-import SuperSupport from './pages/(super-admin)/dashboard/super/support/page.js';
-import SuperAds from './pages/(super-admin)/dashboard/super/ads/page.js';
+// ── Customer Pages ───────────────────────────────────────────────
+const CustomerDashboard      = React.lazy(() => import('./pages/(customer)/dashboard/page.js'));
+const CustomerHistory        = React.lazy(() => import('./pages/(customer)/history/page.js'));
+const CustomerProfile        = React.lazy(() => import('./pages/(customer)/profile/page.js'));
+const CustomerCheckin        = React.lazy(() => import('./pages/(customer)/checkin/page.js'));
+const CustomerLoyaltyHistory = React.lazy(() => import('./pages/(customer)/loyalty-history/page.js'));
+const CustomerReview         = React.lazy(() => import('./pages/(customer)/review/page.js'));
 
-// Scroll to top on every route change (fixes back-navigation landing at footer)
+// ── Business Admin Pages ─────────────────────────────────────────
+const BusinessDashboard             = React.lazy(() => import('./pages/(business-admin)/dashboard/business/page.js'));
+const BusinessAnalytics             = React.lazy(() => import('./pages/(business-admin)/dashboard/business/analytics/page.js'));
+const BusinessBranches              = React.lazy(() => import('./pages/(business-admin)/dashboard/business/branches/page.js'));
+const BusinessCoupons               = React.lazy(() => import('./pages/(business-admin)/dashboard/business/coupons/page.js'));
+const BusinessLoyalty               = React.lazy(() => import('./pages/(business-admin)/dashboard/business/loyalty/page.js'));
+const BusinessRewards               = React.lazy(() => import('./pages/(business-admin)/dashboard/business/rewards/page.js'));
+const BusinessCheckins              = React.lazy(() => import('./pages/(business-admin)/dashboard/business/checkins/page.js'));
+const BusinessApprovals             = React.lazy(() => import('./pages/(business-admin)/dashboard/business/approvals/page.js'));
+const BusinessLoyaltyConfig         = React.lazy(() => import('./pages/(business-admin)/dashboard/business/loyalty-config/page.js'));
+const BusinessRedemptions           = React.lazy(() => import('./pages/(business-admin)/dashboard/business/redemptions/page.js'));
+const BrandCustomizationPage        = React.lazy(() => import('./pages/(business-admin)/dashboard/business/branding/page.js'));
+const BusinessProfile               = React.lazy(() => import('./pages/(business-admin)/dashboard/business/profile/page.jsx'));
+const BusinessCustomerNotifications = React.lazy(() => import('./pages/(business-admin)/dashboard/business/notifications/page.js'));
+const BusinessPosterDesigner        = React.lazy(() => import('./pages/(business-admin)/dashboard/business/posters/page.jsx'));
+
+// ── Super Admin Pages ────────────────────────────────────────────
+const SuperDashboard  = React.lazy(() => import('./pages/(super-admin)/dashboard/super/page.js'));
+const SuperBusinesses = React.lazy(() => import('./pages/(super-admin)/dashboard/super/businesses/page.js'));
+const SuperFraud      = React.lazy(() => import('./pages/(super-admin)/dashboard/super/fraud/page.js'));
+const SuperSupport    = React.lazy(() => import('./pages/(super-admin)/dashboard/super/support/page.js'));
+const SuperAds        = React.lazy(() => import('./pages/(super-admin)/dashboard/super/ads/page.js'));
+const SuperPosterManager = React.lazy(() => import('./pages/(super-admin)/dashboard/super/posters/page.jsx'));
+
+// ── Scroll to top on route change ───────────────────────────────
 function ScrollToTop() {
   const { pathname } = useLocation();
   React.useEffect(() => {
@@ -55,6 +63,7 @@ function ScrollToTop() {
   return null;
 }
 
+// ── Redirect based on role ───────────────────────────────────────
 function LandingGuard() {
   const user = useAuthStore((state) => state.user);
 
@@ -83,58 +92,72 @@ function LandingGuard() {
   return <PublicLanding />;
 }
 
+// ── Loading fallback shown while a lazy chunk is downloading ─────
+function PageLoader() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <Loader />
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
-      <Routes>
-        {/* Root Layout */}
-        <Route element={<RootLayout />}>
-          {/* Public Routes */}
-          <Route path="/" element={<LandingGuard />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="/terms-of-service" element={<TermsOfService />} />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* Root Layout */}
+          <Route element={<RootLayout />}>
+            {/* Public Routes */}
+            <Route path="/" element={<LandingGuard />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/register-business" element={<RegisterBusiness />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
 
-          {/* Customer Routes */}
-          <Route element={<CustomerLayout />}>
-            <Route path="/dashboard" element={<CustomerDashboard />} />
-            <Route path="/history" element={<CustomerHistory />} />
-            <Route path="/profile" element={<CustomerProfile />} />
-            <Route path="/checkin" element={<CustomerCheckin />} />
-            <Route path="/loyalty-history" element={<CustomerLoyaltyHistory />} />
-            <Route path="/review" element={<CustomerReview />} />
-          </Route>
+            {/* Customer Routes */}
+            <Route element={<CustomerLayout />}>
+              <Route path="/dashboard" element={<CustomerDashboard />} />
+              <Route path="/history" element={<CustomerHistory />} />
+              <Route path="/profile" element={<CustomerProfile />} />
+              <Route path="/checkin" element={<CustomerCheckin />} />
+              <Route path="/loyalty-history" element={<CustomerLoyaltyHistory />} />
+              <Route path="/review" element={<CustomerReview />} />
+            </Route>
 
-          {/* Business Admin Routes */}
-          <Route element={<BusinessAdminLayout />}>
-            <Route path="/dashboard/business" element={<BusinessDashboard />} />
-            <Route path="/dashboard/business/analytics" element={<BusinessAnalytics />} />
-            <Route path="/dashboard/business/branches" element={<BusinessBranches />} />
-            <Route path="/dashboard/business/coupons" element={<BusinessCoupons />} />
-            <Route path="/dashboard/business/loyalty" element={<BusinessLoyalty />} />
-            <Route path="/dashboard/business/rewards" element={<BusinessRewards />} />
-            <Route path="/dashboard/business/checkins" element={<BusinessCheckins />} />
-            <Route path="/dashboard/business/approvals" element={<BusinessApprovals />} />
-            <Route path="/dashboard/business/loyalty-config" element={<BusinessLoyaltyConfig />} />
-            <Route path="/dashboard/business/redemptions" element={<BusinessRedemptions />} />
-            <Route path="/dashboard/business/branding" element={<BrandCustomizationPage />} />
-            <Route path="/dashboard/business/profile" element={<BusinessProfile />} />
-            <Route path="/dashboard/business/notifications" element={<BusinessCustomerNotifications />} />
-          </Route>
+            {/* Business Admin Routes */}
+            <Route element={<BusinessAdminLayout />}>
+              <Route path="/dashboard/business" element={<BusinessDashboard />} />
+              <Route path="/dashboard/business/analytics" element={<BusinessAnalytics />} />
+              <Route path="/dashboard/business/branches" element={<BusinessBranches />} />
+              <Route path="/dashboard/business/coupons" element={<BusinessCoupons />} />
+              <Route path="/dashboard/business/loyalty" element={<BusinessLoyalty />} />
+              <Route path="/dashboard/business/rewards" element={<BusinessRewards />} />
+              <Route path="/dashboard/business/checkins" element={<BusinessCheckins />} />
+              <Route path="/dashboard/business/approvals" element={<BusinessApprovals />} />
+              <Route path="/dashboard/business/loyalty-config" element={<BusinessLoyaltyConfig />} />
+              <Route path="/dashboard/business/redemptions" element={<BusinessRedemptions />} />
+              <Route path="/dashboard/business/branding" element={<BrandCustomizationPage />} />
+              <Route path="/dashboard/business/profile" element={<BusinessProfile />} />
+              <Route path="/dashboard/business/notifications" element={<BusinessCustomerNotifications />} />
+              <Route path="/dashboard/business/posters" element={<BusinessPosterDesigner />} />
+            </Route>
 
-          {/* Super Admin Routes */}
-          <Route element={<SuperAdminLayout />}>
-            <Route path="/dashboard/super" element={<SuperDashboard />} />
-            <Route path="/dashboard/super/businesses" element={<SuperBusinesses />} />
-            <Route path="/dashboard/super/fraud" element={<SuperFraud />} />
-            <Route path="/dashboard/super/support" element={<SuperSupport />} />
-            <Route path="/dashboard/super/ads" element={<SuperAds />} />
+            {/* Super Admin Routes */}
+            <Route element={<SuperAdminLayout />}>
+              <Route path="/dashboard/super" element={<SuperDashboard />} />
+              <Route path="/dashboard/super/businesses" element={<SuperBusinesses />} />
+              <Route path="/dashboard/super/fraud" element={<SuperFraud />} />
+              <Route path="/dashboard/super/support" element={<SuperSupport />} />
+              <Route path="/dashboard/super/ads" element={<SuperAds />} />
+              <Route path="/dashboard/super/posters" element={<SuperPosterManager />} />
+            </Route>
           </Route>
-        </Route>
-      </Routes>
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

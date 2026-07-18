@@ -512,6 +512,15 @@ export default function BusinessAdminLayout({
     }
   };
 
+  const handleClearAll = async () => {
+    try {
+      await api.delete("/notifications/clear-all");
+      fetchNotifications();
+    } catch (err) {
+      console.error("Failed to clear notifications:", err);
+    }
+  };
+
   useEffect(() => {
     if (!loading) {
       if (!user || user.role !== "BUSINESS_ADMIN") {
@@ -761,6 +770,7 @@ export default function BusinessAdminLayout({
         { label: "Customer Notifications", icon: Bell, href: "/dashboard/business/notifications", iconKey: "dashboardIcon" },
         { label: "Analytics", icon: BarChart3, href: "/dashboard/business/analytics", iconKey: "dashboardIcon" },
         { label: "Branches", icon: MapPin, href: "/dashboard/business/branches", iconKey: "dashboardIcon" },
+        { label: "QR Poster Designer", icon: Palette, href: "/dashboard/business/posters", iconKey: "dashboardIcon" },
         { label: "Loyalty Settings", icon: Settings2, href: "/dashboard/business/loyalty-config", iconKey: "loyaltyIcon" },
         { label: "Settings & Profile", icon: Settings, href: "/dashboard/business/profile", iconKey: "dashboardIcon" },
       ];
@@ -940,8 +950,27 @@ export default function BusinessAdminLayout({
                     , React.createElement(DialogTitle, { className: "text-base font-bold text-foreground" }, "System Notifications")
                     , React.createElement(DialogDescription, { className: "text-[10px] text-muted-foreground mt-0.5" }, "Alerts and messages sent by Super Admin")
                   )
-                  , unreadCount > 0 && (
-                      React.createElement(Button, { size: "sm", variant: "ghost", className: "text-[10px] h-7 text-primary hover:text-primary/80 font-bold px-2", onClick: handleMarkAllRead }, "Mark all read")
+                  , notifications.length > 0 && (
+                      React.createElement('div', { className: "flex items-center gap-1.5 shrink-0" }
+                        , React.createElement(Button, {
+                            size: "sm",
+                            variant: "ghost",
+                            className: "text-[10px] h-7 font-bold px-2 text-red-500 hover:text-red-600 hover:bg-red-50 active:scale-95 transition-all",
+                            onClick: handleClearAll
+                          }, "Clear")
+                        , React.createElement(Button, {
+                            size: "sm",
+                            variant: "ghost",
+                            className: cn(
+                              "text-[10px] h-7 font-bold px-2 transition-all",
+                              unreadCount > 0
+                                ? "text-primary hover:text-primary/80 hover:bg-[#F97316]/5 active:scale-95"
+                                : "text-muted-foreground opacity-50 cursor-not-allowed"
+                            ),
+                            onClick: unreadCount > 0 ? handleMarkAllRead : undefined,
+                            disabled: unreadCount === 0
+                          }, "Mark read")
+                      )
                     )
                 )
                 , React.createElement('div', { className: "max-h-[320px] overflow-y-auto space-y-3 py-2 scrollbar-none" }
