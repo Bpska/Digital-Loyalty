@@ -187,7 +187,9 @@ export default function LoginPage() {
     } else {
       if (!email || !password) return;
       const res = await loginWithPassword(email, password);
-      if (res && res.emailNotVerified) {
+      if (res && res.requiresVerification) {
+        navigate("/verify-email", { state: { userId: res.userId, email: res.email } });
+      } else if (res && res.emailNotVerified) {
         setPendingUserId(res.userId);
         setPendingEmail(res.email);
       }
@@ -213,7 +215,9 @@ export default function LoginPage() {
     } else {
       if (!email || !password) return;
       const res = await loginWithPassword(email, password);
-      if (res && res.emailNotVerified) {
+      if (res && res.requiresVerification) {
+        navigate("/verify-email", { state: { userId: res.userId, email: res.email } });
+      } else if (res && res.emailNotVerified) {
         setPendingUserId(res.userId);
         setPendingEmail(res.email);
       }

@@ -183,6 +183,11 @@ export async function login(req, res, next) {
   try {
     const ip = getClientIp(req);
     const result = await authService.passwordLogin(req.body, ip);
+    // Handle unverified users — send them to email OTP verification
+    if (result.requiresVerification) {
+      sendSuccess(res, { requiresVerification: true, userId: result.userId, email: result.email }, 'Verification code sent to your email. Please verify to continue.');
+      return;
+    }
     setTokenCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
     sendSuccess(res, { user: result.user, accessToken: result.tokens.accessToken }, 'Login successful');
   } catch (err) {

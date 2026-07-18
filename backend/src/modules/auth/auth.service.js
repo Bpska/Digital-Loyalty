@@ -471,9 +471,31 @@ export async function passwordLogin(
     throw new AppError('Invalid email or password', 401);
   }
 
-  // Block login if email is not verified (skip for SUPER_ADMIN)
+  // If email is not verified, auto-send a fresh verification OTP and return requiresVerification
+  // This handles legacy users registered before OTP was integrated
   if (!user.isEmailVerified && user.role !== 'SUPER_ADMIN') {
-    throw new AppError('Please verify your email before logging in.', 403, true, { code: 'EMAIL_NOT_VERIFIED' });
+    const otp = generateOtp();
+    const otpHash = await argon2.hash(otp);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    // Expire previous unverified OTPs for this user
+    await prisma.emailVerification.updateMany({
+      where: { userId: user.id, purpose: 'EMAIL_VERIFY', isVerified: false },
+      data: { expiresAt: new Date() },
+    });
+
+    await prisma.emailVerification.create({
+      data: { userId: user.id, email, otpHash, expiresAt, purpose: 'EMAIL_VERIFY' },
+    });
+
+    await sendVerificationEmail(email, otp);
+    logger.info('Sent email verification OTP during login for unverified user', { userId: user.id, email });
+
+    return {
+      requiresVerification: true,
+      userId: user.id,
+      email,
+    };
   }
 
   const tokenUser = {

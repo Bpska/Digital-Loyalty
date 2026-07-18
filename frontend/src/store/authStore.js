@@ -128,6 +128,15 @@ export const useAuthStore = create((set) => {
       try {
         const response = await api.post("/auth/login", { email, password });
         if (response.success && response.data) {
+          // Unverified legacy user — need email OTP verification first
+          if (response.data.requiresVerification) {
+            set({ loading: false });
+            return {
+              requiresVerification: true,
+              userId: response.data.userId,
+              email: response.data.email,
+            };
+          }
           const { user, accessToken } = response.data;
           
           if (typeof window !== "undefined") {
@@ -142,9 +151,6 @@ export const useAuthStore = create((set) => {
       } catch (err) {
         const errMsg = getErrorMessage(err, "Invalid email or password");
         set({ error: errMsg, loading: false });
-        if (err && err.code === 'EMAIL_NOT_VERIFIED') {
-          return { emailNotVerified: true, email, userId: err.userId };
-        }
         return false;
       }
     },
