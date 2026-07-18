@@ -22,45 +22,7 @@ export default defineConfig({
 
     rollupOptions: {
       output: {
-        // Split vendor libraries into separate cached chunks
-        manualChunks(id) {
-          // React core — tiny, always loaded
-          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
-            return 'react-core';
-          }
-          // Routing
-          if (id.includes('node_modules/react-router-dom/') || id.includes('node_modules/react-router/')) {
-            return 'react-router';
-          }
-          // Data fetching
-          if (id.includes('node_modules/@tanstack/')) {
-            return 'tanstack';
-          }
-          // Radix UI component library
-          if (id.includes('node_modules/@radix-ui/')) {
-            return 'radix-ui';
-          }
-          // Recharts (heavy charting lib — admin only)
-          if (id.includes('node_modules/recharts/') || id.includes('node_modules/d3-') || id.includes('node_modules/d3/')) {
-            return 'recharts';
-          }
-          // Leaflet maps (heavy — customer/map features)
-          if (id.includes('node_modules/leaflet/') || id.includes('node_modules/react-leaflet/')) {
-            return 'leaflet';
-          }
-          // QR scanner (heavy — checkin page only)
-          if (id.includes('node_modules/html5-qrcode/')) {
-            return 'qrcode';
-          }
-          // Lucide icons
-          if (id.includes('node_modules/lucide-react/')) {
-            return 'lucide';
-          }
-          // All other node_modules go into a general vendor chunk
-          if (id.includes('node_modules/')) {
-            return 'vendor';
-          }
-        },
+        // Let Vite/Rollup manage code splitting defaults
       },
     },
 
