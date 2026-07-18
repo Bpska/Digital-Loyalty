@@ -259,7 +259,8 @@ export const useAuthStore = create((set) => {
       try {
         const response = await api.post("/auth/forgot-password", { email });
         set({ loading: false });
-        return response.success;
+        // The API wrapper unpacks response.data. If response has success or is a truthy wrapper:
+        return response && (response.success || response.sent || response.data?.sent);
       } catch (err) {
         set({ error: getErrorMessage(err, "Failed to request password reset"), loading: false });
         return false;
@@ -271,7 +272,7 @@ export const useAuthStore = create((set) => {
       try {
         const response = await api.post("/auth/reset-password", { email, otp, newPassword });
         set({ loading: false });
-        return response.success;
+        return response && (response.success || response.data?.success || response.message?.includes("success") || response);
       } catch (err) {
         set({ error: getErrorMessage(err, "Failed to reset password"), loading: false });
         return false;
