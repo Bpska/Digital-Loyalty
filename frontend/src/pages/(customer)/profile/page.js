@@ -39,7 +39,7 @@ export default function ProfilePage() {
   const [deleteConfirmPhone, setDeleteConfirmPhone] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [message, setMessage] = useState(null);
-  const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "system");
+  const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "light");
 
   useEffect(() => {
     localStorage.setItem("theme", theme);

@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import {
   Gift, Coffee, Star, Stamp, MapPin, Award, CheckCircle2, Loader2,
   ChevronRight, QrCode, Tag, Percent, Banknote, Clock, Zap, CalendarDays, RefreshCcw,
-  Scissors, Hotel, Store, Sparkles, Bell, LayoutDashboard, Wallet, ChevronLeft, Building2, Utensils, User, History, Scan, Search
+  Scissors, Hotel, Store, Sparkles, Bell, LayoutDashboard, Wallet, ChevronLeft, Building2, Utensils, User, History, Scan, Search, ExternalLink
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -268,70 +268,45 @@ export default function CustomerDashboard() {
       Restaurants: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=150&auto=format&fit=crop&q=60",
       Salons: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=150&auto=format&fit=crop&q=60",
     };
-    const cat = b.business?.category || "Cafes";
+    // Preserve the real category from DB; only use fallback when truly missing
+    const cat = b.business?.category || "";
+    // Resolve a display-friendly category label for the filter chips
+    const resolveFilterLabel = (rawCat) => {
+      const c = (rawCat || "").toLowerCase().trim();
+      if (c.includes("cafe") || c.includes("coffee") || c.includes("bakery")) return "Cafes";
+      if (c.includes("hotel") || c.includes("resort") || c.includes("stay") || c.includes("hostel")) return "Hotels";
+      if (c.includes("restaurant") || c.includes("food") || c.includes("dining") || c.includes("biryani") || c.includes("dhaba")) return "Restaurants";
+      if (c.includes("salon") || c.includes("spa") || c.includes("beauty") || c.includes("hair") || c.includes("parlour")) return "Salons";
+      return rawCat || "Other";
+    };
+    const filterLabel = resolveFilterLabel(cat);
     return {
       id: b.id,
       businessId: b.business?.id,
       name: b.business?.name || b.name,
-      category: cat,
+      category: cat,          // real DB category string (shown in UI)
+      filterLabel,            // normalized label used for filter chip matching
       rating: "4.5",
       distance: distanceStr,
       isOpen: true,
+      bookingUrl: b.business?.bookingUrl || null,
       image: (b.business?.logoUrl || b.business?.brandAsset?.logoUrl)
         ? getImageUrl(b.business?.logoUrl || b.business?.brandAsset?.logoUrl)
-        : (defaultImages[cat] || defaultImages.Cafes)
+        : (defaultImages[filterLabel] || defaultImages.Cafes)
     };
   });
 
-  // Filter nearby places using mapped backend branches
+  // Filter nearby places — use normalized filterLabel for chip matching
   const filteredPlaces = (activeFilter === "All"
     ? mappedPlaces
-    : mappedPlaces.filter(p => p.category === activeFilter)
-  ).filter(place => 
+    : mappedPlaces.filter(p => p.filterLabel === activeFilter)
+  ).filter(place =>
     place.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Filter nearby active branches that have planId (purchased plan) and within 2 km
-  const nearbyBranches = branches.filter((b) => {
-    if (!b.business?.planId) return false;
-    if (!userCoords) return true;
-    const dist = getDistance(userCoords.lat, userCoords.lng, parseFloat(b.latitude), parseFloat(b.longitude));
-    return dist <= 7.0; // 7km radius
-  });
+  // Only use real DB branches for the map (no mocks)
+  const displayBranches = branches.filter(b => b.business?.planId);
 
-  const mockBranches = [
-    {
-      id: "mock-br-1",
-      name: "Main Counter",
-      address: "Jayadev Vihar Road, Bhubaneswar",
-      latitude: 20.2985,
-      longitude: 85.8210,
-      business: { name: "Downtown Cafe", planId: "demo-plan" }
-    },
-    {
-      id: "mock-br-2",
-      name: "Primary Outlet",
-      address: "Acharya Vihar, Bhubaneswar",
-      latitude: 20.2940,
-      longitude: 85.8300,
-      business: { name: "Urban Scissors", planId: "demo-plan" }
-    },
-    {
-      id: "mock-br-3",
-      name: "Bhubaneswar Branch",
-      address: "Near NH16, Bhubaneswar",
-      latitude: 20.2890,
-      longitude: 85.8215,
-      business: { name: "Bite & Byte Burger", planId: "demo-plan" }
-    }
-  ];
-
-  const displayBranches = [
-    ...branches.filter(b => b.business?.planId),
-    ...mockBranches
-  ];
-
-  const isTestingFallback = false;
 
   return (
     React.createElement('div', { className: "space-y-6 pb-12" }
@@ -353,8 +328,8 @@ export default function CustomerDashboard() {
       )
 
       /* Search Option */
-      , React.createElement('div', { className: "px-1" }
-        , React.createElement('div', { className: "relative flex items-center bg-white border border-slate-200 rounded-2xl shadow-sm px-3.5 py-1.5 focus-within:border-primary transition-colors" }
+      , React.createElement('div', { className: "px-1 space-y-2" }
+        , React.createElement('div', { className: "relative flex items-center bg-white border border-slate-200 rounded-2xl shadow-sm px-3.5 py-1.5 focus-within:border-[#F97316] transition-colors" }
           , React.createElement(Search, { className: "h-4 w-4 text-[#94A3B8] mr-2.5 shrink-0" })
           , React.createElement('input', {
               type: "text",
@@ -363,6 +338,67 @@ export default function CustomerDashboard() {
               onChange: (e) => setSearchQuery(e.target.value),
               className: "w-full bg-transparent text-xs py-1 focus:outline-none text-[#0F172A] placeholder-slate-400 font-semibold"
             })
+          , searchQuery.trim() !== "" && React.createElement('button', {
+              onClick: () => setSearchQuery(""),
+              className: "ml-2 text-slate-400 hover:text-slate-600 text-xs font-bold px-1"
+            }, "✕")
+        )
+
+        /* ── Search Results Panel ── */
+        , searchQuery.trim() !== "" && React.createElement('div', { className: "bg-white border border-slate-200 rounded-2xl shadow-md overflow-hidden" }
+          , (() => {
+              // Combine loyalty cards + nearby places, de-duplicate by business name
+              const lcResults = filteredLoyaltyCards.map(card => ({
+                key: "lc-" + card.id,
+                name: card.business?.name || "",
+                category: card.business?.category || "",
+                type: "Your Card",
+                stamps: `${card.wallet?.currentStamps || 0}/${card.settings?.requiredStamps || 7} stamps`,
+                onClick: () => { /* scroll to loyalty section handled by filter */ }
+              }));
+              const lcNames = new Set(lcResults.map(r => r.name.toLowerCase()));
+              const placeResults = filteredPlaces
+                .filter(p => !lcNames.has((p.name || "").toLowerCase()))
+                .map(p => ({
+                  key: "pl-" + p.id,
+                  name: p.name || "",
+                  category: p.category || "",
+                  type: "Nearby",
+                  stamps: null,
+                  onClick: () => navigate("/checkin")
+                }));
+              const allResults = [...lcResults, ...placeResults];
+
+              if (allResults.length === 0) {
+                return React.createElement('div', { className: "py-6 text-center" }
+                  , React.createElement('p', { className: "text-xs text-slate-400 font-semibold" }, "No shops found for \"" + searchQuery + "\"")
+                );
+              }
+
+              return React.createElement('div', { className: "divide-y divide-slate-100" }
+                , allResults.map(result =>
+                    React.createElement('button', {
+                      key: result.key,
+                      onClick: () => { result.onClick(); setSearchQuery(""); },
+                      className: "w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left"
+                    }
+                      , React.createElement('div', { className: "w-9 h-9 rounded-xl bg-[#FFEDD5] flex items-center justify-center shrink-0" }
+                        , React.createElement(Store, { className: "h-4 w-4 text-[#F97316]" })
+                      )
+                      , React.createElement('div', { className: "flex-1 min-w-0" }
+                        , React.createElement('p', { className: "text-xs font-black text-[#0F172A] truncate" }, result.name)
+                        , React.createElement('p', { className: "text-[10px] text-[#64748B]" }
+                          , result.category
+                          , result.stamps && React.createElement('span', { className: "ml-2 text-[#F97316] font-bold" }, "· " + result.stamps)
+                        )
+                      )
+                      , React.createElement('span', { className: "text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0 " + (result.type === "Your Card" ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#FFEDD5] text-[#F97316]") }
+                        , result.type
+                      )
+                    )
+                  )
+              );
+            })()
         )
       )
 
@@ -680,6 +716,15 @@ export default function CustomerDashboard() {
                   , place.isOpen ? "Open Now" : "Closed"
                 )
               )
+              , place.bookingUrl && React.createElement('a', {
+                  href: place.bookingUrl.startsWith("http") ? place.bookingUrl : `https://${place.bookingUrl}`,
+                  target: "_blank",
+                  rel: "noopener noreferrer",
+                  className: "absolute bottom-3 right-4 bg-[#F97316] text-white font-extrabold text-[9px] px-3 py-1.5 rounded-full shadow-sm hover:bg-[#EA580C] active:scale-95 transition-all flex items-center gap-1 min-h-[28px]"
+                }
+                  , "Book"
+                  , React.createElement(ExternalLink, { className: "h-2.5 w-2.5 shrink-0" })
+                )
             ))
         )
       )
@@ -794,10 +839,7 @@ export default function CustomerDashboard() {
                 "Subscriber Stores Map"
               ),
               React.createElement(DialogDescription, { className: "text-[10px] text-muted-foreground flex flex-col gap-1" },
-                "Showing partner stores who purchased our plan within 7 km of your location",
-                isTestingFallback && React.createElement("span", { className: "text-amber-700 font-bold bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 mt-1 block text-[9px] w-fit" },
-                  "⚠️ No partner stores within 7 km. Showing all active registered stores for testing."
-                )
+                "Showing partner stores who purchased our plan within 7 km of your location"
               )
             ),
             React.createElement("div", { className: "w-full py-4 relative z-0 flex flex-col items-center justify-center min-h-[350px]" },
@@ -961,16 +1003,23 @@ function BusinessDetailsModal({ card, unlockedRewards, setSelectedReward, onClos
             )
           ),
 
-        // Book Stay
-        business.category === "Hotels" && business.bookingUrl && React.createElement(
+        // Visit Website / Booking Link
+        business.bookingUrl && React.createElement(
           "div", { className: "pt-1" },
           React.createElement("a", {
             href: business.bookingUrl.startsWith("http") ? business.bookingUrl : `https://${business.bookingUrl}`,
             target: "_blank", rel: "noopener noreferrer",
-            className: "w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#F97316] to-[#FF8E3C] text-white py-2.5 px-4 text-xs font-bold shadow-md"
+            className: "w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#F97316] to-[#FF8E3C] text-white py-2.5 px-4 text-xs font-bold shadow-md hover:opacity-95 transition-opacity"
           },
-            React.createElement(CalendarDays, { className: "h-4 w-4" }),
-            "Book Stay"
+            business.category === "Hotels"
+              ? React.createElement(React.Fragment, null,
+                  React.createElement(CalendarDays, { className: "h-4 w-4" }),
+                  "Book Stay"
+                )
+              : React.createElement(React.Fragment, null,
+                  React.createElement(ExternalLink, { className: "h-4 w-4" }),
+                  "Visit Booking/Website"
+                )
           )
         )
       )

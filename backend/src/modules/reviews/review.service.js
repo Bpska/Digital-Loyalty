@@ -263,6 +263,7 @@ export async function saveReviewSettings(businessId, data) {
   if (updateData.googleReviewUrl !== undefined) businessUpdateData.googleReviewUrl = updateData.googleReviewUrl;
   if (updateData.instagramUrl !== undefined) businessUpdateData.instagramUrl = updateData.instagramUrl;
   if (updateData.facebookUrl !== undefined) businessUpdateData.facebookUrl = updateData.facebookUrl;
+  if (updateData.bookingUrl !== undefined) businessUpdateData.bookingUrl = updateData.bookingUrl;
 
   if (Object.keys(businessUpdateData).length > 0) {
     await prisma.business.update({

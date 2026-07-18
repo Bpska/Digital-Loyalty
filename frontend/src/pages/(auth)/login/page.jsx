@@ -17,9 +17,9 @@ export default function LoginPage() {
   const location = useLocation();
   const { user, loading, error, loginWithPassword, registerCustomer, registerBusiness, loginWithGoogle, clearError } = useAuthStore();
 
-  const [email, setEmail] = useState("bikramdas392987@gmail.com");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("Bikrambinayak@2026");
+  const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -206,7 +206,7 @@ export default function LoginPage() {
       if (password.length < 8) return;
       const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
       const finalCategory = category === "Other" ? (customCategory || "Other") : category;
-      const res = await registerBusiness(name, email, formattedPhone, password, businessName, businessAddress, finalCategory, category === "Hotels" ? bookingUrl : null);
+      const res = await registerBusiness(name, email, formattedPhone, password, businessName, businessAddress, finalCategory, bookingUrl || null);
       if (res && res.requiresVerification) {
         navigate("/verify-email", { state: { userId: res.userId, email: res.email } });
       } else if (res && !useAuthStore.getState().user) {
@@ -590,20 +590,17 @@ export default function LoginPage() {
                         </div>
                       )}
 
-                      {category === "Hotels" && (
-                        <div className="space-y-1">
-                          <Label className="text-xs font-bold text-slate-700 ml-1">Booking Website URL</Label>
-                          <Input
-                            type="url"
-                            placeholder="e.g. https://myhotelbooking.com"
-                            value={bookingUrl}
-                            onChange={(e) => setBookingUrl(e.target.value)}
-                            className="h-11 rounded-xl border-slate-200 bg-white/50 focus-visible:ring-1 focus-visible:ring-[#FF6A00]/30 focus-visible:border-[#FF6A00] transition-all text-slate-800 text-xs font-semibold placeholder:text-slate-400 placeholder:font-medium"
-                            required
-                            disabled={loading}
-                          />
-                        </div>
-                      )}
+                      <div className="space-y-1">
+                        <Label className="text-xs font-bold text-slate-700 ml-1">Booking/Website Link</Label>
+                        <Input
+                          type="url"
+                          placeholder="e.g. https://mybusinesslink.com"
+                          value={bookingUrl}
+                          onChange={(e) => setBookingUrl(e.target.value)}
+                          className="h-11 rounded-xl border-slate-200 bg-white/50 focus-visible:ring-1 focus-visible:ring-[#FF6A00]/30 focus-visible:border-[#FF6A00] transition-all text-slate-800 text-xs font-semibold placeholder:text-slate-400 placeholder:font-medium"
+                          disabled={loading}
+                        />
+                      </div>
                     </>
                   )}
 

@@ -42,7 +42,7 @@ const envSchema = z.object({
 
   // ── Storage ──────────────────────────────────────────────
   UPLOAD_DIR: z.string().default('./uploads'),
-  MAX_UPLOAD_SIZE_MB: z.coerce.number().default(5),
+  MAX_UPLOAD_SIZE_MB: z.coerce.number().default(15),
 
   // ── Rate Limiting ─────────────────────────────────────────
   RATE_LIMIT_AUTH_MAX: z.coerce.number().default(15),

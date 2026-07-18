@@ -306,6 +306,36 @@ router.post('/verify-payment', authenticate, validate(verifyPaymentSchema), asyn
         },
       });
 
+      // Creator/Partner Commission logic
+      try {
+        const referral = await tx.creatorReferral.findUnique({
+          where: { businessId },
+          include: { creator: true }
+        });
+        if (referral && finalPrice > 0) {
+          const commissionAmount = parseFloat((finalPrice * 0.10).toFixed(2));
+          await tx.creatorCommission.create({
+            data: {
+              creatorId: referral.creatorId,
+              businessId,
+              amount: commissionAmount,
+              status: 'APPROVED',
+              paymentOrderId: razorpayOrderId
+            }
+          });
+          
+          // Send notification email to creator async outside transaction or inside try/catch safe block
+          const { sendGeneralNotificationEmail } = await import('../../utils/email.js');
+          await sendGeneralNotificationEmail(
+            referral.creator.email,
+            'New Commission Earned! 💰',
+            `Congratulations! A business you referred has subscribed. You earned 10% commission: <strong>₹${commissionAmount}</strong>.`
+          ).catch(e => logger.error('Failed to notify creator email', e));
+        }
+      } catch (affiliateErr) {
+        logger.error('Failed to process affiliate commission inside verify-payment', { affiliateErr });
+      }
+
       return sub;
     });
 

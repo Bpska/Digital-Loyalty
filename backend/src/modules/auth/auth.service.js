@@ -275,9 +275,30 @@ export async function registerBusiness(
       },
     });
 
+    // Handle affiliate/creator partner referral code if supplied
+    if (input.referralCode) {
+      const partnerCode = await tx.creatorReferralCode.findUnique({
+        where: { code: input.referralCode }
+      });
+      if (partnerCode) {
+        await tx.creatorReferral.create({
+          data: {
+            creatorId: partnerCode.creatorId,
+            businessId: b.id
+          }
+        });
+        logger.info(`Creator referral connected for business: ${b.id} and code: ${input.referralCode}`);
+      }
+    }
+
     // 3. Create default main branch
     const branchId = `br-${Date.now()}`;
     const qrToken = crypto.randomBytes(32).toString('hex');
+    const payloadUrl = `${env.FRONTEND_URL || 'http://localhost:3000'}/checkin?businessId=${b.id}&branchId=${branchId}&token=${qrToken}`;
+    
+    // Dynamically generate QR image data URL
+    const { generateQrImage } = await import('../../utils/qrGenerator.js');
+    const qrImage = await generateQrImage(payloadUrl);
 
     await tx.branch.create({
       data: {
@@ -289,6 +310,8 @@ export async function registerBusiness(
         radiusMeters: 50,
         qrToken,
         businessId: b.id,
+        qrImage,
+        qrPayload: payloadUrl,
       },
     });
   });

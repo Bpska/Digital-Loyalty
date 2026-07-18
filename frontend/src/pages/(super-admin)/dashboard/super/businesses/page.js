@@ -1,8 +1,9 @@
 const _jsxFileName = "src\\pages\\(super-admin)\\dashboard\\super\\businesses\\page.tsx"; function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; } "use client";
 
 import React, { useState } from "react";
+import { jsPDF } from "jspdf";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, getImageUrl } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building2, Plus, Loader2, ToggleLeft, ToggleRight, Star, ExternalLink, MessageSquareText, BarChart3, Settings2, CheckCircle2, XCircle, Trash2 } from "lucide-react";
+import { Building2, Plus, Loader2, ToggleLeft, ToggleRight, Star, ExternalLink, MessageSquareText, BarChart3, Settings2, CheckCircle2, XCircle, Trash2, QrCode, Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 export default function BusinessesManagementPage() {
   const queryClient = useQueryClient();
@@ -743,6 +744,545 @@ export default function BusinessesManagementPage() {
 
                           , React.createElement(ToggleLeft, { className: "mr-1.5 h-4.5 w-4.5 text-muted-foreground", __self: this, __source: { fileName: _jsxFileName, lineNumber: 261 } }), " Reactivate Merchant"
                         )
+                      )
+                      , business.status === "ACTIVE" && (
+                        React.createElement(Button, {
+                          variant: "outline",
+                          size: "sm",
+                          className: "text-xs border-indigo-200 text-indigo-700 hover:bg-indigo-50/50 mt-1 flex items-center justify-center font-bold w-full gap-1",
+                          onClick: async () => {
+                            try {
+                              // 1. Fetch active templates
+                              const tplRes = await api.get('/posters/templates');
+                              const templates = tplRes.data || [];
+                              const activeTpls = templates.filter(t => t.status);
+                              if (activeTpls.length === 0) {
+                                alert("No active templates found. Please create or activate a template in Poster Template Manager first!");
+                                return;
+                              }
+                              
+                              // Select template based on category or default to first
+                              const selectedTemplate = activeTpls.find(t => t.category === business.category) || activeTpls[0];
+                              
+                              // 2. Fetch business branch QR details
+                              const branchesRes = await api.get(`/branches/business/${business.id}`);
+                              const branches = branchesRes.data || [];
+                              const branch = branches[0];
+                              if (!branch || !branch.qrToken) {
+                                alert("No branch QR Code setup found for this business. Please verify branches setup first!");
+                                return;
+                              }
+
+                              const qrToken = branch.qrToken;
+                              const currentHost = window.location.origin;
+                              const checkInUrl = `${currentHost}/checkin/${qrToken}`;
+                              const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(checkInUrl)}`;
+
+                              // 3. Setup temporary download Canvas
+                              const canvas = document.createElement('canvas');
+                              const width = 1200;
+                              const height = 1680;
+                              canvas.width = width;
+                              canvas.height = height;
+                              const ctx = canvas.getContext('2d');
+                              ctx.clearRect(0, 0, width, height);
+
+                              const bgStyle = selectedTemplate.backgroundImage || "linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)";
+                              const isImgBg = bgStyle.startsWith('/uploads');
+
+                              const getX = (val) => (val / 100) * width;
+                              const getY = (val) => (val / 100) * height;
+
+                              const logoPos = typeof selectedTemplate.logoPosition === 'string' ? JSON.parse(selectedTemplate.logoPosition) : (selectedTemplate.logoPosition || { x: 50, y: 15, w: 20 });
+                              const qrPos = typeof selectedTemplate.qrPosition === 'string' ? JSON.parse(selectedTemplate.qrPosition) : (selectedTemplate.qrPosition || { x: 50, y: 62, w: 32 });
+                              const namePos = typeof selectedTemplate.businessNamePosition === 'string' ? JSON.parse(selectedTemplate.businessNamePosition) : (selectedTemplate.businessNamePosition || { x: 50, y: 40, fontSize: 26, color: "#0F172A" });
+                              const phonePos = typeof selectedTemplate.phonePosition === 'string' ? JSON.parse(selectedTemplate.phonePosition) : (selectedTemplate.phonePosition || { x: 50, y: 86, fontSize: 14, color: "#475569" });
+                              const addressPos = typeof selectedTemplate.addressPosition === 'string' ? JSON.parse(selectedTemplate.addressPosition) : (selectedTemplate.addressPosition || { x: 50, y: 91, fontSize: 12, color: "#64748B" });
+                              const taglinePos = typeof selectedTemplate.taglinePosition === 'string' ? JSON.parse(selectedTemplate.taglinePosition) : (selectedTemplate.taglinePosition || { x: 50, y: 28, fontSize: 13, color: "#6F4E37" });
+                              const bannerPos = typeof selectedTemplate.bannerPosition === 'string' ? JSON.parse(selectedTemplate.bannerPosition) : (selectedTemplate.bannerPosition || { x: 50, y: 46, fontSize: 11, color: "#FFFFFF", bgColor: "#7B3F00" });
+                              const featuresPos = typeof selectedTemplate.featuresPosition === 'string' ? JSON.parse(selectedTemplate.featuresPosition) : (selectedTemplate.featuresPosition || { x: 50, y: 95, fontSize: 10, color: "#FFFFFF", bgColor: "#4A2c11" });
+                              const benefitsPos = typeof selectedTemplate.benefitsPosition === 'string' ? JSON.parse(selectedTemplate.benefitsPosition) : (selectedTemplate.benefitsPosition || { x: 82, y: 72, fontSize: 9, color: "#3E2723" });
+                              const brandingText = selectedTemplate.brandingText || "Powered by Logisaar Technologies Pvt Ltd";
+
+                              const imagesToLoad = [];
+                              let bgImg = null;
+                              if (isImgBg) {
+                                bgImg = new Image();
+                                bgImg.crossOrigin = "anonymous";
+                                bgImg.src = getImageUrl(bgStyle);
+                                imagesToLoad.push(new Promise((res) => { bgImg.onload = () => res(true); bgImg.onerror = () => res(false); }));
+                              }
+
+                              let logoImg = null;
+                              if (business.logoUrl) {
+                                logoImg = new Image();
+                                logoImg.crossOrigin = "anonymous";
+                                logoImg.src = getImageUrl(business.logoUrl);
+                                imagesToLoad.push(new Promise((res) => { logoImg.onload = () => res(true); logoImg.onerror = () => res(false); }));
+                              }
+
+                              const qrImg = new Image();
+                              qrImg.crossOrigin = "anonymous";
+                              qrImg.src = qrCodeApiUrl;
+                              imagesToLoad.push(new Promise((res) => { qrImg.onload = () => res(true); qrImg.onerror = () => res(false); }));
+
+                              Promise.all(imagesToLoad).then(() => {
+                                if (isImgBg && bgImg && bgImg.complete && bgImg.naturalWidth > 0) {
+                                  ctx.drawImage(bgImg, 0, 0, width, height);
+                                } else {
+                                  const gradient = ctx.createLinearGradient(0, 0, width, height);
+                                  if (bgStyle.includes('linear-gradient')) {
+                                    const colors = bgStyle.match(/#[a-fA-F0-9]{3,8}/g);
+                                    if (colors && colors.length >= 2) {
+                                      gradient.addColorStop(0, colors[0]);
+                                      gradient.addColorStop(1, colors[1]);
+                                    } else {
+                                      gradient.addColorStop(0, '#FFF7ED');
+                                      gradient.addColorStop(1, '#FFEDD5');
+                                    }
+                                  } else {
+                                    gradient.addColorStop(0, '#FFF7ED');
+                                    gradient.addColorStop(1, '#FFEDD5');
+                                  }
+                                  ctx.fillStyle = gradient;
+                                  ctx.fillRect(0, 0, width, height);
+                                }
+
+                                // Draw logo
+                                if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
+                                  const size = (logoPos.w / 100) * width;
+                                  const x = getX(logoPos.x) - size / 2;
+                                  const y = getY(logoPos.y) - size / 2;
+                                  ctx.save();
+                                  ctx.shadowColor = 'rgba(0,0,0,0.06)';
+                                  ctx.shadowBlur = 15;
+                                  ctx.shadowOffsetY = 5;
+                                  ctx.fillStyle = '#FFFFFF';
+                                  ctx.beginPath();
+                                  ctx.roundRect(x, y, size, size, 20);
+                                  ctx.fill();
+                                  ctx.restore();
+
+                                  ctx.save();
+                                  ctx.beginPath();
+                                  ctx.roundRect(x + 10, y + 10, size - 20, size - 20, 15);
+                                  ctx.clip();
+                                  ctx.drawImage(logoImg, x + 10, y + 10, size - 20, size - 20);
+                                  ctx.restore();
+                                }
+
+                                // Draw Business Name
+                                ctx.save();
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.fillStyle = namePos.color || '#0F172A';
+                                ctx.font = `bold ${Math.round(namePos.fontSize * 1.5)}px sans-serif`;
+                                ctx.fillText(business.name, getX(namePos.x), getY(namePos.y));
+                                ctx.restore();
+
+                                // Draw Tagline
+                                ctx.save();
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.fillStyle = taglinePos.color || '#6F4E37';
+                                ctx.font = `italic 500 ${Math.round(taglinePos.fontSize * 1.5)}px sans-serif`;
+                                ctx.fillText(`✨ Comfort. Convenience. Hospitality. ✨`, getX(taglinePos.x), getY(taglinePos.y));
+                                ctx.restore();
+
+                                // Draw Banner
+                                ctx.save();
+                                const bannerW = width * 0.72;
+                                const bannerH = 70;
+                                const bannerXCoord = getX(bannerPos.x) - bannerW / 2;
+                                const bannerYCoord = getY(bannerPos.y) - bannerH / 2;
+                                ctx.fillStyle = bannerPos.bgColor || '#7B3F00';
+                                ctx.beginPath();
+                                ctx.roundRect(bannerXCoord, bannerYCoord, bannerW, bannerH, 15);
+                                ctx.fill();
+
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.fillStyle = bannerPos.color || '#FFFFFF';
+                                ctx.font = `bold ${Math.round(bannerPos.fontSize * 1.5)}px sans-serif`;
+                                ctx.fillText("Scan this QR code with your phone camera to check-in!", getX(bannerPos.x), getY(bannerPos.y));
+                                ctx.restore();
+
+                                // Draw QR Card containing the live business check-in url
+                                if (qrImg.complete && qrImg.naturalWidth > 0) {
+                                  const size = (qrPos.w / 100) * width;
+                                  const x = getX(qrPos.x) - size / 2;
+                                  const y = getY(qrPos.y) - size / 2;
+                                  ctx.save();
+                                  ctx.shadowColor = 'rgba(0,0,0,0.08)';
+                                  ctx.shadowBlur = 20;
+                                  ctx.shadowOffsetY = 8;
+                                  ctx.fillStyle = '#FFFFFF';
+                                  ctx.beginPath();
+                                  ctx.roundRect(x, y, size, size, 24);
+                                  ctx.fill();
+                                  ctx.restore();
+
+                                  ctx.drawImage(qrImg, x + 16, y + 16, size - 32, size - 32);
+                                }
+
+                                // Draw Benefits Sidebar
+                                ctx.save();
+                                ctx.textAlign = 'left';
+                                ctx.textBaseline = 'middle';
+                                ctx.fillStyle = benefitsPos.color || '#3E2723';
+                                const benefitsList = [
+                                  { title: "EARN POINTS", desc: "Every time you visit" },
+                                  { title: "EXCLUSIVE", desc: "Member Benefits" },
+                                  { title: "SPECIAL OFFERS", desc: "Just for you" },
+                                  { title: "MORE STAYS,", desc: "MORE REWARDS!" }
+                                ];
+                                const benefitsStartX = getX(benefitsPos.x) - 100;
+                                let benefitsStartY = getY(benefitsPos.y) - 60;
+                                benefitsList.forEach((item) => {
+                                  ctx.font = `bold ${Math.round(benefitsPos.fontSize * 1.6)}px sans-serif`;
+                                  ctx.fillText(`🎁  ${item.title}`, benefitsStartX, benefitsStartY);
+                                  ctx.font = `${Math.round(benefitsPos.fontSize * 1.2)}px sans-serif`;
+                                  ctx.fillText(`    ${item.desc}`, benefitsStartX, benefitsStartY + 20);
+                                  benefitsStartY += 45;
+                                });
+                                ctx.restore();
+
+                                // Draw Features Grid
+                                const featW = width * 0.92;
+                                const featH = 65;
+                                const featXCoord = getX(featuresPos.x) - featW / 2;
+                                const featYCoord = getY(featuresPos.y) - featH / 2;
+                                ctx.save();
+                                ctx.fillStyle = featuresPos.bgColor || '#4A2c11';
+                                ctx.beginPath();
+                                ctx.roundRect(featXCoord, featYCoord, featW, featH, 12);
+                                ctx.fill();
+
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.fillStyle = featuresPos.color || '#FFFFFF';
+                                ctx.font = `bold ${Math.round(featuresPos.fontSize * 1.4)}px sans-serif`;
+                                const featuresList = ["Premium Rooms", "Free Wi-Fi", "Family Friendly", "Prime Location", "Comfortable"];
+                                const segmentW = featW / featuresList.length;
+                                featuresList.forEach((feat, idx) => {
+                                  const segX = featXCoord + segmentW * idx + segmentW / 2;
+                                  ctx.fillText(feat, segX, getY(featuresPos.y));
+                                });
+                                ctx.restore();
+
+                                // Draw Phone & Address
+                                if (business.phone) {
+                                  ctx.save();
+                                  ctx.textAlign = 'center';
+                                  ctx.textBaseline = 'middle';
+                                  ctx.fillStyle = phonePos.color || '#475569';
+                                  ctx.font = `600 ${Math.round(phonePos.fontSize * 1.5)}px sans-serif`;
+                                  ctx.fillText(`📞  ${business.phone}`, getX(phonePos.x), getY(phonePos.y));
+                                  ctx.restore();
+                                }
+
+                                if (business.address) {
+                                  ctx.save();
+                                  ctx.textAlign = 'center';
+                                  ctx.textBaseline = 'middle';
+                                  ctx.fillStyle = addressPos.color || '#64748B';
+                                  ctx.font = `${Math.round(addressPos.fontSize * 1.5)}px sans-serif`;
+                                  ctx.fillText(`📍  ${business.address}`, getX(addressPos.x), getY(addressPos.y));
+                                  ctx.restore();
+                                }
+
+                                // Draw branding stamp
+                                ctx.save();
+                                ctx.textAlign = 'center';
+                                ctx.fillStyle = '#000000';
+                                ctx.globalAlpha = 0.35;
+                                ctx.font = 'bold 16px sans-serif';
+                                ctx.fillText(brandingText.toUpperCase(), width / 2, height - 30);
+                                ctx.restore();
+
+                                // Export Canvas to PNG
+                                const url = canvas.toDataURL("image/png");
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `${business.name.replace(/\s+/g, "_")}_Counter_QR_Poster.png`;
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                              });
+                            } catch (err) {
+                              alert("Failed to build or export counter QR poster layout.");
+                            }
+                          }
+                        }, React.createElement(Download, { className: "mr-1 h-3.5 w-3.5" }), " Download PNG"),
+                        React.createElement(Button, {
+                          variant: "outline",
+                          size: "sm",
+                          className: "text-xs border-indigo-200 text-indigo-700 hover:bg-indigo-50/50 mt-1 flex items-center justify-center font-bold w-full gap-1",
+                          onClick: async () => {
+                            try {
+                              // 1. Fetch active templates
+                              const tplRes = await api.get('/posters/templates');
+                              const templates = tplRes.data || [];
+                              const activeTpls = templates.filter(t => t.status);
+                              if (activeTpls.length === 0) {
+                                alert("No active templates found. Please create or activate a template in Poster Template Manager first!");
+                                return;
+                              }
+                              
+                              // Select template based on category or default to first
+                              const selectedTemplate = activeTpls.find(t => t.category === business.category) || activeTpls[0];
+                              
+                              // 2. Fetch business branch QR details
+                              const branchesRes = await api.get(`/branches/business/${business.id}`);
+                              const branches = branchesRes.data || [];
+                              const branch = branches[0];
+                              if (!branch || !branch.qrToken) {
+                                alert("No branch QR Code setup found for this business. Please verify branches setup first!");
+                                return;
+                              }
+
+                              const qrToken = branch.qrToken;
+                              const currentHost = window.location.origin;
+                              const checkInUrl = `${currentHost}/checkin/${qrToken}`;
+                              const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(checkInUrl)}`;
+
+                              // 3. Setup temporary download Canvas
+                              const canvas = document.createElement('canvas');
+                              const width = 1200;
+                              const height = 1680;
+                              canvas.width = width;
+                              canvas.height = height;
+                              const ctx = canvas.getContext('2d');
+                              ctx.clearRect(0, 0, width, height);
+
+                              const bgStyle = selectedTemplate.backgroundImage || "linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)";
+                              const isImgBg = bgStyle.startsWith('/uploads');
+
+                              const getX = (val) => (val / 100) * width;
+                              const getY = (val) => (val / 100) * height;
+
+                              const logoPos = typeof selectedTemplate.logoPosition === 'string' ? JSON.parse(selectedTemplate.logoPosition) : (selectedTemplate.logoPosition || { x: 50, y: 15, w: 20 });
+                              const qrPos = typeof selectedTemplate.qrPosition === 'string' ? JSON.parse(selectedTemplate.qrPosition) : (selectedTemplate.qrPosition || { x: 50, y: 62, w: 32 });
+                              const namePos = typeof selectedTemplate.businessNamePosition === 'string' ? JSON.parse(selectedTemplate.businessNamePosition) : (selectedTemplate.businessNamePosition || { x: 50, y: 40, fontSize: 26, color: "#0F172A" });
+                              const phonePos = typeof selectedTemplate.phonePosition === 'string' ? JSON.parse(selectedTemplate.phonePosition) : (selectedTemplate.phonePosition || { x: 50, y: 86, fontSize: 14, color: "#475569" });
+                              const addressPos = typeof selectedTemplate.addressPosition === 'string' ? JSON.parse(selectedTemplate.addressPosition) : (selectedTemplate.addressPosition || { x: 50, y: 91, fontSize: 12, color: "#64748B" });
+                              const taglinePos = typeof selectedTemplate.taglinePosition === 'string' ? JSON.parse(selectedTemplate.taglinePosition) : (selectedTemplate.taglinePosition || { x: 50, y: 28, fontSize: 13, color: "#6F4E37" });
+                              const bannerPos = typeof selectedTemplate.bannerPosition === 'string' ? JSON.parse(selectedTemplate.bannerPosition) : (selectedTemplate.bannerPosition || { x: 50, y: 46, fontSize: 11, color: "#FFFFFF", bgColor: "#7B3F00" });
+                              const featuresPos = typeof selectedTemplate.featuresPosition === 'string' ? JSON.parse(selectedTemplate.featuresPosition) : (selectedTemplate.featuresPosition || { x: 50, y: 95, fontSize: 10, color: "#FFFFFF", bgColor: "#4A2c11" });
+                              const benefitsPos = typeof selectedTemplate.benefitsPosition === 'string' ? JSON.parse(selectedTemplate.benefitsPosition) : (selectedTemplate.benefitsPosition || { x: 82, y: 72, fontSize: 9, color: "#3E2723" });
+                              const brandingText = selectedTemplate.brandingText || "Powered by Logisaar Technologies Pvt Ltd";
+
+                              const imagesToLoad = [];
+                              let bgImg = null;
+                              if (isImgBg) {
+                                bgImg = new Image();
+                                bgImg.crossOrigin = "anonymous";
+                                bgImg.src = getImageUrl(bgStyle);
+                                imagesToLoad.push(new Promise((res) => { bgImg.onload = () => res(true); bgImg.onerror = () => res(false); }));
+                              }
+
+                              let logoImg = null;
+                              if (business.logoUrl) {
+                                logoImg = new Image();
+                                logoImg.crossOrigin = "anonymous";
+                                logoImg.src = getImageUrl(business.logoUrl);
+                                imagesToLoad.push(new Promise((res) => { logoImg.onload = () => res(true); logoImg.onerror = () => res(false); }));
+                              }
+
+                              const qrImg = new Image();
+                              qrImg.crossOrigin = "anonymous";
+                              qrImg.src = qrCodeApiUrl;
+                              imagesToLoad.push(new Promise((res) => { qrImg.onload = () => res(true); qrImg.onerror = () => res(false); }));
+
+                              Promise.all(imagesToLoad).then(() => {
+                                if (isImgBg && bgImg && bgImg.complete && bgImg.naturalWidth > 0) {
+                                  ctx.drawImage(bgImg, 0, 0, width, height);
+                                } else {
+                                  const gradient = ctx.createLinearGradient(0, 0, width, height);
+                                  if (bgStyle.includes('linear-gradient')) {
+                                    const colors = bgStyle.match(/#[a-fA-F0-9]{3,8}/g);
+                                    if (colors && colors.length >= 2) {
+                                      gradient.addColorStop(0, colors[0]);
+                                      gradient.addColorStop(1, colors[1]);
+                                    } else {
+                                      gradient.addColorStop(0, '#FFF7ED');
+                                      gradient.addColorStop(1, '#FFEDD5');
+                                    }
+                                  } else {
+                                    gradient.addColorStop(0, '#FFF7ED');
+                                    gradient.addColorStop(1, '#FFEDD5');
+                                  }
+                                  ctx.fillStyle = gradient;
+                                  ctx.fillRect(0, 0, width, height);
+                                }
+
+                                // Draw logo
+                                if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
+                                  const size = (logoPos.w / 100) * width;
+                                  const x = getX(logoPos.x) - size / 2;
+                                  const y = getY(logoPos.y) - size / 2;
+                                  ctx.save();
+                                  ctx.shadowColor = 'rgba(0,0,0,0.06)';
+                                  ctx.shadowBlur = 15;
+                                  ctx.shadowOffsetY = 5;
+                                  ctx.fillStyle = '#FFFFFF';
+                                  ctx.beginPath();
+                                  ctx.roundRect(x, y, size, size, 20);
+                                  ctx.fill();
+                                  ctx.restore();
+
+                                  ctx.save();
+                                  ctx.beginPath();
+                                  ctx.roundRect(x + 10, y + 10, size - 20, size - 20, 15);
+                                  ctx.clip();
+                                  ctx.drawImage(logoImg, x + 10, y + 10, size - 20, size - 20);
+                                  ctx.restore();
+                                }
+
+                                // Draw Business Name
+                                ctx.save();
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.fillStyle = namePos.color || '#0F172A';
+                                ctx.font = `bold ${Math.round(namePos.fontSize * 1.5)}px sans-serif`;
+                                ctx.fillText(business.name, getX(namePos.x), getY(namePos.y));
+                                ctx.restore();
+
+                                // Draw Tagline
+                                ctx.save();
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.fillStyle = taglinePos.color || '#6F4E37';
+                                ctx.font = `italic 500 ${Math.round(taglinePos.fontSize * 1.5)}px sans-serif`;
+                                ctx.fillText(`✨ Comfort. Convenience. Hospitality. ✨`, getX(taglinePos.x), getY(taglinePos.y));
+                                ctx.restore();
+
+                                // Draw Banner
+                                ctx.save();
+                                const bannerW = width * 0.72;
+                                const bannerH = 70;
+                                const bannerXCoord = getX(bannerPos.x) - bannerW / 2;
+                                const bannerYCoord = getY(bannerPos.y) - bannerH / 2;
+                                ctx.fillStyle = bannerPos.bgColor || '#7B3F00';
+                                ctx.beginPath();
+                                ctx.roundRect(bannerXCoord, bannerYCoord, bannerW, bannerH, 15);
+                                ctx.fill();
+
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.fillStyle = bannerPos.color || '#FFFFFF';
+                                ctx.font = `bold ${Math.round(bannerPos.fontSize * 1.5)}px sans-serif`;
+                                ctx.fillText("Scan this QR code with your phone camera to check-in!", getX(bannerPos.x), getY(bannerPos.y));
+                                ctx.restore();
+
+                                // Draw QR Card containing the live business check-in url
+                                if (qrImg.complete && qrImg.naturalWidth > 0) {
+                                  const size = (qrPos.w / 100) * width;
+                                  const x = getX(qrPos.x) - size / 2;
+                                  const y = getY(qrPos.y) - size / 2;
+                                  ctx.save();
+                                  ctx.shadowColor = 'rgba(0,0,0,0.08)';
+                                  ctx.shadowBlur = 20;
+                                  ctx.shadowOffsetY = 8;
+                                  ctx.fillStyle = '#FFFFFF';
+                                  ctx.beginPath();
+                                  ctx.roundRect(x, y, size, size, 24);
+                                  ctx.fill();
+                                  ctx.restore();
+
+                                  ctx.drawImage(qrImg, x + 16, y + 16, size - 32, size - 32);
+                                }
+
+                                // Draw Benefits Sidebar
+                                ctx.save();
+                                ctx.textAlign = 'left';
+                                ctx.textBaseline = 'middle';
+                                ctx.fillStyle = benefitsPos.color || '#3E2723';
+                                const benefitsList = [
+                                  { title: "EARN POINTS", desc: "Every time you visit" },
+                                  { title: "EXCLUSIVE", desc: "Member Benefits" },
+                                  { title: "SPECIAL OFFERS", desc: "Just for you" },
+                                  { title: "MORE STAYS,", desc: "MORE REWARDS!" }
+                                ];
+                                const benefitsStartX = getX(benefitsPos.x) - 100;
+                                let benefitsStartY = getY(benefitsPos.y) - 60;
+                                benefitsList.forEach((item) => {
+                                  ctx.font = `bold ${Math.round(benefitsPos.fontSize * 1.6)}px sans-serif`;
+                                  ctx.fillText(`🎁  ${item.title}`, benefitsStartX, benefitsStartY);
+                                  ctx.font = `${Math.round(benefitsPos.fontSize * 1.2)}px sans-serif`;
+                                  ctx.fillText(`    ${item.desc}`, benefitsStartX, benefitsStartY + 20);
+                                  benefitsStartY += 45;
+                                });
+                                ctx.restore();
+
+                                // Draw Features Grid
+                                const featW = width * 0.92;
+                                const featH = 65;
+                                const featXCoord = getX(featuresPos.x) - featW / 2;
+                                const featYCoord = getY(featuresPos.y) - featH / 2;
+                                ctx.save();
+                                ctx.fillStyle = featuresPos.bgColor || '#4A2c11';
+                                ctx.beginPath();
+                                ctx.roundRect(featXCoord, featYCoord, featW, featH, 12);
+                                ctx.fill();
+
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.fillStyle = featuresPos.color || '#FFFFFF';
+                                ctx.font = `bold ${Math.round(featuresPos.fontSize * 1.4)}px sans-serif`;
+                                const featuresList = ["Premium Rooms", "Free Wi-Fi", "Family Friendly", "Prime Location", "Comfortable"];
+                                const segmentW = featW / featuresList.length;
+                                featuresList.forEach((feat, idx) => {
+                                  const segX = featXCoord + segmentW * idx + segmentW / 2;
+                                  ctx.fillText(feat, segX, getY(featuresPos.y));
+                                });
+                                ctx.restore();
+
+                                // Draw Phone & Address
+                                if (business.phone) {
+                                  ctx.save();
+                                  ctx.textAlign = 'center';
+                                  ctx.textBaseline = 'middle';
+                                  ctx.fillStyle = phonePos.color || '#475569';
+                                  ctx.font = `600 ${Math.round(phonePos.fontSize * 1.5)}px sans-serif`;
+                                  ctx.fillText(`📞  ${business.phone}`, getX(phonePos.x), getY(phonePos.y));
+                                  ctx.restore();
+                                }
+
+                                if (business.address) {
+                                  ctx.save();
+                                  ctx.textAlign = 'center';
+                                  ctx.textBaseline = 'middle';
+                                  ctx.fillStyle = addressPos.color || '#64748B';
+                                  ctx.font = `${Math.round(addressPos.fontSize * 1.5)}px sans-serif`;
+                                  ctx.fillText(`📍  ${business.address}`, getX(addressPos.x), getY(addressPos.y));
+                                  ctx.restore();
+                                }
+
+                                // Draw branding stamp
+                                ctx.save();
+                                ctx.textAlign = 'center';
+                                ctx.fillStyle = '#000000';
+                                ctx.globalAlpha = 0.35;
+                                ctx.font = 'bold 16px sans-serif';
+                                ctx.fillText(brandingText.toUpperCase(), width / 2, height - 30);
+                                ctx.restore();
+
+                                // Export Canvas to PDF
+                                const imgData = canvas.toDataURL("image/png");
+                                const pdf = new jsPDF({
+                                  orientation: 'portrait',
+                                  unit: 'px',
+                                  format: [width, height]
+                                });
+                                pdf.addImage(imgData, 'PNG', 0, 0, width, height);
+                                pdf.save(`${business.name.replace(/\s+/g, "_")}_Counter_QR_Poster.pdf`);
+                              });
+                            } catch (err) {
+                              alert("Failed to build or export counter QR poster layout.");
+                            }
+                          }
+                        }, React.createElement(Download, { className: "mr-1 h-3.5 w-3.5" }), " Download PDF")
                       )
                       , business.status === "DELETED" ? (
                         React.createElement(React.Fragment, null

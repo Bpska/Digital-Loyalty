@@ -31,14 +31,8 @@ export default function ClientProviders({
     if (!mounted) return;
     
     const applyTheme = () => {
-      const currentTheme = localStorage.getItem("theme") || "light";
-      const isDark = currentTheme === "dark" || 
-        (currentTheme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-      if (isDark) {
-        document.documentElement.classList.add("dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-      }
+      // Force disable dark mode by removing the "dark" class unconditionally
+      document.documentElement.classList.remove("dark");
     };
 
     applyTheme();

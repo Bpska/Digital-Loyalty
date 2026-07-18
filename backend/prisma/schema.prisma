@@ -186,6 +186,7 @@ model Business {
   loyaltyWallets         CustomerLoyaltyWallet[]
   loyaltyPointsLedgers LoyaltyPointsLedger[]
   brandAsset           BusinessBrandAsset?
+  creatorReferral      CreatorReferral?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -897,6 +898,11 @@ model PosterTemplate {
   businessNamePosition Json     @map("business_name_position")
   phonePosition        Json     @map("phone_position")
   addressPosition      Json     @map("address_position")
+  taglinePosition      Json?    @map("tagline_position")
+  bannerPosition       Json?    @map("banner_position")
+  featuresPosition     Json?    @map("features_position")
+  benefitsPosition     Json?    @map("benefits_position")
+  brandingText         String?  @map("branding_text")
   status               Boolean  @default(true)
   createdAt            DateTime @default(now()) @map("created_at")
   updatedAt            DateTime @updatedAt @map("updated_at")
@@ -912,6 +918,124 @@ model BusinessPosterSetting {
   updatedAt          DateTime @updatedAt @map("updated_at")
 
   @@map("business_poster_settings")
+}
+
+// ─────────────────────────────────────────────────────────────
+// CREATOR PARTNER PROGRAM MODELS
+// ─────────────────────────────────────────────────────────────
+
+enum CreatorStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CommissionStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+}
+
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+}
+
+model Creator {
+  id              String         @id @default(cuid())
+  name            String
+  email           String         @unique
+  passwordHash    String
+  phone           String
+  status          CreatorStatus  @default(PENDING)
+  isEmailVerified Boolean        @default(false)
+  otpCode         String?
+  otpExpiresAt    DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  profile         CreatorProfile?
+  referralCode    CreatorReferralCode?
+  referrals       CreatorReferral[]
+  commissions     CreatorCommission[]
+  withdrawals     CreatorWithdrawal[]
+
+  @@map("creators")
+}
+
+model CreatorProfile {
+  id           String   @id @default(cuid())
+  creatorId    String   @unique
+  creator      Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  instagramUrl String?
+  facebookUrl  String?
+  linkedinUrl  String?
+  youtubeUrl   String?
+  location     String
+  city         String
+  state        String
+  country      String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("creator_profiles")
+}
+
+model CreatorReferralCode {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  creatorId String   @unique
+  creator   Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@map("creator_referral_codes")
+}
+
+model CreatorReferral {
+  id          String   @id @default(cuid())
+  creatorId   String
+  creator     Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  businessId  String   @unique
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@map("creator_referrals")
+}
+
+model CreatorCommission {
+  id             String           @id @default(cuid())
+  creatorId      String
+  creator        Creator          @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  businessId     String
+  amount         Decimal          @db.Decimal(10, 2)
+  status         CommissionStatus @default(PENDING)
+  paymentOrderId String?          // Reference to the subscription transaction/order
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@map("creator_commissions")
+}
+
+model CreatorWithdrawal {
+  id                String           @id @default(cuid())
+  creatorId         String
+  creator           Creator          @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  amount            Decimal          @db.Decimal(10, 2)
+  method            String           // UPI or BANK
+  upiId             String?
+  accountHolderName String?
+  bankName          String?
+  accountNumber     String?
+  ifscCode          String?
+  branchName        String?
+  status            WithdrawalStatus @default(PENDING)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@map("creator_withdrawals")
 }
 
 

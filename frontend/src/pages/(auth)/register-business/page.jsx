@@ -162,6 +162,7 @@ export default function RegisterBusinessPage() {
   const [categoryOverride, setCategoryOverride] = useState("");
   const [password,         setPassword]         = useState("");
   const [confirmPassword,  setConfirmPassword]  = useState("");
+  const [referralCode,     setReferralCode]     = useState("");
   const [showPw,           setShowPw]           = useState(false);
   const [showConfirmPw,    setShowConfirmPw]    = useState(false);
   const [locating,         setLocating]         = useState(false);
@@ -239,7 +240,8 @@ export default function RegisterBusinessPage() {
       businessName.trim(),
       address.trim() || undefined,
       finalCategory || undefined,
-      undefined
+      undefined,
+      referralCode.trim() || undefined
     );
 
     if (result === true) {
@@ -535,6 +537,19 @@ export default function RegisterBusinessPage() {
                   )}
                 </div>
               )}
+
+              <div className="pt-3.5 border-t border-slate-100">
+                <FormField label="Referral Code (Optional)">
+                  <IconInput
+                    icon={Users}
+                    type="text"
+                    placeholder="e.g. SLR-KARAN-1234"
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value)}
+                    inputClassName="border-slate-200"
+                  />
+                </FormField>
+              </div>
             </div>
 
             {storeError && (

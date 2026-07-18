@@ -335,8 +335,8 @@ export default function BusinessApprovalsPage() {
                 )
                 , React.createElement("div", { className: "flex flex-col items-end gap-1.5" }
                   , React.createElement("div", { className: "flex gap-1 items-center" }
-                    , React.createElement("span", { className: "text-[9px] font-bold text-[#22C55E]" }, "✓ GPS Verified")
-                    , React.createElement("span", { className: "text-[9px] bg-[#DCFCE7] text-[#22C55E] px-1.5 py-0.5 rounded-full font-bold" }, "25m Verified")
+                    , React.createElement("span", { className: "inline-flex items-center gap-0.5 text-[9px] bg-[#DCFCE7] text-[#22C55E] px-1.5 py-0.5 rounded-full font-bold" }, "✓ GPS Verified")
+                    , React.createElement("span", { className: "inline-flex items-center text-[9px] bg-[#DCFCE7] text-[#22C55E] px-1.5 py-0.5 rounded-full font-bold" }, "25m Verified")
                   )
                   , React.createElement("span", { className: "text-[9px] text-[#64748B] flex items-center gap-1 font-medium" }
                     , React.createElement(Clock, { className: "h-3 w-3" })
@@ -361,17 +361,33 @@ export default function BusinessApprovalsPage() {
                     , React.createElement("div", { className: "border border-[#F1F5F9] rounded-2xl p-4 bg-white space-y-3" }
                       , React.createElement("p", { className: "text-[10px] font-bold text-[#64748B] uppercase tracking-wider" }, "Select Purchase Value:")
                       , React.createElement("div", { className: "flex flex-wrap gap-2" }
-                        , [50, 100, 200, 300, 500].map(amt => {
-                            const isSelected = selectedAmounts[request.id] === amt && !showCustomInput[request.id];
-                            return React.createElement("button", {
-                              key: amt,
-                              onClick: () => selectAmount(request.id, amt),
-                              className: cn(
-                                "h-8 px-3 text-xs font-bold rounded-xl border transition-all"
-                                , isSelected ? "bg-[#F97316] text-white border-[#F97316] shadow-sm" : "border-[#F1F5F9] text-[#64748B] hover:bg-slate-50"
-                              )
-                            }, `₹${amt}`);
-                          })
+                        , (() => {
+                            const ppr = settings?.pointsPerRupee || 0.1;
+                            const pps = settings?.pointsPerStamp || 50;
+                            const spendPerStamp = Math.max(1, Math.round(pps / ppr));
+                            
+                            // Generate dynamic values: 1x, ~0.8x, ~0.5x, ~0.2x, ~0.1x of stamp price
+                            const dynamicAmounts = [
+                              Math.round(spendPerStamp * 0.1),
+                              Math.round(spendPerStamp * 0.2),
+                              Math.round(spendPerStamp * 0.5),
+                              Math.round(spendPerStamp * 0.8),
+                              spendPerStamp
+                            ].map(v => Math.max(10, Math.round(v / 10) * 10)) // round to nearest 10 for clean values
+                             .filter((v, i, self) => self.indexOf(v) === i); // remove duplicates if any
+
+                            return dynamicAmounts.map(amt => {
+                              const isSelected = selectedAmounts[request.id] === amt && !showCustomInput[request.id];
+                              return React.createElement("button", {
+                                key: amt,
+                                onClick: () => selectAmount(request.id, amt),
+                                className: cn(
+                                  "h-8 px-3 text-xs font-bold rounded-xl border transition-all"
+                                  , isSelected ? "bg-[#F97316] text-white border-[#F97316] shadow-sm" : "border-[#F1F5F9] text-[#64748B] hover:bg-slate-50"
+                                )
+                              }, `₹${amt}`);
+                            });
+                          })()
                         , React.createElement("button", {
                             onClick: () => selectCustom(request.id),
                             className: cn(

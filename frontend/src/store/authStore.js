@@ -185,10 +185,10 @@ export const useAuthStore = create((set) => {
       }
     },
 
-    registerBusiness: async (name, email, phone, password, businessName, address, category, bookingUrl) => {
+    registerBusiness: async (name, email, phone, password, businessName, address, category, bookingUrl, referralCode) => {
       set({ loading: true, error: null });
       try {
-        const response = await api.post("/auth/register-business", { name, email, phone, password, businessName, address, category, bookingUrl });
+        const response = await api.post("/auth/register-business", { name, email, phone, password, businessName, address, category, bookingUrl, referralCode });
         if (response.success && response.data) {
           if (response.data.requiresVerification) {
             set({ loading: false });

@@ -219,6 +219,7 @@ export default function LandingPage() {
           )
           /* Right Actions */
           , React.createElement('div', { className: "flex items-center gap-3 sm:gap-5 shrink-0" }
+            , React.createElement(Link, { to: "/partner-program", className: "flex items-center text-xs sm:text-sm font-bold text-[#64748B] hover:text-[#0F172A] transition-colors mr-1" }, "Affiliate Partner")
             , React.createElement(Link, { to: "/login", className: "flex items-center text-xs sm:text-sm font-bold text-[#64748B] hover:text-[#0F172A] transition-colors" }, "Log in")
             , React.createElement(Link, { to: "/login?signup=true", className: "flex items-center justify-center bg-[#F97316] hover:bg-[#EA580C] text-white text-xs sm:text-sm font-bold px-3 py-2 sm:px-5 sm:py-2.5 rounded-lg shadow-sm transition-all whitespace-nowrap" }, "Start Free Trial")
           )

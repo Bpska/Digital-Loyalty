@@ -191,3 +191,30 @@ export async function sendPasswordResetEmail(to, otp) {
     return { success: false, error: err.message };
   }
 }
+
+export async function sendGeneralNotificationEmail(to, subject, bodyText) {
+  const transport = getTransporter();
+  if (!transport) {
+    logger.info(`[EMAIL STUB] Notification for ${to}: [${subject}] - ${bodyText}`);
+    return { success: true, stubbed: true };
+  }
+
+  try {
+    const info = await transport.sendMail({
+      from: env.SMTP_FROM,
+      to,
+      subject,
+      html: `
+      <div style="font-family: sans-serif; padding: 24px; color: #333;">
+        <h2>ScanLoyal Partner Program Updates</h2>
+        <p>${bodyText}</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin-top: 24px;"/>
+        <p style="font-size: 11px; color: #999;">© ScanLoyal Partner Program. All rights reserved.</p>
+      </div>`
+    });
+    return { success: true, messageId: info.messageId };
+  } catch (err) {
+    logger.error('Failed to send notification email', { to, error: err.message });
+    return { success: false, error: err.message };
+  }
+}

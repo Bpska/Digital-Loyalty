@@ -54,4 +54,5 @@ export const reviewSettingsSchema = z.object({
   }, { message: 'Must be a valid Facebook link' }).transform(v => v || null),
   googleBusinessName: z.string().max(200).optional().nullable(),
   googlePlaceId: z.string().max(200).optional().nullable(),
+  bookingUrl: z.string().url().optional().nullable().or(z.literal('')).transform(v => v || null),
 });

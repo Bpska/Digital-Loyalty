@@ -53,6 +53,11 @@ const SuperFraud      = React.lazy(() => import('./pages/(super-admin)/dashboard
 const SuperSupport    = React.lazy(() => import('./pages/(super-admin)/dashboard/super/support/page.js'));
 const SuperAds        = React.lazy(() => import('./pages/(super-admin)/dashboard/super/ads/page.js'));
 const SuperPosterManager = React.lazy(() => import('./pages/(super-admin)/dashboard/super/posters/page.jsx'));
+const SuperAdminCreators = React.lazy(() => import('./pages/(super-admin)/dashboard/super/creators/page.jsx'));
+
+// ── Creator Partner Program Pages ───────────────────────────────
+const CreatorAuth      = React.lazy(() => import('./pages/creator-auth.jsx'));
+const CreatorDashboard = React.lazy(() => import('./pages/creator-dashboard.jsx'));
 
 // ── Scroll to top on route change ───────────────────────────────
 function ScrollToTop() {
@@ -154,7 +159,12 @@ export default function App() {
               <Route path="/dashboard/super/support" element={<SuperSupport />} />
               <Route path="/dashboard/super/ads" element={<SuperAds />} />
               <Route path="/dashboard/super/posters" element={<SuperPosterManager />} />
+              <Route path="/dashboard/super/creators" element={<SuperAdminCreators />} />
             </Route>
+
+            {/* Creator Program Routes */}
+            <Route path="/partner-program" element={<CreatorAuth />} />
+            <Route path="/dashboard/creator" element={<CreatorDashboard />} />
           </Route>
         </Routes>
       </Suspense>

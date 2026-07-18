@@ -14,7 +14,8 @@ import {
   Loader2,
   MessageSquare,
   Megaphone,
-  Palette
+  Palette,
+  Users
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -56,6 +57,7 @@ export default function SuperAdminLayout({
     { label: "Fraud Monitor", icon: AlertTriangle, href: "/dashboard/super/fraud" },
     { label: "Support Messages", icon: MessageSquare, href: "/dashboard/super/support" },
     { label: "Ads Management", icon: Megaphone, href: "/dashboard/super/ads" },
+    { label: "Creator Program", icon: Users, href: "/dashboard/super/creators" },
   ];
 
   return (

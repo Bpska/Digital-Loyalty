@@ -135,6 +135,7 @@ export default function BusinessDashboard() {
   const [revGoogleUrl, setRevGoogleUrl] = React.useState("");
   const [revInstagramUrl, setRevInstagramUrl] = React.useState("");
   const [revFacebookUrl, setRevFacebookUrl] = React.useState("");
+  const [revBookingUrl, setRevBookingUrl] = React.useState("");
   const [revSaving, setRevSaving] = React.useState(false);
   const [reviewError, setReviewError] = React.useState("");
   const [googleBusinessName, setGoogleBusinessName] = React.useState("");
@@ -240,6 +241,7 @@ export default function BusinessDashboard() {
   const [facebookUrl, setFacebookUrl] = React.useState("");
   const [whatsappUrl, setWhatsappUrl] = React.useState("");
   const [googleReviewUrl, setGoogleReviewUrl] = React.useState("");
+  const [bookingUrl, setBookingUrl] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [socialSaving, setSocialSaving] = React.useState(false);
   const [coverUploading, setCoverUploading] = React.useState(false);
@@ -322,6 +324,7 @@ export default function BusinessDashboard() {
       setFacebookUrl(business.facebookUrl || "");
       setWhatsappUrl(business.whatsappUrl || "");
       setGoogleReviewUrl(business.googleReviewUrl || "");
+      setBookingUrl(business.bookingUrl || "");
       setDescription(business.description || "");
     }
     setShowSocialModal(true);
@@ -354,6 +357,7 @@ export default function BusinessDashboard() {
         facebookUrl: facebookUrl || null,
         whatsappUrl: whatsappUrl || null,
         googleReviewUrl: googleReviewUrl || null,
+        bookingUrl: bookingUrl || null,
         description: description || null,
       });
       await refetchProfile();
@@ -375,6 +379,7 @@ export default function BusinessDashboard() {
             setRevGoogleUrl(res.data.googleReviewUrl || "");
             setRevInstagramUrl(res.data.instagramUrl || "");
             setRevFacebookUrl(res.data.facebookUrl || "");
+            setRevBookingUrl(res.data.bookingUrl || "");
             setGoogleBusinessName(res.data.googleBusinessName || "");
             setGooglePlaceId(res.data.googlePlaceId || "");
 
@@ -440,6 +445,7 @@ export default function BusinessDashboard() {
         googleReviewUrl: revGoogleUrl || null,
         instagramUrl: revInstagramUrl || null,
         facebookUrl: revFacebookUrl || null,
+        bookingUrl: revBookingUrl || null,
         googleBusinessName: googleBusinessName || null,
         googlePlaceId: googlePlaceId || null,
       });
@@ -449,6 +455,7 @@ export default function BusinessDashboard() {
         setRevGoogleUrl(updated.googleReviewUrl || "");
         setRevInstagramUrl(updated.instagramUrl || "");
         setRevFacebookUrl(updated.facebookUrl || "");
+        setRevBookingUrl(updated.bookingUrl || "");
         setGoogleBusinessName(updated.googleBusinessName || "");
         setGooglePlaceId(updated.googlePlaceId || "");
         setIsEditingReview(false);
@@ -558,7 +565,7 @@ export default function BusinessDashboard() {
   const checkins = checkinsData || [];
 
   const [undoingId, setUndoingId] = React.useState(null);
-  const [chartTimeRange, setChartTimeRange] = React.useState("Last Week");
+  const [chartTimeRange, setChartTimeRange] = React.useState("Custom Date");
   const [currentAdIndex, setCurrentAdIndex] = React.useState(0);
   const [startDate, setStartDate] = React.useState(() => {
     const d = new Date();
@@ -882,10 +889,7 @@ export default function BusinessDashboard() {
               type: "button",
               onClick: (e) => {
                 e.preventDefault();
-                setIsEditingReview(true);
-                const isMobile = window.innerWidth < 768;
-                const targetId = isMobile ? "review-settings-card" : "review-settings-desktop-card";
-                document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth" });
+                setShowSocialModal(true);
               },
               className: "flex flex-col items-center gap-2 active:scale-95 transition-transform bg-transparent border-0 outline-none"
             }
@@ -905,19 +909,14 @@ export default function BusinessDashboard() {
               , React.createElement('span', { className: "text-sm font-bold text-[#0F172A]" }, "Check-in Overview")
             )
             , React.createElement('div', { className: "flex items-center gap-1" }
-              , ["Last Week", "Last Month", "Last 3 Months", "Custom Date"].map(range =>
-                React.createElement('button', {
-                  key: range,
-                  onClick: () => setChartTimeRange(range),
-                  className: "text-[9px] px-2 py-1 rounded-full font-bold transition-all duration-200",
-                  style: chartTimeRange === range
-                    ? { background: "#6D5DD3", color: "white" }
-                    : { background: "#F1F5F9", color: "#64748B" }
-                }, range === "Last Week" ? "1W" : range === "Last Month" ? "1M" : range === "Last 3 Months" ? "3M" : "📅")
-              )
+              , React.createElement('button', {
+                  onClick: () => setChartTimeRange("Custom Date"),
+                  className: "text-[9px] px-2.5 py-1.5 rounded-full font-bold transition-all duration-200",
+                  style: { background: "#6D5DD3", color: "white" }
+                }, "📅 Date Select")
             )
           )
-          , chartTimeRange === "Custom Date" && React.createElement('div', { className: "flex items-center gap-2 mb-3 bg-slate-50 p-2 rounded-2xl border border-slate-100/70" }
+          , React.createElement('div', { className: "flex items-center gap-2 mb-3 bg-slate-50 p-2 rounded-2xl border border-slate-100/70" }
             , React.createElement('div', { className: "flex-1 flex flex-col gap-0.5" }
               , React.createElement('span', { className: "text-[9px] text-[#64748B] font-bold" }, "Start Date")
               , React.createElement('input', {
@@ -978,13 +977,6 @@ export default function BusinessDashboard() {
             , React.createElement('div', { className: "flex items-center gap-1.5" }
               , React.createElement(Star, { className: "h-5.5 w-5.5", style: { color: "#6D5DD3" } })
               , React.createElement('span', { className: "text-sm font-bold text-[#0F172A]" }, "Reviews & Social Links")
-            )
-            , React.createElement('button', {
-              onClick: handleOpenSocialModal,
-              className: "text-xs font-semibold px-3 py-1 rounded-full",
-              style: { background: "#EDE9FF", color: "#6D5DD3" }
-            }
-              , "Manage"
             )
           )
           /* Google — full-width highlighted row */
@@ -1102,7 +1094,7 @@ export default function BusinessDashboard() {
             , React.createElement('span', { className: "text-sm font-bold text-[#0F172A]" }, "⭐ AI Review Settings")
           )
           , !isEditingReview && (bizType || revGoogleUrl)
-            ? React.createElement('div', { className: "grid grid-cols-2 gap-2 text-xs" }
+            ? React.createElement('div', { className: "grid grid-cols-3 gap-2 text-xs" }
               , React.createElement('div', { className: "p-3 rounded-2xl", style: { background: "#F8FAFC" } }
                 , React.createElement('p', { className: "text-[9px] text-[#94A3B8] uppercase tracking-wider font-bold mb-1" }, "Business Type")
                 , React.createElement('p', { className: "font-bold text-[#0F172A]" }, bizType || "—")
@@ -1111,12 +1103,17 @@ export default function BusinessDashboard() {
                 , React.createElement('p', { className: "text-[9px] text-[#94A3B8] uppercase tracking-wider font-bold mb-1" }, "Google Review")
                 , React.createElement('p', { className: "font-bold text-[#0F172A] truncate" }, revGoogleUrl ? "✓ Set" : "—")
               )
+              , React.createElement('div', { className: "p-3 rounded-2xl", style: { background: "#F8FAFC" } }
+                , React.createElement('p', { className: "text-[9px] text-[#94A3B8] uppercase tracking-wider font-bold mb-1" }, "Booking Site")
+                , React.createElement('p', { className: "font-bold text-[#0F172A] truncate" }, revBookingUrl ? "✓ Set" : "—")
+              )
             )
             : React.createElement('form', { onSubmit: handleSaveReviewSettings, className: "space-y-3" }
               , React.createElement('input', { value: bizType, onChange: (e) => setBizType(e.target.value), placeholder: "Business Type (e.g. Cafe)", className: "w-full text-xs border border-[#F1F5F9] rounded-2xl px-3 py-2.5 bg-[#F8FAFC] text-[#0F172A] outline-none focus:ring-2 focus:ring-[#6D5DD3]/30" })
               , React.createElement('input', { value: revGoogleUrl, onChange: (e) => setRevGoogleUrl(e.target.value), placeholder: "Google Review URL", className: "w-full text-xs border border-[#F1F5F9] rounded-2xl px-3 py-2.5 bg-[#F8FAFC] text-[#0F172A] outline-none focus:ring-2 focus:ring-[#6D5DD3]/30" })
               , React.createElement('input', { value: revInstagramUrl, onChange: (e) => setRevInstagramUrl(e.target.value), placeholder: "Instagram URL", className: "w-full text-xs border border-[#F1F5F9] rounded-2xl px-3 py-2.5 bg-[#F8FAFC] text-[#0F172A] outline-none focus:ring-2 focus:ring-[#6D5DD3]/30" })
               , React.createElement('input', { value: revFacebookUrl, onChange: (e) => setRevFacebookUrl(e.target.value), placeholder: "Facebook URL", className: "w-full text-xs border border-[#F1F5F9] rounded-2xl px-3 py-2.5 bg-[#F8FAFC] text-[#0F172A] outline-none focus:ring-2 focus:ring-[#6D5DD3]/30" })
+              , React.createElement('input', { value: revBookingUrl, onChange: (e) => setRevBookingUrl(e.target.value), placeholder: "Booking/Website URL (e.g. https://site.com)", className: "w-full text-xs border border-[#F1F5F9] rounded-2xl px-3 py-2.5 bg-[#F8FAFC] text-[#0F172A] outline-none focus:ring-2 focus:ring-[#6D5DD3]/30" })
               , reviewError && React.createElement('p', { className: "text-xs text-red-500 font-semibold" }, reviewError)
               , React.createElement('button', { type: "submit", disabled: revSaving, className: "w-full py-2.5 rounded-full text-white text-xs font-bold active:scale-95 transition-transform", style: { background: "#F97316" } }
                 , revSaving ? "Saving..." : "Save Review Settings"
@@ -1169,7 +1166,7 @@ export default function BusinessDashboard() {
               , React.createElement(CardDescription, { className: "text-xs text-muted-foreground mt-1" }, "Check-in velocity and active engagement tracking")
             )
             , React.createElement('div', { className: "flex items-center gap-2" }
-              , chartTimeRange === "Custom Date" && React.createElement('div', { className: "flex items-center gap-2 text-xs" }
+              , React.createElement('div', { className: "flex items-center gap-2 text-xs" }
                 , React.createElement('input', {
                   type: "date",
                   value: startDate,
@@ -1183,19 +1180,6 @@ export default function BusinessDashboard() {
                   onChange: (e) => setEndDate(e.target.value),
                   className: "text-xs font-bold border border-slate-200 rounded-lg p-1.5 outline-none bg-white"
                 })
-              )
-              , React.createElement('div', { className: "flex items-center gap-1 px-3 py-1.5 rounded-full text-xs text-[#64748B] font-bold border border-slate-200 bg-white shadow-sm relative cursor-pointer hover:bg-slate-50 transition-colors" }
-                , React.createElement('select', {
-                  value: chartTimeRange,
-                  onChange: (e) => setChartTimeRange(e.target.value),
-                  className: "bg-transparent outline-none cursor-pointer pr-4 font-bold text-[#64748B] appearance-none focus:outline-none"
-                }
-                  , React.createElement('option', { value: "Last Week" }, "Last Week")
-                  , React.createElement('option', { value: "Last Month" }, "Last Month")
-                  , React.createElement('option', { value: "Last 3 Months" }, "Last 3 Months")
-                  , React.createElement('option', { value: "Custom Date" }, "Custom Date")
-                )
-                , React.createElement(ChevronDown, { className: "h-3.5 w-3.5 absolute right-2 pointer-events-none text-slate-400" })
               )
             )
           )
@@ -1285,6 +1269,10 @@ export default function BusinessDashboard() {
                       , React.createElement('span', { className: "text-slate-400 block uppercase tracking-wider text-[8px] font-bold" }, "Facebook")
                       , React.createElement('span', { className: "text-slate-800 font-extrabold text-xs truncate block" }, revFacebookUrl || "—")
                     )
+                    , React.createElement('div', { className: "bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 space-y-1 col-span-2" }
+                      , React.createElement('span', { className: "text-slate-400 block uppercase tracking-wider text-[8px] font-bold" }, "Booking Website Link")
+                      , React.createElement('span', { className: "text-slate-800 font-extrabold text-xs truncate block" }, revBookingUrl || "—")
+                    )
                   )
                 )
                 : React.createElement(React.Fragment, null
@@ -1310,11 +1298,15 @@ export default function BusinessDashboard() {
                         , React.createElement(Label, { htmlFor: "review-facebook-url", className: "text-xs font-semibold text-muted-foreground" }, "Facebook Link")
                         , React.createElement(Input, { id: "review-facebook-url", value: revFacebookUrl, onChange: (e) => setRevFacebookUrl(e.target.value), placeholder: "https://facebook.com/...", className: "text-xs border-border bg-white" })
                       )
+                      , React.createElement('div', { className: "space-y-1.5" }
+                        , React.createElement(Label, { htmlFor: "review-booking-url", className: "text-xs font-semibold text-muted-foreground" }, "Booking/Website Link")
+                        , React.createElement(Input, { id: "review-booking-url", value: revBookingUrl, onChange: (e) => setRevBookingUrl(e.target.value), placeholder: "https://site.com", className: "text-xs border-border bg-white" })
+                      )
                       , reviewError && React.createElement('div', { className: "bg-red-50 text-red-600 border border-red-200 text-xs p-3 rounded-xl flex items-center gap-2 font-semibold" }
                         , React.createElement(AlertCircle, { className: "h-4 w-4 shrink-0" }), reviewError
                       )
                       , React.createElement('div', { className: "flex gap-2" }
-                        , (bizType || revGoogleUrl || revInstagramUrl || revFacebookUrl) && React.createElement(Button, { type: "button", variant: "outline", onClick: () => { setReviewError(""); setIsEditingReview(false); }, className: "flex-1 rounded-full border-border text-muted-foreground font-semibold text-xs mt-2" }, "Cancel")
+                        , (bizType || revGoogleUrl || revInstagramUrl || revFacebookUrl || revBookingUrl) && React.createElement(Button, { type: "button", variant: "outline", onClick: () => { setReviewError(""); setIsEditingReview(false); }, className: "flex-1 rounded-full border-border text-muted-foreground font-semibold text-xs mt-2" }, "Cancel")
                         , React.createElement(Button, { type: "submit", className: "flex-1 rounded-full bg-primary hover:bg-primary/95 text-white font-semibold text-xs mt-2", disabled: revSaving }
                           , revSaving ? React.createElement(Loader2, { className: "h-3.5 w-3.5 animate-spin mr-1.5" }) : null
                           , "Save Review Settings"
@@ -1367,6 +1359,10 @@ export default function BusinessDashboard() {
               , React.createElement('div', { className: "space-y-1.5" }
                 , React.createElement(Label, { htmlFor: "g-url", className: "text-xs font-semibold text-muted-foreground" }, "Google Review Link")
                 , React.createElement(Input, { id: "g-url", placeholder: "e.g. https://g.page/r/...", value: googleReviewUrl, onChange: (e) => setGoogleReviewUrl(e.target.value), className: "text-xs border-border bg-white" })
+              )
+              , React.createElement('div', { className: "space-y-1.5" }
+                , React.createElement(Label, { htmlFor: "modal-booking-url", className: "text-xs font-semibold text-muted-foreground" }, "Booking/Website URL")
+                , React.createElement(Input, { id: "modal-booking-url", placeholder: "e.g. https://mybookingsite.com", value: bookingUrl, onChange: (e) => setBookingUrl(e.target.value), className: "text-xs border-border bg-white" })
               )
               , React.createElement(DialogFooter, { className: "pt-4 gap-2" }
                 , React.createElement(Button, { type: "button", variant: "outline", onClick: () => setShowSocialModal(false) }, "Cancel")

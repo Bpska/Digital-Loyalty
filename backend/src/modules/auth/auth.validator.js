@@ -75,6 +75,7 @@ export const registerBusinessSchema = z.object({
   ),
   category: z.string().optional().nullable(),
   bookingUrl: z.string().optional().nullable(),
+  referralCode: z.string().optional().nullable(),
 });
 
 export const updateProfileSchema = z.object({

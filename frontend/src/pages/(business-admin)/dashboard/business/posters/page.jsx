@@ -94,28 +94,9 @@ export default function QRPosterDesigner() {
       // Clear
       ctx.clearRect(0, 0, width, height);
 
-      // Parse gradient
+      // Parse gradient or image background
       const bgStyle = selectedTemplate.backgroundImage || "linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)";
-      
-      // Basic fallback gradient parser
-      const gradient = ctx.createLinearGradient(0, 0, width, height);
-      if (bgStyle.includes('linear-gradient')) {
-        // Simple regex to parse colors
-        const colors = bgStyle.match(/#[a-fA-F0-9]{3,8}/g);
-        if (colors && colors.length >= 2) {
-          gradient.addColorStop(0, colors[0]);
-          gradient.addColorStop(1, colors[1]);
-        } else {
-          gradient.addColorStop(0, '#FFF7ED');
-          gradient.addColorStop(1, '#FFEDD5');
-        }
-      } else {
-        gradient.addColorStop(0, '#FFF7ED');
-        gradient.addColorStop(1, '#FFEDD5');
-      }
-
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, width, height);
+      const isImgBg = bgStyle.startsWith('/uploads');
 
       // Coordinate helper
       const getX = (val) => (val / 100) * width;
@@ -127,6 +108,11 @@ export default function QRPosterDesigner() {
       const namePos = selectedTemplate.businessNamePosition || { x: 50, y: 40, fontSize: 26, color: "#0F172A" };
       const phonePos = selectedTemplate.phonePosition || { x: 50, y: 86, fontSize: 14, color: "#475569" };
       const addressPos = selectedTemplate.addressPosition || { x: 50, y: 91, fontSize: 12, color: "#64748B" };
+      const taglinePos = selectedTemplate.taglinePosition || { x: 50, y: 28, fontSize: 13, color: "#6F4E37" };
+      const bannerPos = selectedTemplate.bannerPosition || { x: 50, y: 46, fontSize: 11, color: "#FFFFFF", bgColor: "#7B3F00" };
+      const featuresPos = selectedTemplate.featuresPosition || { x: 50, y: 95, fontSize: 10, color: "#FFFFFF", bgColor: "#4A2c11" };
+      const benefitsPos = selectedTemplate.benefitsPosition || { x: 82, y: 72, fontSize: 9, color: "#3E2723" };
+      const brandingText = selectedTemplate.brandingText || "Powered by Logisaar Technologies Pvt Ltd";
 
       const branch = getActiveBranch();
 
@@ -134,6 +120,18 @@ export default function QRPosterDesigner() {
       const imagesToLoad = [];
       let logoImg = null;
       let qrImg = null;
+      let bgImg = null;
+
+      // Background Image
+      if (isImgBg) {
+        bgImg = new Image();
+        bgImg.crossOrigin = "anonymous";
+        bgImg.src = getImageUrl(bgStyle);
+        imagesToLoad.push(new Promise((res) => {
+          bgImg.onload = () => res(true);
+          bgImg.onerror = () => res(false);
+        }));
+      }
 
       // Logo Image
       if (data.business.logoUrl) {
@@ -159,6 +157,27 @@ export default function QRPosterDesigner() {
 
       // Draw all after image load completes
       Promise.all(imagesToLoad).then(() => {
+        // Draw background first
+        if (isImgBg && bgImg && bgImg.complete && bgImg.naturalWidth > 0) {
+          ctx.drawImage(bgImg, 0, 0, width, height);
+        } else {
+          const gradient = ctx.createLinearGradient(0, 0, width, height);
+          if (bgStyle.includes('linear-gradient')) {
+            const colors = bgStyle.match(/#[a-fA-F0-9]{3,8}/g);
+            if (colors && colors.length >= 2) {
+              gradient.addColorStop(0, colors[0]);
+              gradient.addColorStop(1, colors[1]);
+            } else {
+              gradient.addColorStop(0, '#FFF7ED');
+              gradient.addColorStop(1, '#FFEDD5');
+            }
+          } else {
+            gradient.addColorStop(0, '#FFF7ED');
+            gradient.addColorStop(1, '#FFEDD5');
+          }
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, width, height);
+        }
         // 1. Draw Logo
         if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
           const size = (logoPos.w / 100) * width;
@@ -238,13 +257,86 @@ export default function QRPosterDesigner() {
           ctx.restore();
         }
 
+        // Draw Tagline
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = taglinePos.color || '#6F4E37';
+        ctx.font = `italic 500 ${Math.round(taglinePos.fontSize * 1.5)}px sans-serif`;
+        ctx.fillText(`✨ Comfort. Convenience. Hospitality. ✨`, getX(taglinePos.x), getY(taglinePos.y));
+        ctx.restore();
+
+        // Draw Banner
+        ctx.save();
+        const bannerW = width * 0.72;
+        const bannerH = 70;
+        const bannerXCoord = getX(bannerPos.x) - bannerW / 2;
+        const bannerYCoord = getY(bannerPos.y) - bannerH / 2;
+        ctx.fillStyle = bannerPos.bgColor || '#7B3F00';
+        ctx.beginPath();
+        ctx.roundRect(bannerXCoord, bannerYCoord, bannerW, bannerH, 15);
+        ctx.fill();
+
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = bannerPos.color || '#FFFFFF';
+        ctx.font = `bold ${Math.round(bannerPos.fontSize * 1.5)}px sans-serif`;
+        ctx.fillText("Scan this QR code with your phone camera to check-in!", getX(bannerPos.x), getY(bannerPos.y));
+        ctx.restore();
+
+        // Draw Benefits Sidebar
+        ctx.save();
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = benefitsPos.color || '#3E2723';
+        ctx.font = `bold ${Math.round(benefitsPos.fontSize * 1.5)}px sans-serif`;
+        const benefitsList = [
+          { title: "EARN POINTS", desc: "Every time you visit" },
+          { title: "EXCLUSIVE", desc: "Member Benefits" },
+          { title: "SPECIAL OFFERS", desc: "Just for you" },
+          { title: "MORE STAYS,", desc: "MORE REWARDS!" }
+        ];
+        const benefitsStartX = getX(benefitsPos.x) - 100;
+        let benefitsStartY = getY(benefitsPos.y) - 60;
+        benefitsList.forEach((item) => {
+          ctx.font = `bold ${Math.round(benefitsPos.fontSize * 1.6)}px sans-serif`;
+          ctx.fillText(`🎁  ${item.title}`, benefitsStartX, benefitsStartY);
+          ctx.font = `${Math.round(benefitsPos.fontSize * 1.2)}px sans-serif`;
+          ctx.fillText(`    ${item.desc}`, benefitsStartX, benefitsStartY + 20);
+          benefitsStartY += 45;
+        });
+        ctx.restore();
+
+        // Draw Features list footer bar
+        ctx.save();
+        const featW = width * 0.92;
+        const featH = 65;
+        const featXCoord = getX(featuresPos.x) - featW / 2;
+        const featYCoord = getY(featuresPos.y) - featH / 2;
+        ctx.fillStyle = featuresPos.bgColor || '#4A2c11';
+        ctx.beginPath();
+        ctx.roundRect(featXCoord, featYCoord, featW, featH, 12);
+        ctx.fill();
+
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = featuresPos.color || '#FFFFFF';
+        ctx.font = `bold ${Math.round(featuresPos.fontSize * 1.4)}px sans-serif`;
+        const featuresList = ["Premium Rooms", "Free Wi-Fi", "Family Friendly", "Prime Location", "Comfortable"];
+        const segmentW = featW / featuresList.length;
+        featuresList.forEach((feat, idx) => {
+          const segX = featXCoord + segmentW * idx + segmentW / 2;
+          ctx.fillText(feat, segX, getY(featuresPos.y));
+        });
+        ctx.restore();
+
         // 6. Draw branding
         ctx.save();
-        ctx.textAlign = 'right';
+        ctx.textAlign = 'center';
         ctx.fillStyle = '#000000';
-        ctx.globalAlpha = 0.25;
-        ctx.font = 'bold 15px sans-serif';
-        ctx.fillText('POWERED BY LOGISAAR', width - 30, height - 30);
+        ctx.globalAlpha = 0.35;
+        ctx.font = 'bold 16px sans-serif';
+        ctx.fillText(brandingText.toUpperCase(), width / 2, height - 30);
         ctx.restore();
 
         resolve(canvas);
@@ -361,7 +453,11 @@ export default function QRPosterDesigner() {
             {selectedTemplate ? (
               <div 
                 className="relative aspect-[1/1.4] w-full max-w-[420px] mx-auto rounded-3xl overflow-hidden shadow-xl border border-slate-100 flex flex-col items-center p-4 transition-all duration-300"
-                style={{ background: selectedTemplate.backgroundImage }}
+                style={{ 
+                  background: selectedTemplate.backgroundImage.startsWith('/uploads')
+                    ? `url(${getImageUrl(selectedTemplate.backgroundImage)}) center/cover no-repeat`
+                    : selectedTemplate.backgroundImage
+                }}
               >
                 {/* Logo overlay */}
                 <div 

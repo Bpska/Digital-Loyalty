@@ -58,6 +58,12 @@ export function sendError(
  * Shorthand helpers for common HTTP status codes.
  */
 export const Responses = {
+  ok: (res, data, message = 'Success') =>
+    sendSuccess(res, data, message),
+
+  created: (res, data, message = 'Created') =>
+    sendCreated(res, data, message),
+
   badRequest: (res, message = 'Bad request') =>
     sendError(res, message, 400),
 

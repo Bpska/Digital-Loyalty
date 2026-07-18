@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import {
   Loader2, CheckCircle2, Coffee, Stamp, Gift, Zap,
   ArrowRight, IndianRupee, Star, Shield, Clock, Info,
-  Sparkles, Settings, AlertCircle
+  Sparkles, Settings, AlertCircle, ArrowDown
 } from "lucide-react";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -34,15 +34,20 @@ function StampDot({ filled }) {
 function FlowStep({ icon: Icon, label, color, isLast }) {
   return React.createElement(
     "div",
-    { className: "flex items-center gap-2" },
+    { className: "flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto" },
     React.createElement(
       "div",
-      { className: `flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-bold ${color}` },
-      React.createElement(Icon, { className: "h-3.5 w-3.5 shrink-0" }),
-      label
+      { className: `flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-xs font-bold w-full sm:w-auto justify-center sm:justify-start ${color}` },
+      React.createElement(Icon, { className: "h-4 w-4 shrink-0" }),
+      React.createElement("span", { className: "text-center sm:text-left" }, label)
     ),
     !isLast &&
-      React.createElement(ArrowRight, { className: "h-3.5 w-3.5 text-muted-foreground shrink-0" })
+      React.createElement(
+        React.Fragment,
+        null,
+        React.createElement(ArrowRight, { className: "hidden sm:block h-3.5 w-3.5 text-muted-foreground shrink-0" }),
+        React.createElement(ArrowDown, { className: "block sm:hidden h-4.5 w-4.5 text-muted-foreground shrink-0 my-1" })
+      )
   );
 }
 
@@ -175,36 +180,40 @@ export default function BusinessLoyaltyConfigPage() {
     // ── Page Header ───────────────────────────────────────────────────────────
     React.createElement(
       "div",
-      { className: "flex items-start justify-between gap-4" },
+      { className: "flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-border/40 pb-4" },
       React.createElement(
         "div",
-        null,
+        { className: "space-y-1" },
         React.createElement(
           "h1",
-          { className: "text-2xl font-bold text-foreground flex items-center gap-2" },
-          React.createElement(Coffee, { className: "h-6 w-6 text-primary" }),
+          { className: "text-2xl font-bold text-foreground flex items-center gap-2 flex-wrap" },
+          React.createElement(Settings, { className: "h-6 w-6 text-primary" }),
           "Loyalty Program Setup"
         ),
         React.createElement(
           "p",
-          { className: "text-sm text-muted-foreground mt-1" },
+          { className: "text-sm text-muted-foreground leading-relaxed" },
           "Configure your stamp-based loyalty program. Customers earn stamps automatically when you approve their purchases."
         )
       ),
       // Status badge
-      isConfigured
-        ? React.createElement(
-            "div",
-            { className: "flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap" },
-            React.createElement("span", { className: "h-2 w-2 rounded-full bg-emerald-500 animate-pulse inline-block" }),
-            "Program Active"
-          )
-        : React.createElement(
-            "div",
-            { className: "flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap" },
-            React.createElement(AlertCircle, { className: "h-3.5 w-3.5" }),
-            "Not Configured"
-          )
+      React.createElement(
+        "div",
+        { className: "flex sm:self-start" },
+        isConfigured
+          ? React.createElement(
+              "div",
+              { className: "flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap" },
+              React.createElement("span", { className: "h-2 w-2 rounded-full bg-emerald-500 animate-pulse inline-block" }),
+              "Program Active"
+            )
+          : React.createElement(
+              "div",
+              { className: "flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap" },
+              React.createElement(AlertCircle, { className: "h-3.5 w-3.5" }),
+              "Not Configured"
+            )
+      )
     ),
 
     // ── How It Works Flow ─────────────────────────────────────────────────────
@@ -218,7 +227,7 @@ export default function BusinessLoyaltyConfigPage() {
       ),
       React.createElement(
         "div",
-        { className: "flex flex-wrap gap-2 items-center" },
+        { className: "flex flex-col sm:flex-row sm:flex-wrap gap-2 items-center" },
         React.createElement(FlowStep, {
           icon: Star,
           label: "Customer Scans QR",
@@ -271,7 +280,7 @@ export default function BusinessLoyaltyConfigPage() {
                   React.createElement(
                     CardTitle,
                     { className: "text-lg font-black text-slate-800 flex items-center gap-2" },
-                    React.createElement(Sparkles, { className: "h-5 w-5 text-emerald-600" }),
+                    React.createElement(Settings, { className: "h-5 w-5 text-emerald-600" }),
                     settings?.programName || "Active Program"
                   ),
                   React.createElement(CardDescription, null, "Currently running stamp and points rules")
@@ -596,7 +605,7 @@ export default function BusinessLoyaltyConfigPage() {
                       "Saved!"
                     )
                   : React.createElement(React.Fragment, null,
-                      React.createElement(Sparkles, { className: "mr-2 h-4 w-4" }),
+                      React.createElement(Settings, { className: "mr-2 h-4 w-4" }),
                       isConfigured ? "Update Program" : "Activate Program"
                     )
               )

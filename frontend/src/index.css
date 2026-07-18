@@ -5,7 +5,7 @@
 @tailwind utilities;
 
 
-/* ── Shadcn CSS Variables (Light + Dark) ────────────────────── */
+/* ── Shadcn CSS Variables (Light + Dark support) ────────────────────── */
 @layer base {
   :root {
     --background: 0 0% 100%; /* #FFFFFF */
@@ -40,173 +40,29 @@
 
     --radius: 0.5rem;
 
-    /* Hex definitions */
-    --navy: #07122A;
-    --white: #FFFFFF;
-    --orange-100: #FFF2E8;
-    --orange-200: #FFD8B8;
-    --orange: #FF8A00;
-    --orange-dark: #FF5E00;
-    --orange-red: #FF3D00;
-    --red: #E31B00;
-    --red-dark: #D91E00;
-    --gray-bg: #F8FAFC;
-    --gray-border: #E8EDF3;
-  }
-
-  .dark {
-    --background: 224 71% 4%; /* #020617 (Deep Slate Navy) */
-    --foreground: 210 40% 98%;
-
-    --card: 224 71% 6%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 224 71% 4%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 25 100% 50%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 215 27.9% 16.9%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 223 47% 11%;
-    --muted-foreground: 215.4 16.3% 56.9%;
-
-    --accent: 216 34% 15%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 216 34% 17%;
-    --input: 216 34% 17%;
-    --ring: 25 100% 50%;
+  /* Hex definitions */
+  --navy: #07122A;
+  --white: #FFFFFF;
+  --orange-100: #FFF2E8;
+  --orange-200: #FFD8B8;
+  --orange: #FF8A00;
+  --orange-dark: #FF5E00;
+  --orange-red: #FF3D00;
+  --red: #E31B00;
+  --red-dark: #D91E00;
+  --gray-bg: #F8FAFC;
+  --gray-border: #E8EDF3;
   }
 }
 
-.dark .bg-dots {
+.bg-dots {
   background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1.5px, transparent 1.5px) !important;
-}
-
-/* ── Dark Mode: Hardcoded color overrides ─────────────────────── */
-/* These rules adapt hardcoded Tailwind-arbitrary colors to dark mode */
-
-/* Dark backgrounds for page surfaces */
-.dark .bg-\[\#F8FAFC\],
-.dark .bg-\[\#f8fafc\],
-.dark .bg-\[\#F1F5F9\] {
-  background-color: hsl(224 71% 5%) !important;
-}
-
-/* Cards and panels */
-.dark .bg-white {
-  background-color: hsl(224 71% 7%) !important;
-}
-.dark .bg-\[\#FFFFFF\] {
-  background-color: hsl(224 71% 7%) !important;
-}
-
-/* Navy/dark text → near-white in dark mode */
-.dark .text-\[\#0F172A\] {
-  color: hsl(210 40% 95%) !important;
-}
-.dark .text-\[\#07122A\] {
-  color: hsl(210 40% 95%) !important;
-}
-
-/* Secondary muted text → softened in dark mode */
-.dark .text-\[\#64748B\] {
-  color: hsl(215 16% 65%) !important;
-}
-.dark .text-\[\#475569\] {
-  color: hsl(215 16% 60%) !important;
-}
-.dark .text-\[\#94A3B8\] {
-  color: hsl(215 16% 55%) !important;
-}
-
-/* Borders */
-.dark .border-slate-100 {
-  border-color: hsl(216 34% 15%) !important;
-}
-.dark .border-\[\#E2E8F0\] {
-  border-color: hsl(216 34% 18%) !important;
-}
-.dark .divide-slate-100 > * + * {
-  border-color: hsl(216 34% 15%) !important;
-}
-
-/* Soft orange tinted backgrounds */
-.dark .bg-\[\#FFEDD5\],
-.dark .bg-\[\#FFF1E6\],
-.dark .bg-\[\#FEF3C7\] {
-  background-color: hsl(25 60% 12%) !important;
-}
-.dark .bg-\[\#FFEDD5\]\/60,
-.dark .bg-\[\#FFF7ED\] {
-  background-color: hsl(25 50% 10%) !important;
-}
-
-/* Light slate surfaces used for card inner panels */
-.dark .bg-slate-50 {
-  background-color: hsl(223 47% 9%) !important;
-}
-.dark .bg-slate-100 {
-  background-color: hsl(223 47% 12%) !important;
-}
-.dark .bg-\[\#F1F5F9\] {
-  background-color: hsl(223 47% 9%) !important;
-}
-.dark .bg-\[\#EFF6FF\] {
-  background-color: hsl(224 60% 9%) !important;
-}
-
-/* Text on light-tinted backgrounds */
-.dark .text-\[\#1E293B\] {
-  color: hsl(210 40% 90%) !important;
-}
-.dark .text-\[\#334155\] {
-  color: hsl(210 30% 80%) !important;
-}
-
-/* Shadow softening in dark mode */
-.dark .shadow-sm,
-.dark .shadow-md {
-  box-shadow: 0 1px 6px 0 rgba(0,0,0,0.4) !important;
-}
-
-/* Bottom nav bar background */
-.dark .bg-\[\#F0FDF4\]\/90 {
-  background-color: hsla(220, 60%, 8%, 0.95) !important;
-}
-.dark .border-\[\#DCFCE7\] {
-  border-color: hsl(216 34% 18%) !important;
-}
-
-/* Notification / badge backgrounds that use light tints */
-.dark .bg-\[\#FEF2F2\],
-.dark .bg-\[\#F0FDF4\] {
-  background-color: hsl(220 50% 10%) !important;
-}
-
-/* Input fields */
-.dark input,
-.dark textarea,
-.dark select {
-  background-color: hsl(224 71% 8%) !important;
-  color: hsl(210 40% 95%) !important;
-  border-color: hsl(216 34% 20%) !important;
-}
-.dark input::placeholder,
-.dark textarea::placeholder {
-  color: hsl(215 16% 45%) !important;
 }
 
 /* ── Global base styles ──────────────────────────────────────── */
 @layer base {
   * {
-    @apply border-border;
+    border-color: var(--border);
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
@@ -216,6 +72,7 @@
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
+    background-color: #FFFFFF;
   }
 
   /* Better touch targets on mobile */
@@ -230,13 +87,14 @@
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    @apply bg-muted;
+    background-color: #F8FAFC;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-border rounded-full;
+    background-color: rgba(0, 0, 0, 0.15);
+    border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-primary/50;
+    background-color: #F97316;
   }
 }
 
@@ -244,35 +102,35 @@
 @layer utilities {
   /* Premium Stripe/Linear-level card */
   .glass {
-    background: rgba(255, 255, 255, 0.72) !important;
+    background: rgba(255, 255, 255, 0.7) !important;
     backdrop-filter: blur(16px) !important;
     -webkit-backdrop-filter: blur(16px) !important;
-    border: 1px solid rgba(255, 106, 0, 0.14) !important;
-    box-shadow: 0 8px 32px 0 rgba(255, 106, 0, 0.04), 0 20px 60px rgba(7, 18, 42, 0.05) !important;
-    color: #07122A !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.04) !important;
+    color: #0F172A !important;
   }
 
   /* Gradients from brand guidelines */
   .bg-hero-gradient {
-    background: radial-gradient(circle at top right, rgba(255, 138, 0, 0.18), transparent 40%),
-                radial-gradient(circle at bottom left, rgba(227, 27, 0, 0.12), transparent 35%),
-                #FFFFFF !important;
+    background: radial-gradient(circle at top right, rgba(249, 115, 22, 0.15), transparent 45%),
+                radial-gradient(circle at bottom left, rgba(239, 68, 68, 0.1), transparent 40%),
+                #0F172A !important;
   }
 
   .bg-glow-gradient {
-    background: radial-gradient(circle, rgba(255, 138, 0, 0.45) 0%, rgba(255, 94, 0, 0.25) 40%, rgba(255, 61, 0, 0.08) 70%, transparent 100%) !important;
+    background: radial-gradient(circle, rgba(249, 115, 22, 0.3) 0%, rgba(249, 115, 22, 0.1) 50%, transparent 100%) !important;
   }
 
   .bg-cta-button-gradient {
-    background: linear-gradient(90deg, #FF7A00 0%, #FF4D00 100%) !important;
+    background: linear-gradient(90deg, #F97316 0%, #EA580C 100%) !important;
   }
 
   .bg-main-gradient {
-    background: linear-gradient(135deg, #FF8A00 0%, #FF5E00 25%, #FF3D00 55%, #E31B00 100%) !important;
+    background: linear-gradient(135deg, #F97316 0%, #EA580C 50%, #EF4444 100%) !important;
   }
 
   .bg-cta-section-gradient {
-    background: linear-gradient(135deg, #07122A, #0B1838) !important;
+    background: linear-gradient(135deg, #0F172A, #111827) !important;
   }
 
   /* Gradient text */
@@ -350,23 +208,23 @@
   .text-slate-900 {
     color: hsl(var(--foreground)) !important;
   }
-  .text-slate-950 {
-    color: #07122A !important;
+  .dark .text-slate-950 {
+    color: #FFFFFF !important;
   }
   .text-slate-800 {
     color: hsl(var(--foreground)) !important;
   }
-  .text-slate-700 {
-    color: #475569 !important;
+  .dark .text-slate-700 {
+    color: #E2E8F0 !important;
   }
-  .text-slate-650 {
-    color: #475569 !important;
+  .dark .text-slate-650 {
+    color: #E2E8F0 !important;
   }
-  .text-slate-600 {
-    color: #64748B !important;
+  .dark .text-slate-600 {
+    color: #94A3B8 !important;
   }
-  .text-slate-500 {
-    color: #64748B !important;
+  .dark .text-slate-500 {
+    color: #94A3B8 !important;
   }
   .border-slate-200 {
     border-color: hsl(var(--border)) !important;
@@ -374,20 +232,20 @@
   .border-indigo-200 {
     border-color: hsl(var(--border)) !important;
   }
-  .text-indigo-700 {
-    color: #FF6A00 !important;
+  .dark .text-indigo-700 {
+    color: #F97316 !important;
   }
-  .text-indigo-800 {
-    color: #FF5E00 !important;
+  .dark .text-indigo-800 {
+    color: #EA580C !important;
   }
-  .text-indigo-950 {
-    color: #07122A !important;
+  .dark .text-indigo-950 {
+    color: #FFFFFF !important;
   }
-  .text-indigo-600 {
-    color: #FF6A00 !important;
+  .dark .text-indigo-600 {
+    color: #F97316 !important;
   }
-  .bg-indigo-100 {
-    background-color: hsla(var(--muted) / 0.9) !important;
+  .dark .bg-indigo-100 {
+    background-color: #1E293B !important;
   }
   .border-indigo-100 {
     border-color: hsl(var(--border)) !important;
@@ -479,20 +337,18 @@
 
 /* ── Liquid Glass Card Effect ── */
 .glass-card {
-  background: rgba(255, 255, 255, 0.45) !important;
+  background: rgba(255, 255, 255, 0.65) !important;
   backdrop-filter: blur(20px) !important;
   -webkit-backdrop-filter: blur(20px) !important;
-  border: 1px solid rgba(255, 106, 0, 0.22) !important;
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05),
-              inset 0 0 12px rgba(255, 255, 255, 0.6) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.04) !important;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .glass-card:hover {
-  background: rgba(255, 255, 255, 0.65) !important;
-  border-color: rgba(255, 106, 0, 0.45) !important;
-  box-shadow: 0 12px 40px 0 rgba(255, 106, 0, 0.08),
-              inset 0 0 8px rgba(255, 255, 255, 0.8) !important;
+  background: rgba(255, 255, 255, 0.8) !important;
+  border-color: rgba(249, 115, 22, 0.4) !important;
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.08) !important;
   transform: translateY(-4px) !important;
 }
 
@@ -502,7 +358,7 @@
   width: 100%;
   max-width: 340px;
   height: 640px;
-  background: #090D16;
+  background: #0F172A;
   border: 12px solid #1E293B;
   border-radius: 48px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5),
@@ -542,7 +398,7 @@
 .phone-screen {
   width: 100%;
   height: 100%;
-  background: #FAF8F6;
+  background: #0F172A;
   overflow-y: auto;
   padding: 32px 16px 24px 16px;
   scrollbar-width: none;

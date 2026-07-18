@@ -180,17 +180,8 @@ const DEFAULT_TEMPLATES = [
 
 // ── Auto-seeder ────────────────────────────────────────────────
 export async function seedPosterTemplates() {
-  try {
-    const count = await prisma.posterTemplate.count();
-    if (count === 0) {
-      await prisma.posterTemplate.createMany({
-        data: DEFAULT_TEMPLATES
-      });
-      logger.info('✅ Default poster templates seeded successfully.');
-    }
-  } catch (err) {
-    logger.error('Failed to seed poster templates', { err });
-  }
+  // Disabled auto-seeder as requested
+  logger.info('Auto-seeding of poster templates disabled.');
 }
 
 // ── Super Admin handlers ───────────────────────────────────────
@@ -264,18 +255,37 @@ export async function getTemplateById(req, res, next) {
 
 export async function createTemplate(req, res, next) {
   try {
-    const { name, category, backgroundImage, logoPosition, qrPosition, businessNamePosition, phonePosition, addressPosition, status } = req.body;
+    const { name, category, logoPosition, qrPosition, businessNamePosition, phonePosition, addressPosition, taglinePosition, bannerPosition, featuresPosition, benefitsPosition, brandingText, status } = req.body;
+    
+    let backgroundImage = req.body.backgroundImage || "";
+    if (req.file) {
+      backgroundImage = `/uploads/templates/${req.file.filename}`;
+    }
+
+    const parseJson = (val) => {
+      if (!val) return {};
+      if (typeof val === 'string') {
+        try { return JSON.parse(val); } catch (_) { return {}; }
+      }
+      return val;
+    };
+
     const template = await prisma.posterTemplate.create({
       data: {
         name,
         category,
         backgroundImage,
-        logoPosition,
-        qrPosition,
-        businessNamePosition,
-        phonePosition,
-        addressPosition,
-        status: status !== undefined ? status : true
+        logoPosition: parseJson(logoPosition),
+        qrPosition: parseJson(qrPosition),
+        businessNamePosition: parseJson(businessNamePosition),
+        phonePosition: parseJson(phonePosition),
+        addressPosition: parseJson(addressPosition),
+        taglinePosition: taglinePosition ? parseJson(taglinePosition) : null,
+        bannerPosition: bannerPosition ? parseJson(bannerPosition) : null,
+        featuresPosition: featuresPosition ? parseJson(featuresPosition) : null,
+        benefitsPosition: benefitsPosition ? parseJson(benefitsPosition) : null,
+        brandingText: brandingText || "Powered by Logisaar Technologies Pvt Ltd",
+        status: status === 'true' || status === true
       }
     });
     res.status(201).json({ success: true, data: template });
@@ -287,20 +297,40 @@ export async function createTemplate(req, res, next) {
 export async function updateTemplate(req, res, next) {
   try {
     const { id } = req.params;
-    const { name, category, backgroundImage, logoPosition, qrPosition, businessNamePosition, phonePosition, addressPosition, status } = req.body;
+    const { name, category, logoPosition, qrPosition, businessNamePosition, phonePosition, addressPosition, taglinePosition, bannerPosition, featuresPosition, benefitsPosition, brandingText, status } = req.body;
+    
+    let backgroundImage = req.body.backgroundImage;
+    if (req.file) {
+      backgroundImage = `/uploads/templates/${req.file.filename}`;
+    }
+
+    const parseJson = (val) => {
+      if (!val) return {};
+      if (typeof val === 'string') {
+        try { return JSON.parse(val); } catch (_) { return {}; }
+      }
+      return val;
+    };
+
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (category !== undefined) updateData.category = category;
+    if (backgroundImage !== undefined) updateData.backgroundImage = backgroundImage;
+    if (logoPosition !== undefined) updateData.logoPosition = parseJson(logoPosition);
+    if (qrPosition !== undefined) updateData.qrPosition = parseJson(qrPosition);
+    if (businessNamePosition !== undefined) updateData.businessNamePosition = parseJson(businessNamePosition);
+    if (phonePosition !== undefined) updateData.phonePosition = parseJson(phonePosition);
+    if (addressPosition !== undefined) updateData.addressPosition = parseJson(addressPosition);
+    if (taglinePosition !== undefined) updateData.taglinePosition = taglinePosition ? parseJson(taglinePosition) : null;
+    if (bannerPosition !== undefined) updateData.bannerPosition = bannerPosition ? parseJson(bannerPosition) : null;
+    if (featuresPosition !== undefined) updateData.featuresPosition = featuresPosition ? parseJson(featuresPosition) : null;
+    if (benefitsPosition !== undefined) updateData.benefitsPosition = benefitsPosition ? parseJson(benefitsPosition) : null;
+    if (brandingText !== undefined) updateData.brandingText = brandingText;
+    if (status !== undefined) updateData.status = status === 'true' || status === true;
+
     const template = await prisma.posterTemplate.update({
       where: { id },
-      data: {
-        name,
-        category,
-        backgroundImage,
-        logoPosition,
-        qrPosition,
-        businessNamePosition,
-        phonePosition,
-        addressPosition,
-        status
-      }
+      data: updateData
     });
     res.json({ success: true, data: template });
   } catch (err) {
