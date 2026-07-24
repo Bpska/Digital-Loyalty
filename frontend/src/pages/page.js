@@ -760,10 +760,26 @@ export default function LandingPage() {
 
 
 
-                , React.createElement('ul', { className: "space-y-3 text-xs text-[#5A4E46] text-left pt-2" }
+                , React.createElement('ul', { className: "space-y-3 text-xs text-[#5A4E46] text-left pt-2 grid grid-cols-1 gap-y-3" }
                   , React.createElement('li', { className: "flex items-center space-x-2.5" }
                     , React.createElement(Check, { className: "h-4 w-4 text-[#FF6A00] shrink-0 font-extrabold" } )
-                    , React.createElement('span', null, React.createElement('strong', { className: "text-[#07122A]" }, "1 Branch"), " Outlet" )
+                    , React.createElement('span', null, React.createElement('strong', { className: "text-[#07122A]" }, "Digital Stamp Card"), " (Visit & Points)" )
+                  )
+                  , React.createElement('li', { className: "flex items-center space-x-2.5" }
+                    , React.createElement(Check, { className: "h-4 w-4 text-[#FF6A00] shrink-0 font-extrabold" } )
+                    , React.createElement('span', null, React.createElement('strong', { className: "text-[#07122A]" }, "Boost Google Reviews"), " via QR redirection" )
+                  )
+                  , React.createElement('li', { className: "flex items-center space-x-2.5" }
+                    , React.createElement(Check, { className: "h-4 w-4 text-[#FF6A00] shrink-0 font-extrabold" } )
+                    , React.createElement('span', null, "SEO-Friendly ", React.createElement('strong', { className: "text-[#07122A]" }, "AI-Generated Reviews" ))
+                  )
+                  , React.createElement('li', { className: "flex items-center space-x-2.5" }
+                    , React.createElement(Check, { className: "h-4 w-4 text-[#FF6A00] shrink-0 font-extrabold" } )
+                    , React.createElement('span', null, "Interactive ", React.createElement('strong', { className: "text-[#07122A]" }, "Scratch Card Gifts" ))
+                  )
+                  , React.createElement('li', { className: "flex items-center space-x-2.5" }
+                    , React.createElement(Check, { className: "h-4 w-4 text-[#FF6A00] shrink-0 font-extrabold" } )
+                    , React.createElement('span', null, React.createElement('strong', { className: "text-[#07122A]" }, "QR Base Setup"), " & Free Standee Shipping" )
                   )
                   , React.createElement('li', { className: "flex items-center space-x-2.5" }
                     , React.createElement(Check, { className: "h-4 w-4 text-[#FF6A00] shrink-0 font-extrabold" } )
@@ -775,11 +791,19 @@ export default function LandingPage() {
                   )
                   , React.createElement('li', { className: "flex items-center space-x-2.5" }
                     , React.createElement(Check, { className: "h-4 w-4 text-[#FF6A00] shrink-0 font-extrabold" } )
+                    , React.createElement('span', null, "GPS-Verified Anti-Fraud Checks" )
+                  )
+                  , React.createElement('li', { className: "flex items-center space-x-2.5" }
+                    , React.createElement(Check, { className: "h-4 w-4 text-[#FF6A00] shrink-0 font-extrabold" } )
                     , React.createElement('span', null, "Advanced Analytics Dashboard" )
                   )
                   , React.createElement('li', { className: "flex items-center space-x-2.5" }
                     , React.createElement(Check, { className: "h-4 w-4 text-[#FF6A00] shrink-0 font-extrabold" } )
-                    , React.createElement('span', null, "Custom Branding & Details" )
+                    , React.createElement('span', null, "Custom Branding & Color Customizer" )
+                  )
+                  , React.createElement('li', { className: "flex items-center space-x-2.5" }
+                    , React.createElement(Check, { className: "h-4 w-4 text-[#FF6A00] shrink-0 font-extrabold" } )
+                    , React.createElement('span', null, React.createElement('strong', { className: "text-[#07122A]" }, "24/7 Priority Support"), " (Chat & Email)" )
                   )
                 )
               )

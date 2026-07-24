@@ -9,6 +9,8 @@ import { auditLog } from '../../middlewares/audit.middleware.js';
 import prisma from '../../config/prisma.js';
 import { z } from 'zod';
 import { BusinessStatus } from '@prisma/client';
+import argon2 from 'argon2';
+
 
 const router = Router();
 
@@ -99,6 +101,34 @@ router.get('/dashboard', async (req, res, next) => {
       usedReviews,
       recentPayments: payments,
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── Payments Management ───────────────────────────────────────
+router.get('/payments', async (req, res, next) => {
+  try {
+    const { page, limit, skip } = parsePagination(req.query);
+
+    const [payments, total] = await Promise.all([
+      prisma.payment.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          subscription: {
+            include: {
+              business: { select: { id: true, name: true, phone: true } },
+              plan: { select: { name: true } },
+            },
+          },
+        },
+      }),
+      prisma.payment.count(),
+    ]);
+
+    sendSuccess(res, payments, 'Payments retrieved', 200, buildPaginationMeta(page, limit, total));
   } catch (err) {
     next(err);
   }
@@ -632,6 +662,25 @@ router.put('/settings', validate(settingsSchema), async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Zod schemas for User CRUD
+const createUserSchema = z.object({
+  name: z.string().min(1),
+  phone: z.string().min(1),
+  email: z.string().email().optional().nullable().or(z.literal('')),
+  role: z.enum(['SUPER_ADMIN', 'BUSINESS_ADMIN', 'STAFF', 'CUSTOMER']),
+  password: z.string().min(6).optional().nullable().or(z.literal('')),
+  isActive: z.boolean().default(true)
+});
+
+const updateUserSchema = z.object({
+  name: z.string().min(1).optional(),
+  phone: z.string().min(1).optional(),
+  email: z.string().email().optional().nullable().or(z.literal('')),
+  role: z.enum(['SUPER_ADMIN', 'BUSINESS_ADMIN', 'STAFF', 'CUSTOMER']).optional(),
+  password: z.string().min(6).optional().nullable().or(z.literal('')),
+  isActive: z.boolean().optional()
+});
+
 // Get all users in the platform (with optional role filter)
 router.get('/users', async (req, res, next) => {
   try {
@@ -641,20 +690,190 @@ router.get('/users', async (req, res, next) => {
         deletedAt: null,
         ...(role && { role }),
       },
-      select: {
-        id: true,
-        name: true,
-        phone: true,
-        email: true,
-        role: true,
+      include: {
+        ownedBusinesses: {
+          select: { id: true, name: true }
+        },
+        staffProfile: {
+          include: {
+            business: {
+              select: { id: true, name: true }
+            }
+          }
+        },
+        customerPoints: {
+          include: {
+            business: {
+              select: { id: true, name: true }
+            }
+          }
+        }
       },
       orderBy: { createdAt: 'desc' },
     });
-    sendSuccess(res, users, 'Users retrieved successfully');
+
+    const mappedUsers = users.map(user => {
+      let associatedBusinesses = [];
+      if (user.role === 'BUSINESS_ADMIN') {
+        associatedBusinesses = user.ownedBusinesses || [];
+      } else if (user.role === 'STAFF') {
+        if (user.staffProfile && user.staffProfile.business) {
+          associatedBusinesses = [user.staffProfile.business];
+        }
+      } else if (user.role === 'CUSTOMER') {
+        const bizMap = new Map();
+        if (user.customerPoints) {
+          user.customerPoints.forEach(cp => {
+            if (cp.business) {
+              bizMap.set(cp.business.id, cp.business);
+            }
+          });
+        }
+        associatedBusinesses = Array.from(bizMap.values());
+      }
+      
+      return {
+        id: user.id,
+        name: user.name,
+        phone: user.phone,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
+        associatedBusinesses
+      };
+    });
+
+    sendSuccess(res, mappedUsers, 'Users retrieved successfully');
   } catch (err) {
     next(err);
   }
 });
+
+// POST /admin/users - Create User
+router.post(
+  '/users',
+  validate(createUserSchema),
+  async (req, res, next) => {
+    try {
+      const { name, phone, email, role, password, isActive } = req.body;
+
+      const existingPhone = await prisma.user.findFirst({
+        where: { phone, deletedAt: null }
+      });
+      if (existingPhone) {
+        return res.status(400).json({ success: false, message: 'Phone number already registered' });
+      }
+
+      if (email) {
+        const existingEmail = await prisma.user.findFirst({
+          where: { email, deletedAt: null }
+        });
+        if (existingEmail) {
+          return res.status(400).json({ success: false, message: 'Email address already registered' });
+        }
+      }
+
+      let passwordHash = null;
+      if (password) {
+        passwordHash = await argon2.hash(password);
+      }
+
+      const user = await prisma.user.create({
+        data: {
+          name,
+          phone,
+          email: email || null,
+          role,
+          passwordHash,
+          isActive: isActive !== undefined ? isActive : true
+        }
+      });
+
+      sendCreated(res, user, 'User created successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// PATCH /admin/users/:id - Update User
+router.patch(
+  '/users/:id',
+  validate(updateUserSchema),
+  async (req, res, next) => {
+    try {
+      const { name, phone, email, role, password, isActive } = req.body;
+      const userId = req.params.id;
+
+      const userExists = await prisma.user.findUnique({
+        where: { id: userId }
+      });
+      if (!userExists) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+
+      if (phone && phone !== userExists.phone) {
+        const existingPhone = await prisma.user.findFirst({
+          where: { phone, deletedAt: null }
+        });
+        if (existingPhone) {
+          return res.status(400).json({ success: false, message: 'Phone number already registered' });
+        }
+      }
+
+      if (email && email !== userExists.email) {
+        const existingEmail = await prisma.user.findFirst({
+          where: { email, deletedAt: null }
+        });
+        if (existingEmail) {
+          return res.status(400).json({ success: false, message: 'Email address already registered' });
+        }
+      }
+
+      const updateData = {};
+      if (name !== undefined) updateData.name = name;
+      if (phone !== undefined) updateData.phone = phone;
+      if (email !== undefined) updateData.email = email || null;
+      if (role !== undefined) updateData.role = role;
+      if (isActive !== undefined) updateData.isActive = isActive;
+      
+      if (password) {
+        updateData.passwordHash = await argon2.hash(password);
+      }
+
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: updateData
+      });
+
+      sendSuccess(res, updatedUser, 'User updated successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// DELETE /admin/users/:id - Delete User
+router.delete(
+  '/users/:id',
+  async (req, res, next) => {
+    try {
+      const userId = req.params.id;
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          deletedAt: new Date(),
+          isActive: false
+        }
+      });
+
+      sendSuccess(res, null, 'User deleted successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 // ── AI Review Analytics ────────────────────────────────────────
 /**

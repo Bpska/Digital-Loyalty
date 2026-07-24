@@ -251,3 +251,5 @@ docker compose up -d --build
 22->direa gmail link .
 23-> * simble ad ed 
 24->
+
+docker compose exec postgres psql -U dlv_user -d dlv_db

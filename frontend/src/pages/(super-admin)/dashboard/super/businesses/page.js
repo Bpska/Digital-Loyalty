@@ -96,6 +96,127 @@ export default function BusinessesManagementPage() {
     queryFn: () => api.get("/admin/users").then((res) => res.data || []),
   });
 
+  // User Create/Edit modal state
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [userSearchTerm, setUserSearchTerm] = useState("");
+  const [userRoleFilter, setUserRoleFilter] = useState("ALL");
+  const [userForm, setUserForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    role: "CUSTOMER",
+    password: "",
+    isActive: true,
+  });
+
+  const [toastNotif, setToastNotif] = useState(null);
+  const showToast = (message, type = "success") => {
+    setToastNotif({ message, type });
+    setTimeout(() => setToastNotif(null), 4000);
+  };
+
+
+  // Fetch detailed users list (including associated businesses)
+  const { data: detailedUsers = [], isLoading: usersLoading } = useQuery({
+    queryKey: ["adminUsersListDetail", userRoleFilter],
+    queryFn: () => {
+      let url = "/admin/users?";
+      if (userRoleFilter !== "ALL") url += `role=${userRoleFilter}&`;
+      return api.get(url).then((res) => res.data || []);
+    },
+  });
+
+  const createUserMutation = useMutation({
+    mutationFn: (data) => api.post("/admin/users", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminUsersListDetail"] });
+      queryClient.invalidateQueries({ queryKey: ["adminUsersList"] });
+      setShowUserModal(false);
+      showToast("User created successfully!");
+    },
+    onError: (err) => {
+      showToast(err.response?.data?.message || err.message || "Failed to create user.", "error");
+    }
+  });
+
+  const updateUserMutation = useMutation({
+    mutationFn: ({ id, data }) => api.patch(`/admin/users/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminUsersListDetail"] });
+      queryClient.invalidateQueries({ queryKey: ["adminUsersList"] });
+      setShowUserModal(false);
+      showToast("User updated successfully!");
+    },
+    onError: (err) => {
+      showToast(err.response?.data?.message || err.message || "Failed to update user.", "error");
+    }
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: (id) => api.delete(`/admin/users/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminUsersListDetail"] });
+      queryClient.invalidateQueries({ queryKey: ["adminUsersList"] });
+      showToast("User deleted successfully!");
+    },
+    onError: (err) => {
+      showToast(err.response?.data?.message || err.message || "Failed to delete user.", "error");
+    }
+  });
+
+  const openCreateUserModal = () => {
+    setEditingUser(null);
+    setUserForm({
+      name: "",
+      phone: "",
+      email: "",
+      role: "CUSTOMER",
+      password: "",
+      isActive: true,
+    });
+    setShowUserModal(true);
+  };
+
+  const openEditUserModal = (user) => {
+    setEditingUser(user);
+    setUserForm({
+      name: user.name || "",
+      phone: user.phone || "",
+      email: user.email || "",
+      role: user.role || "CUSTOMER",
+      password: "",
+      isActive: user.isActive !== undefined ? user.isActive : true,
+    });
+    setShowUserModal(true);
+  };
+
+  const handleSubmitUser = (e) => {
+    e.preventDefault();
+    const payload = {
+      name: userForm.name,
+      phone: userForm.phone,
+      email: userForm.email || null,
+      role: userForm.role,
+      isActive: userForm.isActive,
+    };
+    if (userForm.password) {
+      payload.password = userForm.password;
+    }
+
+    if (editingUser) {
+      updateUserMutation.mutate({ id: editingUser.id, data: payload });
+    } else {
+      createUserMutation.mutate(payload);
+    }
+  };
+
+  const handleDeleteUser = (id, name) => {
+    if (window.confirm(`Are you sure you want to delete user "${name}"?`)) {
+      deleteUserMutation.mutate(id);
+    }
+  };
+
   // Create business mutation
   const createBusinessMutation = useMutation({
     mutationFn: (data) => api.post("/businesses", data),
@@ -516,11 +637,17 @@ export default function BusinessesManagementPage() {
             , React.createElement(Plus, { className: "mr-2 h-4 w-4", __self: this, __source: { fileName: _jsxFileName, lineNumber: 155 } }), " Create Plan"
           )
         )
+        , activeTab === "users" && (
+          React.createElement(Button, { onClick: () => openCreateUserModal(), className: "bg-primary hover:bg-primary/90 text-primary-foreground" }
+            , React.createElement(Plus, { className: "mr-2 h-4 w-4" }), " Create User"
+          )
+        )
       )
 
       , React.createElement(Tabs, { defaultValue: "businesses", className: "w-full", onValueChange: (val) => { setActiveTab(val); resetPlanForm(); setNotifSuccess(null); setNotifError(null); setSettingsSuccess(null); setSettingsError(null); }, __self: this, __source: { fileName: _jsxFileName, lineNumber: 160 } }
-        , React.createElement(TabsList, { className: "grid w-full grid-cols-4 mb-6" }
+        , React.createElement(TabsList, { className: "grid w-full grid-cols-5 mb-6" }
           , React.createElement(TabsTrigger, { value: "businesses" }, "Tenants")
+          , React.createElement(TabsTrigger, { value: "users" }, "Users")
           , React.createElement(TabsTrigger, { value: "plans" }, "Pricing Plans")
           , React.createElement(TabsTrigger, { value: "ai-reviews" }
             , React.createElement(MessageSquareText, { className: "h-3.5 w-3.5 mr-1.5" })
@@ -1732,6 +1859,105 @@ export default function BusinessesManagementPage() {
             )
           )
         )
+
+      /* Users Tab Content */
+      , React.createElement(TabsContent, { value: "users", className: "space-y-4" }
+        , React.createElement('div', { className: "flex flex-col sm:flex-row gap-4 items-center bg-slate-50 border border-border/60 rounded-xl p-4" }
+          , React.createElement('div', { className: "w-full sm:flex-1 space-y-1" }
+            , React.createElement(Label, { htmlFor: "user-search-input", className: "text-xs font-semibold text-muted-foreground" }, "Search Users Name / Phone")
+            , React.createElement(Input, {
+                id: "user-search-input",
+                placeholder: "e.g. Ramesh or +91...",
+                value: userSearchTerm,
+                onChange: (e) => setUserSearchTerm(e.target.value),
+                className: "bg-white border-border text-xs"
+              })
+          )
+          , React.createElement('div', { className: "w-full sm:w-48 space-y-1" }
+            , React.createElement(Label, { htmlFor: "user-role-filter", className: "text-xs font-semibold text-muted-foreground" }, "Role Filter")
+            , React.createElement('select', {
+                id: "user-role-filter",
+                value: userRoleFilter,
+                onChange: (e) => setUserRoleFilter(e.target.value),
+                className: "w-full h-10 border border-border rounded-md bg-white text-xs px-3 outline-none"
+              },
+                React.createElement('option', { value: "ALL" }, "All Roles"),
+                React.createElement('option', { value: "SUPER_ADMIN" }, "Super Admin"),
+                React.createElement('option', { value: "BUSINESS_ADMIN" }, "Business Admin"),
+                React.createElement('option', { value: "STAFF" }, "Staff"),
+                React.createElement('option', { value: "CUSTOMER" }, "Customer")
+              )
+          )
+        )
+
+        , usersLoading ? (
+          React.createElement('div', { className: "flex justify-center py-12" }
+            , React.createElement(Loader2, { className: "h-8 w-8 animate-spin text-primary" })
+          )
+        ) : detailedUsers.filter(u => {
+          if (!userSearchTerm) return true;
+          const term = userSearchTerm.toLowerCase();
+          return (u.name || "").toLowerCase().includes(term) || (u.phone || "").toLowerCase().includes(term) || (u.email || "").toLowerCase().includes(term);
+        }).length === 0 ? (
+          React.createElement(Card, { className: "border-dashed border-border bg-slate-50/50 py-12 text-center" }
+            , React.createElement(CardContent, { className: "flex flex-col items-center justify-center space-y-3" }
+              , React.createElement(Building2, { className: "h-10 w-10 text-muted-foreground" })
+              , React.createElement('p', { className: "text-sm text-muted-foreground font-medium" }, "No users found matching filters")
+            )
+          )
+        ) : (
+          React.createElement('div', { className: "grid grid-cols-1 gap-4" }
+            , detailedUsers.filter(u => {
+              if (!userSearchTerm) return true;
+              const term = userSearchTerm.toLowerCase();
+              return (u.name || "").toLowerCase().includes(term) || (u.phone || "").toLowerCase().includes(term) || (u.email || "").toLowerCase().includes(term);
+            }).map((user) => (
+              React.createElement(Card, { key: user.id, className: "bg-white border border-border/60 hover:shadow-sm transition-shadow duration-200" }
+                , React.createElement(CardContent, { className: "p-5 flex flex-col md:flex-row md:items-center justify-between gap-4" }
+                  , React.createElement('div', { className: "space-y-1" }
+                    , React.createElement('div', { className: "flex items-center gap-2" }
+                      , React.createElement('h3', { className: "text-sm font-bold text-foreground" }, user.name)
+                      , React.createElement('span', { className: `text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border ${
+                          user.role === 'SUPER_ADMIN' ? 'bg-red-50 text-red-700 border-red-200' :
+                          user.role === 'BUSINESS_ADMIN' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                          user.role === 'STAFF' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                          'bg-slate-50 text-slate-700 border-slate-200'
+                        }` }, user.role)
+                      , React.createElement('span', { className: `text-[9px] font-bold px-2 py-0.5 rounded-full border ${
+                          user.isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'
+                        }` }, user.isActive ? "Active" : "Inactive")
+                    )
+                    , React.createElement('p', { className: "text-xs text-muted-foreground font-mono" }, "Phone: ", user.phone)
+                    , user.email && React.createElement('p', { className: "text-xs text-muted-foreground" }, "Email: ", user.email)
+                    , React.createElement('div', { className: "text-xs text-slate-800 pt-1" }
+                      , React.createElement('span', { className: "font-semibold text-muted-foreground" }, "Associated Shops: ")
+                      , user.associatedBusinesses && user.associatedBusinesses.length > 0 ? (
+                          user.associatedBusinesses.map(b => b.name).join(", ")
+                        ) : (
+                          React.createElement('span', { className: "text-muted-foreground italic text-[11px]" }, "No associated shop")
+                        )
+                    )
+                  )
+                  , React.createElement('div', { className: "flex items-center gap-2 self-end md:self-center" }
+                    , React.createElement(Button, {
+                        variant: "outline",
+                        size: "sm",
+                        className: "text-xs border-indigo-200 text-indigo-700 hover:bg-indigo-50",
+                        onClick: () => openEditUserModal(user)
+                      }, "Edit User")
+                    , React.createElement(Button, {
+                        variant: "ghost",
+                        size: "sm",
+                        className: "text-xs text-red-650 hover:text-red-700 hover:bg-red-50",
+                        onClick: () => handleDeleteUser(user.id, user.name)
+                      }, "Delete")
+                  )
+                )
+              )
+            ))
+          )
+        )
+      )
       )
 
       /* Deploy/Edit Plan Modal */
@@ -2308,6 +2534,127 @@ export default function BusinessesManagementPage() {
                   )
               )
             )
+          )
+        )
+      )
+      /* Create / Edit User Dialog */
+      , showUserModal && (
+        React.createElement(Dialog, {
+          open: showUserModal,
+          onOpenChange: (open) => !open && setShowUserModal(false),
+        }
+          , React.createElement(DialogContent, { className: "max-w-[420px] bg-white border border-border" }
+            , React.createElement(DialogHeader, null
+              , React.createElement(DialogTitle, null, editingUser ? "Edit User Details" : "Create New User")
+              , React.createElement(DialogDescription, { className: "text-xs text-muted-foreground" }
+                , editingUser ? `Modify properties for "${editingUser.name}".` : "Enter credentials and choose a role for the new user."
+              )
+            )
+            , React.createElement('form', { onSubmit: handleSubmitUser, className: "space-y-4 py-2" }
+              , React.createElement('div', { className: "space-y-1.5" }
+                , React.createElement(Label, { htmlFor: "user-name", className: "text-xs font-semibold" }, "Full Name")
+                , React.createElement(Input, {
+                    id: "user-name",
+                    placeholder: "e.g. Ramesh Kumar",
+                    value: userForm.name,
+                    onChange: (e) => setUserForm(f => ({ ...f, name: e.target.value })),
+                    required: true,
+                    className: "text-xs border-border bg-white h-9"
+                  })
+              )
+              , React.createElement('div', { className: "space-y-1.5" }
+                , React.createElement(Label, { htmlFor: "user-phone", className: "text-xs font-semibold" }, "Phone Number")
+                , React.createElement(Input, {
+                    id: "user-phone",
+                    placeholder: "e.g. +91XXXXXXXXXX",
+                    value: userForm.phone,
+                    onChange: (e) => setUserForm(f => ({ ...f, phone: e.target.value })),
+                    required: true,
+                    className: "text-xs border-border bg-white h-9"
+                  })
+              )
+              , React.createElement('div', { className: "space-y-1.5" }
+                , React.createElement(Label, { htmlFor: "user-email", className: "text-xs font-semibold" }, "Email Address")
+                , React.createElement(Input, {
+                    id: "user-email",
+                    type: "email",
+                    placeholder: "e.g. ramesh@example.com",
+                    value: userForm.email,
+                    onChange: (e) => setUserForm(f => ({ ...f, email: e.target.value })),
+                    className: "text-xs border-border bg-white h-9"
+                  })
+              )
+              , React.createElement('div', { className: "space-y-1.5" }
+                , React.createElement(Label, { htmlFor: "user-role", className: "text-xs font-semibold" }, "System Role")
+                , React.createElement('select', {
+                    id: "user-role",
+                    value: userForm.role,
+                    onChange: (e) => setUserForm(f => ({ ...f, role: e.target.value })),
+                    className: "w-full h-9 border border-zinc-200 rounded-md bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6A00] text-slate-800"
+                  },
+                    React.createElement('option', { value: "CUSTOMER" }, "Customer"),
+                    React.createElement('option', { value: "STAFF" }, "Staff"),
+                    React.createElement('option', { value: "BUSINESS_ADMIN" }, "Business Admin"),
+                    React.createElement('option', { value: "SUPER_ADMIN" }, "Super Admin")
+                  )
+              )
+              , React.createElement('div', { className: "space-y-1.5" }
+                , React.createElement(Label, { htmlFor: "user-password", className: "text-xs font-semibold" }, editingUser ? "New Password (leave empty to keep current)" : "Password")
+                , React.createElement(Input, {
+                    id: "user-password",
+                    type: "password",
+                    placeholder: "••••••••",
+                    value: userForm.password,
+                    onChange: (e) => setUserForm(f => ({ ...f, password: e.target.value })),
+                    required: !editingUser,
+                    className: "text-xs border-border bg-white h-9"
+                  })
+              )
+              , React.createElement('div', { className: "flex items-center space-x-2 pt-1" }
+                , React.createElement(Switch, {
+                    id: "user-active",
+                    checked: userForm.isActive,
+                    onCheckedChange: (checked) => setUserForm(f => ({ ...f, isActive: checked }))
+                  })
+                , React.createElement(Label, { htmlFor: "user-active", className: "text-xs font-semibold cursor-pointer" }, "Account Active")
+              )
+
+              , React.createElement(DialogFooter, { className: "pt-2" }
+                , React.createElement(Button, {
+                    type: "button",
+                    variant: "outline",
+                    onClick: () => setShowUserModal(false)
+                  }, "Cancel")
+                , React.createElement(Button, {
+                    type: "submit",
+                    className: "bg-primary text-primary-foreground font-bold",
+                    disabled: createUserMutation.isPending || updateUserMutation.isPending
+                  }
+                    , (createUserMutation.isPending || updateUserMutation.isPending)
+                      ? React.createElement(Loader2, { className: "h-4 w-4 animate-spin" })
+                      : "Save User"
+                  )
+              )
+            )
+          )
+        )
+      )
+      /* Sidebar notification toast */
+      , toastNotif && (
+        React.createElement('div', {
+          className: `fixed top-20 right-5 z-[9999] w-80 bg-white border-l-4 ${
+            toastNotif.type === 'error' ? 'border-red-500' : 'border-emerald-500'
+          } shadow-2xl p-4 rounded-r-md transition-all duration-300 flex items-start gap-3 animate-in slide-in-from-right`
+        }
+          , React.createElement('div', { className: "flex-1" }
+            , React.createElement('h4', { className: "text-xs font-bold text-slate-900" }, toastNotif.type === 'error' ? 'Error' : 'Success')
+            , React.createElement('p', { className: "text-[11px] text-slate-600 mt-0.5" }, toastNotif.message)
+          )
+          , React.createElement('button', {
+              onClick: () => setToastNotif(null),
+              className: "text-slate-400 hover:text-slate-600 shrink-0"
+            }
+            , "✕"
           )
         )
       )

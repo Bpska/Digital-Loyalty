@@ -54,6 +54,7 @@ const SuperSupport    = React.lazy(() => import('./pages/(super-admin)/dashboard
 const SuperAds        = React.lazy(() => import('./pages/(super-admin)/dashboard/super/ads/page.js'));
 const SuperPosterManager = React.lazy(() => import('./pages/(super-admin)/dashboard/super/posters/page.jsx'));
 const SuperAdminCreators = React.lazy(() => import('./pages/(super-admin)/dashboard/super/creators/page.jsx'));
+const SuperPayments = React.lazy(() => import('./pages/(super-admin)/dashboard/super/payments/page.jsx'));
 
 // ── Creator Partner Program Pages ───────────────────────────────
 const CreatorAuth      = React.lazy(() => import('./pages/creator-auth.jsx'));
@@ -160,6 +161,7 @@ export default function App() {
               <Route path="/dashboard/super/ads" element={<SuperAds />} />
               <Route path="/dashboard/super/posters" element={<SuperPosterManager />} />
               <Route path="/dashboard/super/creators" element={<SuperAdminCreators />} />
+              <Route path="/dashboard/super/payments" element={<SuperPayments />} />
             </Route>
 
             {/* Creator Program Routes */}

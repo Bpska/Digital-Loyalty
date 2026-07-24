@@ -32,4 +32,4 @@ Allow: /
 User-agent: Applebot-Extended
 Allow: /
 
-Sitemap: https://loyaltysaar.in/sitemap.xml
+Sitemap: https://scanloyal.logisaar.in/sitemap.xml

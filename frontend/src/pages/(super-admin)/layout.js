@@ -15,7 +15,8 @@ import {
   MessageSquare,
   Megaphone,
   Palette,
-  Users
+  Users,
+  Banknote
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -53,6 +54,7 @@ export default function SuperAdminLayout({
   const menuItems = [
     { label: "Console Overview", icon: ShieldCheck, href: "/dashboard/super" },
     { label: "Businesses & Plans", icon: Building2, href: "/dashboard/super/businesses" },
+    { label: "Payments & Billing", icon: Banknote, href: "/dashboard/super/payments" },
     { label: "Poster Templates", icon: Palette, href: "/dashboard/super/posters" },
     { label: "Fraud Monitor", icon: AlertTriangle, href: "/dashboard/super/fraud" },
     { label: "Support Messages", icon: MessageSquare, href: "/dashboard/super/support" },
